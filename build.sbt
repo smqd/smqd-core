@@ -1,6 +1,5 @@
 
 import sbt.Keys._
-import sbt.StdoutOutput
 
 import scala.sys.process._
 
@@ -37,4 +36,11 @@ val `smqd-core` = project.in(file(".")).settings(
   credentials += Credentials(Path.userHome / ".sbt" / "pgp_credentials"),
   pgpPublicRing := file("./travis/local.pubring.asc"),
   pgpSecretRing := file("./travis/local.secring.asc")
-)
+).settings(
+  // License
+  organizationName := "UANGEL",
+  startYear := Some(2018),
+  licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
+  headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
+  headerMappings := headerMappings.value + (HeaderFileType.conf -> HeaderCommentStyle.hashLineComment)
+).enablePlugins(AutomateHeaderPlugin)
