@@ -1,6 +1,7 @@
 target/
 project/project/
 .idea/
+local.*
 .history
 .metadata
 .project

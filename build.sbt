@@ -20,6 +20,9 @@ val `smqd-core` = project.in(file(".")).settings(
   scalaVersion := Dependencies.Versions.scala,
   scalacOptions in ThisBuild ++= Seq("-feature", "-deprecation")
 ).settings(
+  pgpPublicRing := file("./travis/local.pubring.asc"),
+  pgpSecretRing := file("./travis/local.secring.asc")
+).settings(
   libraryDependencies ++=
     Dependencies.akka ++
       Dependencies.netty ++

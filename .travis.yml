@@ -1,7 +1,23 @@
+
+sudo: false
+
 language: scala
 
 jdk: oraclejdk8
 
 scala:
-  - 2.12.6
+- 2.12.6
 
+before_install:
+- if [ $TRAVIS_PULL_REQUEST = 'false' ]; then openssl aes-256-cbc -K $encrypted_474c3e42cec4_key
+  -iv $encrypted_474c3e42cec4_iv -in travis/secrets.tar.enc -out travis/secrets.tar
+  -d; tar xv -C travis -f travis/secrets.tar; fi
+
+after_success:
+- if [ $TRAVIS_PULL_REQUEST = 'false' ]; then sbt ++$TRAVIS_SCALA_VERSION releaseEarly;
+  fi
+
+env:
+  global:
+  - secure: M22UiROI1ZccTpynTundYZMMGl72jK7oX1jREt6gRAVQUeex5PNOb2uQCY8aD2zOahezFdyBevEHELg+M40UsaWlj3xxWRwpUtxVY/HifcSDC13yvaYj+gkbenHaKWQd5pEqbijrsWNpz4gNtvn7YgsItCwdpBqhUFbHYsuq1fpi23SXQPchadEhGw5QtkvTXe4A/A0W28fki/3Qu6kU3BW/Fb5fSOGzLCi9cp68Ko/gqUdkm0SebD7jnjQvgzrD33mdRZ0qrKOw3wxOKcP8uiH7TjS2Fe4aNyJWGSLS6su2hkKpTr/5o9FDwKiP17XZHNlQJGQgQdKoVxUU2PKIxCjBzwMfKqYiNFBvI6/9lw0FJz+KS00zMeC97nwItrrMWlwdXsUFBXQQigUcze90OidTfVLWqRxG5lOX44Mj0TThxwUP/mKdcy6S2ltkAvB6ZPgQGQsYAOh6TiLc6sS8Xck0IWSYIiHf0FwsopEL2cLmcMi6nB5xMxbESmkf6zBnaIDw+mGm1+qb+5Dq7wYMZuwQoJPg9q6SvvR9+6E7ZJShkYacVufxfcecbtWm8qV7EjpvZXmEIJqgIag/5avmRNSLVbsjZdBebxLJKzWdfg8zV5PQh8DP/wdyRDllS/WD8keMzPHVFNWpc+XKGIdYsyXDFnTc6PtqGaEMhohbrKA=
+  - secure: bpMMzgYacUpIo+kFIpOH2IL4CoO6kqT2eQNbqsz1VHc3trbcbD0Ij3Ft9EYaouHP2qM3EBEr8zit0yYf6ByEvO4UhdmaJBL8gNnXzq5o7kaiVKGFpWD0s/H0UewhDvhb7+5W4U9f1iG5Echmj5qm3zN5jZN8RZ0vt4fc0cxxK0tMqvzSNRci0qNo7rzRTHUIpZfvH8xzMriEWGQkfgJuBqGyVdb7HPFpq1su8BiA2Ppgu1CIgO7x8N6CSsd/lpTpPI66UlmpxNCyt0W0TzJeQxh9Om+MDJr2tHrPf5Xz616cE1F/Ypcm1LJtiaEJxaCRFSUz9YwsnPl02z5S3l5gHESqC597mPmI1N+6BVTYFVcXKvjgsDp/do5Pa0+MgXqbakFGv8fT6j3mIDdP5boHccPRjfCQ5n1hxW5ZC+ohvj7ZkhHUVubpwyi//mBr9XJVz1pO1z2E+7aeAIiMOxCmQeLwNHAAC4dNK6C0w+DgIEVKJmsNYzwd8rDOhc/IzZvGfdZNAFvsoW+G3c70XsxYkskJpR6X7MuGv92yZo64p60K8RZJiJ2VqNj5tCaI199TqtlHv7p3SwWFAEUOXNpRMhbfklZQePpbMubcb/Qd8v7YYNlOOeMGOJg/bIVZUzur2M437Ftm9xH6wMFqCKce3pGrv+WzRUXC1HJnJPZZB9Y=
