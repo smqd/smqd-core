@@ -19,14 +19,14 @@ SMQD is a Scalable Message Broker, runing as an standalone and can be embeded in
 
 - [x] Mqtt 3.1.1 (protocol level 0x04)
 - [x] Mqtt over TLS (mqtts, wss)
-- [x] Mqtt over Websocket
+- [x] Mqtt over Websockets
 - [x] Clustering (inter-nodes message routing)
-- [x] Local Subscription
-- [x] Queue Subscription 
-- [x] Shared Subscription
-- [x] System topics ($SYS)
+- [x] Local Topic
+- [x] Queued Topic
+- [x] Shared Topic
+- [x] System Topic ($SYS)
 - [x] Request & Response pattern in embed mode
-- [x] HTTP RESTful API (http, https)
+- [x] Http RESTful API (http, https)
 - [x] Bridge - Mqtt
 - [x] Bridge - Http
 
@@ -245,9 +245,9 @@ smqd {
 }
 ```
 
-- [smqd-bridge-mqtt](/smqd-bridge-mqtt/)
-- [smqd-bridge-http](/smqd-bridge-http/)
+- [smqd-bridge-mqtt](/smqd/smqd-bridge-mqtt/)
+- [smqd-bridge-http](/smqd/smqd-bridge-http/)
 
 ### Configuration
 
-- [Reference config](/smqd-core/src/main/resources/smqd-ref.conf)
+- [Reference config](src/main/resources/smqd-ref.conf)
