@@ -4,7 +4,7 @@ import sbt.StdoutOutput
 
 import scala.sys.process._
 
-val versionString = "0.1.0-SNAPSHOT"
+val versionString = "0.1.0"
 
 lazy val gitBranch = "git rev-parse --abbrev-ref HEAD".!!.trim
 lazy val gitCommitShort = "git rev-parse HEAD | cut -c 1-7".!!.trim
@@ -20,12 +20,20 @@ val `smqd-core` = project.in(file(".")).settings(
   scalaVersion := Dependencies.Versions.scala,
   scalacOptions in ThisBuild ++= Seq("-feature", "-deprecation")
 ).settings(
-  pgpPublicRing := file("./travis/local.pubring.asc"),
-  pgpSecretRing := file("./travis/local.secring.asc")
-).settings(
+  // Dependencies
   libraryDependencies ++=
     Dependencies.akka ++
       Dependencies.netty ++
       Dependencies.metrics ++
       Dependencies.crypto
+).settings(
+  // Publishing
+  publishTo := Some(
+    "bintray" at "https://api.bintray.com/maven/smqd/"+"smqd/smqd-core_2.12/;publish=0"),
+  credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
+  publishMavenStyle := true
+).settings(
+  // PGP signing
+  pgpPublicRing := file("./travis/local.pubring.asc"),
+  pgpSecretRing := file("./travis/local.secring.asc")
 )

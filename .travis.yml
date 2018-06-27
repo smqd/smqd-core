@@ -1,20 +1,20 @@
-
 sudo: false
-
 language: scala
-
 jdk: oraclejdk8
-
 scala:
 - 2.12.6
-
 before_install:
-- if [ $TRAVIS_PULL_REQUEST = 'false' ]; then openssl aes-256-cbc -K $encrypted_0ae33bd734a9_key -iv $encrypted_0ae33bd734a9_iv -in travis/secrets.tar.enc -out travis/local.secrets.tar -d; tar xv -C travis -f travis/local.secrets.tar; fi
-
+- if [ $TRAVIS_PULL_REQUEST = 'false' ]; then
+  openssl aes-256-cbc -K $encrypted_0ae33bd734a9_key
+  -iv $encrypted_0ae33bd734a9_iv
+  -in travis/secrets.tar.enc
+  -out travis/local.secrets.tar
+  -d;
+  tar xv -C travis -f travis/local.secrets.tar;
+  fi
 after_success:
 - if [ $TRAVIS_PULL_REQUEST = 'false' ]; then sbt ++$TRAVIS_SCALA_VERSION releaseEarly;
   fi
-
 env:
   global:
   - secure: M22UiROI1ZccTpynTundYZMMGl72jK7oX1jREt6gRAVQUeex5PNOb2uQCY8aD2zOahezFdyBevEHELg+M40UsaWlj3xxWRwpUtxVY/HifcSDC13yvaYj+gkbenHaKWQd5pEqbijrsWNpz4gNtvn7YgsItCwdpBqhUFbHYsuq1fpi23SXQPchadEhGw5QtkvTXe4A/A0W28fki/3Qu6kU3BW/Fb5fSOGzLCi9cp68Ko/gqUdkm0SebD7jnjQvgzrD33mdRZ0qrKOw3wxOKcP8uiH7TjS2Fe4aNyJWGSLS6su2hkKpTr/5o9FDwKiP17XZHNlQJGQgQdKoVxUU2PKIxCjBzwMfKqYiNFBvI6/9lw0FJz+KS00zMeC97nwItrrMWlwdXsUFBXQQigUcze90OidTfVLWqRxG5lOX44Mj0TThxwUP/mKdcy6S2ltkAvB6ZPgQGQsYAOh6TiLc6sS8Xck0IWSYIiHf0FwsopEL2cLmcMi6nB5xMxbESmkf6zBnaIDw+mGm1+qb+5Dq7wYMZuwQoJPg9q6SvvR9+6E7ZJShkYacVufxfcecbtWm8qV7EjpvZXmEIJqgIag/5avmRNSLVbsjZdBebxLJKzWdfg8zV5PQh8DP/wdyRDllS/WD8keMzPHVFNWpc+XKGIdYsyXDFnTc6PtqGaEMhohbrKA=
