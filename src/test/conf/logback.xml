@@ -1,0 +1,21 @@
+<configuration>
+  <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%date{HH:mm:ss.SSS} %-5level %magenta(%-40logger{40}) %msg%n%xException</pattern>
+      <!-- do we need thread name for debugging? in all async world?
+      <pattern>%date{HH:mm:ss.SSS} %level{5} [%thread] %magenta(%logger{40}) %msg%n%xException</pattern>
+      -->
+    </encoder>
+  </appender>
+
+  <appender name="asyncConsoleAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="consoleAppender" />
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="asyncConsoleAppender"/>
+  </root>
+
+  <logger name="io.netty" level="INFO"/>
+  <logger name="t2x" level="TRACE"/>
+</configuration>
