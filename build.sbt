@@ -29,7 +29,7 @@ val `smqd-core` = project.in(file(".")).settings(
 ).settings(
   // Publishing
   publishTo := Some(
-    "bintray" at "https://api.bintray.com/maven/smqd/"+"smqd/smqd-core_2.12/;publish=0"),
+    "bintray" at "https://api.bintray.com/maven/smqd/"+"smqd/smqd-core_2.12/;publish=1"),
   credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
   publishMavenStyle := true
 ).settings(
