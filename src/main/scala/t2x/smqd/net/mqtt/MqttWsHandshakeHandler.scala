@@ -32,13 +32,18 @@ class MqttWsHandshakeHandler(channelBpsCounter: ChannelHandler,
 
         logger.trace(s"Recv Http Request ${ctx.channel.toString}, Connection: $connection, Upgrade: $upgrade")
 
+        if (connection == null || upgrade == null) {
+          ctx.close()
+          return
+        }
+
         if (!connection.equalsIgnoreCase("Upgrade") &&
           !upgrade.equalsIgnoreCase("WebSocket")) {
           ctx.close()
           return
         }
 
-        logger.trace("Handshaking....")
+        //logger.trace("Handshaking....")
 
         //Do the Handshake to upgrade connection from HTTP to WebSocket protocol
         val wsUrl = "ws://"+headers.get("Host")+req.uri
@@ -50,7 +55,7 @@ class MqttWsHandshakeHandler(channelBpsCounter: ChannelHandler,
         }
         else {
           handshaker.handshake(ctx.channel, req).addListener { future: ChannelFuture =>
-            logger.debug("Handshake is done")
+            //logger.debug("Handshake is done")
 
             val pipeline = ctx.pipeline
 
@@ -74,11 +79,11 @@ class MqttWsFrameInboundHandler extends ChannelInboundHandlerAdapter with Strict
   override def channelRead(ctx: ChannelHandlerContext, msg: Any): Unit = {
     msg match {
       case bf: BinaryWebSocketFrame =>
-        logger.trace(s"BinaryWebSocketFrame Received : ${bf.content.readableBytes} bytes")
+        //logger.trace(s"BinaryWebSocketFrame Received : ${bf.content.readableBytes} bytes")
         ctx.fireChannelRead(bf.content)
 
       case tf: TextWebSocketFrame =>
-        logger.trace(s"TextWebSocketFrame Received : ${tf.text}")
+        //logger.trace(s"TextWebSocketFrame Received : ${tf.text}")
         ctx.fireChannelRead(tf.text)
 
       case ping: PingWebSocketFrame =>
@@ -101,7 +106,7 @@ class MqttWsFrameOutboundHandler extends ChannelOutboundHandlerAdapter with Stri
   override def write(ctx: ChannelHandlerContext, msg: scala.Any, promise: ChannelPromise): Unit = {
     msg match {
       case bb: ByteBuf =>
-        logger.trace(s"BinaryWebSocketFrame Sending : ${bb.readableBytes} bytes")
+        ///logger.trace(s"BinaryWebSocketFrame Sending : ${bb.readableBytes} bytes")
         ctx.write(new BinaryWebSocketFrame(bb))
 
       case _ =>

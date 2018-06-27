@@ -20,7 +20,7 @@ import scala.util.matching.Regex
   */
 
 class MqttWsChannelInitializer(smqd: Smqd,
-                               sslProvider: Option[SmqTlsProvider],
+                               sslProvider: Option[TlsProvider],
                                channelBpsCounter: ChannelHandler,
                                channelTpsCounter: ChannelHandler,
                                messageMaxSize: Int,

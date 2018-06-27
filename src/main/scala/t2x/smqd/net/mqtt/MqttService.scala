@@ -76,7 +76,7 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name
     if (config.getBoolean("ws.secure.enabled") ) {
       val localAddress: String = config.getString("ws.secure.address")
       val localPort: Int = config.getInt("ws.secure.port")
-      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttInitializer(true))
+      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttWsInitializer(true))
       channels +:= channel
     }
 

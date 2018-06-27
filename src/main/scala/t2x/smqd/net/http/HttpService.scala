@@ -25,8 +25,13 @@ import scala.util.{Failure, Success}
   */
 class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
 
+  val localEnabled: Boolean = config.getBoolean("local.enabled")
   val localBindAddress: String = config.getString("local.address")
   val localBindPort: Int = config.getInt("local.port")
+
+  val localSecureEnabled: Boolean = config.getBoolean("local.secure.enabled")
+  val localSecureBindAddress: String = config.getString("local.secure.address")
+  val localSecureBindPort: Int = config.getInt("local.secure.port")
 
   private var bindingFuture: Future[ServerBinding] = _
 
@@ -54,19 +59,45 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
       }
     }
 
-    val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(system), logAdapter)
     val handler = Route.asyncHandler(finalRoutes)
-    bindingFuture = serverSource.to(Sink.foreach{ connection =>
-      connection.handleWithAsyncHandler(httpRequest => handler(httpRequest))
-    }).run()
 
     implicit val executionContext: ExecutionContext = smqd.gloablDispatcher
-    bindingFuture.onComplete {
-      case Success(b) =>
-        logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
-      case Failure(e) =>
-        logger.error(s"Http Service [$name] Failed", e)
-        scala.sys.exit(-1)
+
+    if (localEnabled) {
+      val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(system), logAdapter)
+      bindingFuture = serverSource.to(Sink.foreach{ connection =>
+        connection.handleWithAsyncHandler(httpRequest => handler(httpRequest))
+      }).run()
+
+      bindingFuture.onComplete {
+        case Success(b) =>
+          logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
+        case Failure(e) =>
+          logger.error(s"Http Service [$name] Failed", e)
+          scala.sys.exit(-1)
+      }
+    }
+
+    smqd.tlsProvider match {
+      case Some(tlsProvider) if localSecureEnabled =>
+        tlsProvider.sslContext match {
+          case Some(sslContext) =>
+            val connectionContext = ConnectionContext.https(sslContext)
+            val serverSource = Http().bind(localSecureBindAddress, localSecureBindPort, connectionContext, ServerSettings(system), logAdapter)
+            bindingFuture = serverSource.to(Sink.foreach{ connection =>
+              connection.handleWithAsyncHandler(httpRequest => handler(httpRequest))
+            }).run()
+
+            bindingFuture.onComplete {
+              case Success(b) =>
+                logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
+              case Failure(e) =>
+                logger.error(s"Http Service [$name] Failed", e)
+                scala.sys.exit(-1)
+            }
+          case _ =>
+        }
+      case _ =>
     }
   }
 

@@ -1,5 +1,9 @@
 #!/usr/local/bin/python2
 
+#
+# for details about paho.mqtt.client, refer to https://www.eclipse.org/paho/clients/python/docs/
+#
+
 import paho.mqtt.client as mqtt
 import ssl, socket
 
@@ -21,8 +25,12 @@ def on_message(client, userdata, msg):
        print 'This is a RPC call. RequestID: ' + requestId + '. Going to reply now!'
        client.publish('v1/devices/me/rpc/response/' + requestId, "{\"value1\":\"A\", \"value2\":\"B\"}", 1)
 
+# mqtt over websockets
+client = mqtt.Client(client_id="py_tsl_2way", clean_session=True, userdata=None, protocol=mqtt.MQTTv311, transport="websockets")
 
-client = mqtt.Client()
+# mqtt over tcp
+# client = mqtt.Client(client_id="py_cli_2way", clean_session=True, userdata=None, protocol=mqtt.MQTTv311, transport="tcp")
+
 client.on_connect = on_connect
 client.on_message = on_message
 client.publish('v1/devices/me/attributes/request/1', "{\"clientKeys\":\"model\"}", 1)
@@ -31,7 +39,12 @@ client.tls_set(ca_certs="./keygen/smqd-server.pub.pem", certfile="./keygen/smqd-
                        tls_version=ssl.PROTOCOL_TLSv1, ciphers=None);
 
 client.tls_insecure_set(False)
-client.connect('smqd.thing2x.com', 4883, 10)
+
+# TLS
+#client.connect('smqd.thing2x.com', 4883, 30)
+
+# WSS
+client.connect('smqd.thing2x.com', 8083, 30)
 
 
 # Blocking call that processes network traffic, dispatches callbacks and

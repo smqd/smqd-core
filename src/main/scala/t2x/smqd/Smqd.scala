@@ -63,9 +63,9 @@ class Smqd(val config: Config,
   private var services: Seq[Service] = Nil
   private var bridgeDrivers: Map[String, BridgeDriver] = Map.empty
 
-  val tlsProvider: Option[SmqTlsProvider] = config.getOptionConfig("smqd.tls") match {
+  val tlsProvider: Option[TlsProvider] = config.getOptionConfig("smqd.tls") match {
     case Some(tlsConfig) =>
-      Some(SmqTlsProvider(tlsConfig))
+      Some(TlsProvider(tlsConfig))
     case None => None
   }
 

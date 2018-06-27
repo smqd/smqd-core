@@ -22,7 +22,9 @@ def on_message(client, userdata, msg):
        client.publish('v1/devices/me/rpc/response/' + requestId, "{\"value1\":\"A\", \"value2\":\"B\"}", 1)
 
 
-client = mqtt.Client()
+client = mqtt.Client(client_id="py_tsl_1way", clean_session=True, userdata=None, protocol=mqtt.MQTTv311, transport="websockets")
+#client = mqtt.Client(client_id="py_tsl_1way", clean_session=True, userdata=None, protocol=mqtt.MQTTv311, transport="tcp")
+
 client.on_connect = on_connect
 client.on_message = on_message
 client.publish('v1/devices/me/attributes/request/1', "{\"clientKeys\":\"model\"}", 1)
@@ -32,9 +34,13 @@ client.tls_set(ca_certs="./keygen/smqd-server.pub.pem", certfile=None, keyfile=N
 
 client.username_pw_set("ssluser", "ssluser")
 client.tls_insecure_set(False)
-#client.connect(socket.gethostname(), 4883, 1)
-client.connect('smqd.thing2x.com', 4883, 10)
 
+#client.connect(socket.gethostname(), 4883, 1)
+
+# TLS
+#client.connect('smqd.thing2x.com', 4883, 10)
+# WSS
+client.connect('smqd.thing2x.com', 8083, 30)
 
 # Blocking call that processes network traffic, dispatches callbacks and
 # handles reconnecting.

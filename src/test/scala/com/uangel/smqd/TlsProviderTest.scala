@@ -7,7 +7,7 @@ import t2x.smqd._
 /**
   * 2018. 6. 26. - Created by Kwon, Yeong Eon
   */
-class SmqTlsProviderTest extends FlatSpec{
+class TlsProviderTest extends FlatSpec{
 
   "tsl provider" should "create from file" in {
 
@@ -26,7 +26,7 @@ class SmqTlsProviderTest extends FlatSpec{
     val tlsConf = conf.getOptionConfig("smqd.tls")
     assert(tlsConf.isDefined)
 
-    val tlsProvider = SmqTlsProvider(tlsConf.get)
+    val tlsProvider = TlsProvider(tlsConf.get)
 
     val engine = tlsProvider.sslEngine
     assert(engine.isDefined)

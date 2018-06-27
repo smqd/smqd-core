@@ -30,10 +30,11 @@ val `smqd-core` = project.in(file(".")).settings(
   // Publishing
   publishTo := Some(
     "bintray" at "https://api.bintray.com/maven/smqd/"+"smqd/smqd-core_2.12/;publish=1"),
-  credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
+  credentials += Credentials(Path.userHome / ".sbt" / "bintray_credentials"),
   publishMavenStyle := true
 ).settings(
   // PGP signing
+  credentials += Credentials(Path.userHome / ".sbt" / "pgp_credentials"),
   pgpPublicRing := file("./travis/local.pubring.asc"),
   pgpSecretRing := file("./travis/local.secring.asc")
 )
