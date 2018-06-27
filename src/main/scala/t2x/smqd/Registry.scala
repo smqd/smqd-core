@@ -92,11 +92,7 @@ trait HashMapRegistry extends StrictLogging {
           registry.put(reg.filterPath, List(reg))
           addRoute(reg.filterPath)
       }
-
-      // debug begin
-      logger.debug(dump)
-      // debug end
-
+      // logger.debug(dump)
       reg.qos
     }
   }
@@ -137,11 +133,7 @@ trait HashMapRegistry extends StrictLogging {
         }
       }
     }
-
-    // debug begin
-    logger.debug(dump)
-    // debug end
-
+    // logger.debug(dump)
     result
   }
 

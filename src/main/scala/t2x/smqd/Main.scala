@@ -11,69 +11,47 @@ import scala.language.postfixOps
 /**
   * 2018. 5. 29. - Created by Kwon, Yeong Eon
   */
-object Main extends App with StrictLogging {
+trait SmqMain extends App with StrictLogging {
+  def dumpEnvNames: Seq[String] = Nil
 
-  //// for debug purpose /////
-  def dumpEnv(): Unit = {
-    Seq(
-      "config.file",
-      "logback.configurationFile",
-      "java.net.preferIPv4Stack",
-      "java.net.preferIPv6Addresses"
-    ).foreach{ k =>
+  // override for rebranding logo and application's version
+  def logo: String = ""
+  def versionString = ""
+  def configBasename = "smqd"
+
+  def buildSmqd(): Smqd = {
+    val config = buildConfig()
+    // print out logo first then load config,
+    // because there is chances to fail while loading config,
+    if (config == null) {
+      logger.info(logo+"\n")
+      scala.sys.exit(-1)
+    }
+    else {
+      val smqdVersion: String = config.getString("smqd.version")
+      logger.info(s"$logo $versionString(smqd: $smqdVersion)\n")
+    }
+
+    //// for debug purpose /////
+    dumpEnvNames.foreach{ k =>
       val v = System.getProperty(k, "<not defined>")
       logger.trace(s"-D$k = $v")
     }
-  }
-  //// build configuration ///////
+    //// build configuration ///////
 
-  // override for rebranding
-  val logo: String =
-    """
-      | ____   __  __   ___   ____
-      |/ ___| |  \/  | / _ \ |  _ \
-      |\___ \ | |\/| || | | || | | |
-      | ___) || |  | || |_| || |_| |
-      ||____/ |_|  |_| \__\_\|____/ """.stripMargin
-
-  // print out logo first then load config,
-  // because there is chances of failure for loading config,
-  private val config = buildConfig()
-
-  // override for rebranding
-  val versionString: String = ""
-
-  if (config == null) {
-    logger.info(logo+"\n")
-    scala.sys.exit(-1)
-  }
-  else {
-    val smqdVersion: String = config.getString("smqd.version")
-    logger.info(s"$logo $versionString($smqdVersion)\n")
+    try {
+      SmqdBuilder(config).build()
+    }
+    catch {
+      case ex: Throwable =>
+        logger.error("initialization failed", ex)
+        System.exit(1)
+        null
+    }
   }
 
-  dumpEnv()
-
-  private val smqd: Smqd = try {
-    SmqdBuilder(config).build()
-  }
-  catch {
-    case ex: Throwable =>
-      logger.error("initialization failed", ex)
-      System.exit(1)
-      null
-  }
-
-  try{
-    smqd.start()
-  }
-  catch {
-    case ex: Throwable =>
-      logger.error("starting failed", ex)
-      System.exit(1)
-  }
-
-  private def buildConfig(): Config = {
+  // override this to change the way of loading config
+  def buildConfig(): Config = {
     val akkaRefConfig = ConfigFactory.load( "reference.conf")
     val smqdRefConfig = ConfigFactory.load("smqd-ref.conf")
 
@@ -95,14 +73,45 @@ object Main extends App with StrictLogging {
       val in = getClass.getClassLoader.getResourceAsStream(configResourcePath)
       if (in == null) {
         logger.error(s"config.resource=$configResourcePath not found.")
-        scala.sys.error(s"config.file=$configFilePath not found.")
+        scala.sys.error(s"config.resource=$configFilePath not found.")
         return null
       }
       val configReader = new InputStreamReader(in)
       ConfigFactory.parseReader(configReader).withFallback(smqdRefConfig).withFallback(akkaRefConfig).resolve()
     }
     else {
-      ConfigFactory.load("smqd").withFallback(smqdRefConfig).withFallback(akkaRefConfig).resolve()
+      ConfigFactory.load(configBasename).withFallback(smqdRefConfig).withFallback(akkaRefConfig).resolve()
     }
+  }
+}
+
+object Main extends SmqMain with StrictLogging {
+
+  override val dumpEnvNames = Seq(
+    "config.file",
+    "logback.configurationFile",
+    "java.net.preferIPv4Stack",
+    "java.net.preferIPv6Addresses"
+  )
+
+  override val logo: String =
+    """
+      | ____   __  __   ___   ____
+      |/ ___| |  \/  | / _ \ |  _ \
+      |\___ \ | |\/| || | | || | | |
+      | ___) || |  | || |_| || |_| |
+      ||____/ |_|  |_| \__\_\|____/ """.stripMargin
+
+  // override for rebranding
+  override val versionString: String = ""
+
+  try{
+    val smqd = super.buildSmqd()
+    smqd.start()
+  }
+  catch {
+    case ex: Throwable =>
+      logger.error("starting failed", ex)
+      System.exit(1)
   }
 }

@@ -34,12 +34,14 @@ class ClusterModeRouter extends Router with StrictLogging {
   def set(routes: Map[FilterPath, Set[SmqdRoute]]): Unit = {
     this.routes = routes
 
+    /*
     logger.trace(
       routes.map{ case (f, s) =>
         s"$f -> ${ s.map( r =>
           r.actor.path.toStringWithAddress(r.actor.path.address)).mkString("\n            ", "\n            ", "")
         }"
       }.mkString("\nRoutes\n      ", "\n      ", ""))
+      */
   }
 
   def snapshot: Map[FilterPath, Set[SmqdRoute]] = routes
