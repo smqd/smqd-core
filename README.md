@@ -1,3 +1,7 @@
+# SMQD core
+
+[![Build Status](https://travis-ci.org/smqd/smqd-core.svg?branch=develop)](https://travis-ci.org/smqd/smqd-core)
+
 ## Usage
 
 SMQD is a Scalable Message Broker, runing as an standalone and can be embeded in a scala application
