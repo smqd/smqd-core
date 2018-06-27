@@ -245,8 +245,8 @@ smqd {
 }
 ```
 
-- [smqd-bridge-mqtt](/smqd/smqd-bridge-mqtt/)
-- [smqd-bridge-http](/smqd/smqd-bridge-http/)
+- [smqd-bridge-mqtt](http://github.com/smqd/smqd-bridge-mqtt/)
+- [smqd-bridge-http](http://github.com/smqd/smqd-bridge-http/)
 
 ### Configuration
 
