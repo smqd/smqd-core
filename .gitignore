@@ -24,6 +24,7 @@ src/main/resources/VERSION.NFO
 Californium.properties
 package-lock.json
 .sbtopts
+src/main/resources/smqd-core-version.conf
 
 # macOS
 .DS_Store
