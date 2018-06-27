@@ -15,8 +15,7 @@ import scala.language.postfixOps
   */
 trait ActorIdentifying extends StrictLogging {
 
-  def identifyActor(path: String)(implicit system: ActorSystem): ActorRef = {
-    implicit val timeout: Timeout = 2 second
+  def identifyActor(path: String)(implicit system: ActorSystem, timeout: Timeout = 2 second): ActorRef = {
 
     val future = system.actorSelection(path) ? Identify(this)
 
