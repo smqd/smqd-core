@@ -247,11 +247,9 @@ class Smqd(val config: Config,
   def subscribe(filterPath: FilterPath)(callback: PartialFunction[(TopicPath, Any), Unit]): ActorRef =
     registry.subscribe(filterPath)(callback)
 
-  def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean =
-    registry.unsubscribe(filterPath, actor)
-
-  def unsubscribeAll(actor: ActorRef): Boolean =
-    registry.unsubscribeAll(actor)
+  def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean = unsubscribe(actor, Some(filterPath))
+  def unsubscribe(actor: ActorRef, filterPath: Option[FilterPath] = None): Boolean =
+    filterPath match { case Some(filter) => registry.unsubscribe(filter, actor) case _ => registry.unsubscribeAll(actor) }
 
   def publish(topicPath: TopicPath, msg: Any, isRetain: Boolean = false): Unit =
     router.routes(RoutableMessage(topicPath, msg, isRetain))

@@ -293,7 +293,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
   private def channelClosed(clearSession: Boolean): Unit = {
     logger.trace(s"[${ctx.sessionId}] channel closed, clearSession: $clearSession")
     if (noOfSubscription.get > 0)
-      smqd.unsubscribeAll(self)
+      smqd.unsubscribe(self)
     context.stop(self)
   }
 }

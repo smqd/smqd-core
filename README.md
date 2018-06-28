@@ -131,7 +131,7 @@ smqd.subscribe("registry/test/#", myActor)
     smqd.publish(s"registry/test/$i/temp", s"Hello")
 }
 
-smqd.unsubscribeAll(myActor)
+smqd.unsubscribe(myActor)
 ```
 
 * callback subscription
@@ -146,7 +146,7 @@ val subr = smqd.subscribe("registry/test/+/temp"){
     smqd.publish(s"registry/test/$i/temp", s"Hello World - $i")
 }
 
-smqd.unsubscribeAll(subr)
+smqd.unsubscribe(subr)
 ```
 
 #### how to publish

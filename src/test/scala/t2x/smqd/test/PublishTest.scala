@@ -88,7 +88,7 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
         expectMsg(msg)
       }
 
-      smqd.unsubscribeAll(subr)
+      smqd.unsubscribe(subr)
     }
 
   "callback - function must work" in {
@@ -106,7 +106,7 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
       expectMsg(msg)
     }
 
-    smqd.unsubscribeAll(subr)
+    smqd.unsubscribe(subr)
   }
 }
 
@@ -122,7 +122,7 @@ val subscribeActor = system.actorOf(Props(classOf[PublishTest.SubsribeActor], te
         expectMsg(msg)
       }
 
-      smqd.unsubscribeAll(subscribeActor)
+      smqd.unsubscribe(subscribeActor)
     }
   }
 

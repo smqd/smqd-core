@@ -51,7 +51,7 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
 
   override def stop(): Unit = {
     subr match {
-      case Some(s) => smqd.unsubscribeAll(s)
+      case Some(s) => smqd.unsubscribe(s)
       case _ =>
     }
   }
