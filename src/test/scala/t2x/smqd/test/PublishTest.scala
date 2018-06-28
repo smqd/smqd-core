@@ -36,7 +36,7 @@ object PublishTest {
   class SubsribeActor(origin: ActorRef) extends Actor with StrictLogging {
     override def receive: Receive = {
       case (topic: TopicPath, msg: Any) =>
-        logger.info(s"==-==> ${topic} ${msg.toString}")
+        // logger.info(s"==-==> ${topic} ${msg.toString}")
         origin ! msg
     }
   }

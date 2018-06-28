@@ -72,7 +72,7 @@ class SmqdBuilder(config: Config) extends ClassLoading {
 
     if (system == null) {
       // create actor system
-      system = ActorSystem.create(config.getString("smqd.cluster.name"), config)
+      system = ActorSystem.create(config.getString("smqd.actor_system_name"), config)
       isClusterMode = system.settings.ProviderClass match {
         case "akka.cluster.ClusterActorRefProvider" => true
         case _ => false
@@ -145,9 +145,9 @@ class SmqdBuilder(config: Config) extends ClassLoading {
 
     val discovery = config.getString("smqd.cluster.discovery")
     val discoveryTimeout = config.getDuration("smqd.cluster.discovery_timeout").toMillis.millis
-    val nodeName = config.getString("smqd.nodename")
+    val nodeName = config.getString("smqd.node_name")
     val selfAddress = {
-      val sys  = config.getString("smqd.cluster.name")
+      val sys  = config.getString("smqd.actor_system_name")
       val host = config.getString("akka.remote.netty.tcp.hostname")
       val port = config.getInt("akka.remote.netty.tcp.port")
       AddressFromURIString.parse(s"akka.tcp://$sys@$host:$port")

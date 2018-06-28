@@ -16,7 +16,7 @@ package t2x.smqd
 
 import java.lang.management.ManagementFactory
 
-import akka.actor.{ActorRef, ActorSystem, Address, Props}
+import akka.actor.{ActorRef, ActorSystem, Address, AddressFromURIString, Props}
 import akka.cluster.Cluster
 import akka.dispatch.MessageDispatcher
 import akka.pattern.ask
@@ -25,7 +25,6 @@ import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
-import javax.net.ssl.SSLEngine
 import t2x.smqd.QoS.QoS
 import t2x.smqd.Smqd._
 import t2x.smqd.fault.FaultNotificationManager
@@ -56,7 +55,18 @@ class Smqd(val config: Config,
     val mxb = ManagementFactory.getRuntimeMXBean
     s"${mxb.getVmName} ${mxb.getSpecVersion} (${mxb.getVmVendor} ${mxb.getVmVersion})"
   }
-  val nodeName: String = config.getString("smqd.nodename")
+  val nodeName: String = config.getString("smqd.node_name")
+  val nodeHostPort: String = {
+    val name = system.settings.name
+    val host = system.settings.config.getString("akka.remote.netty.tcp.hostname")
+    val port = system.settings.config.getString("akka.remote.netty.tcp.port")
+    s"$name@$host:$port"
+  }
+  val nodeAddress: Address = AddressFromURIString.parse(s"akka.tcp://$nodeHostPort")
+  def uptime: Duration = system.uptime.second // uptime  Start-up time since the epoch
+  def uptimeString: String = humanReadableTime(system.uptime * 1000)
+
+
 
   implicit val gloablDispatcher: MessageDispatcher = system.dispatchers.defaultGlobalDispatcher
 
@@ -193,10 +203,7 @@ class Smqd(val config: Config,
       }
       else {
         logger.debug(">> {}", system.settings.setup)
-        val name = system.settings.name
-        val host = system.settings.config.getString("akka.remote.netty.tcp.hostname")
-        val port = system.settings.config.getString("akka.remote.netty.tcp.port")
-        s"$name@$host:$port"
+        this.nodeHostPort
       }
     }
 
@@ -209,7 +216,6 @@ class Smqd(val config: Config,
             m.status.toString,
             m.roles.map(_.toString),
             m.dataCenter,
-            humanReadableTime(system.uptime * 1000),
             leaderAddress match {
               case Some(addr) =>
                 m.address == addr
@@ -304,8 +310,7 @@ object Smqd {
     * @param status  membership status
     * @param roles   list of roles
     * @param dataCenter data center name
-    * @param uptime  Start-up time since the epoch
     * @param isLeader true if the node is leader of the cluster
     */
-  case class NodeInfo(address: String, status: String, roles: Set[String], dataCenter: String, uptime: String, isLeader: Boolean)
+  case class NodeInfo(address: String, status: String, roles: Set[String], dataCenter: String, isLeader: Boolean)
 }

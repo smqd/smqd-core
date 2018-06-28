@@ -18,7 +18,7 @@ package t2x.smqd.session
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
   */
 trait SessionStoreDelegate {
-
+/*
   /**
     * create new session
     * @param clientId client identifier
@@ -46,6 +46,7 @@ trait SessionStoreDelegate {
     * @param session MqttSession
     */
   //  def updateSession(clientId: String, session: MqttSession): Unit
+*/
 }
 
 class SessionStore(delegate: SessionStoreDelegate) {

@@ -87,7 +87,7 @@ package object smqd extends DefaultJsonProtocol {
 
   implicit def configToOptionalConfig(base: Config): OptionalConfig = new OptionalConfig(base)
 
-  implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat6(NodeInfo)
+  implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat5(NodeInfo)
 
   implicit object MetricCounterFormat extends RootJsonFormat[Counter] {
     override def write(c: Counter): JsValue = JsObject("count" -> JsNumber(c.getCount))
