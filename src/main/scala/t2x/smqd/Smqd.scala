@@ -221,6 +221,8 @@ class Smqd(val config: Config,
     }
   }
 
+  def service(name: String): Option[Service] = services.find(s => s.name == name)
+
   private lazy val faultManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+FaultNotificationManager.actorName)(system)
   def notifyFault(fault: SmqResult): Unit = faultManager ! fault
 

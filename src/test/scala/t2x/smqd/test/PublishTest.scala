@@ -1,4 +1,18 @@
-package com.uangel.smqd
+// Copyright 2018 UANGEL
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package t2x.smqd.test
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
@@ -64,7 +78,7 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
       val origin = self
       val subr = smqd.subscribe("registry/test/+/temp"){
         case (topic, msg) =>
-          logger.info(s"==p==> ${topic} ${msg}")
+          //logger.info(s"==p==> ${topic} ${msg}")
           origin ! msg
       }
 
@@ -80,7 +94,7 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
   "callback - function must work" in {
     val origin = self
     def callback(topic: TopicPath, msg: Any): Unit = {
-      logger.info(s"==m==> ${topic} ${msg}")
+      //logger.info(s"==m==> ${topic} ${msg}")
       origin ! msg
     }
 

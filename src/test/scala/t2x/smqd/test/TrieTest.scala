@@ -12,20 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package t2x.smqd
+package t2x.smqd.test
 
-import com.typesafe.config.Config
+import org.scalatest.FlatSpec
+
+import scala.collection.concurrent.TrieMap
 
 /**
-  * 2018. 6. 3. - Created by Kwon, Yeong Eon
+  * 2018. 5. 31. - Created by Kwon, Yeong Eon
   */
-abstract class Service(val name: String, smqd: Smqd, val config: Config) extends LifeCycle {
+class TrieTest extends FlatSpec {
 
-  def start(): Unit = {
+  val map = TrieMap[String, Int]()
 
+  "TrieTest" should "create zero size" in {
+    assert(map.isEmpty)
   }
 
-  def stop(): Unit = {
+  it should "insert new node" in {
 
   }
 }

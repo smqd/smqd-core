@@ -48,6 +48,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
   val localSecureBindPort: Int = config.getInt("local.secure.port")
 
   private var bindingFuture: Future[ServerBinding] = _
+  private var finalRoutes: Route = _
 
   override def start(): Unit = {
     logger.info(s"Http Service [$name] Starting...")
@@ -62,7 +63,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
     // merge all routes into a single route value
     // then encapsulate with log directives
-    val finalRoutes = logRequestResult(LoggingMagnet(_ => logAdapter.accessLog(System.nanoTime))) {
+    finalRoutes = logRequestResult(LoggingMagnet(_ => logAdapter.accessLog(System.nanoTime))) {
       if (routes.isEmpty) {
         emptyRoute
       }
@@ -123,6 +124,8 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
     logger.info(s"Http Service [$name] Stopped.")
   }
 
+  def routes: Route = finalRoutes
+
   private def loadRouteFromConfig(config: Config): Set[server.Route] = {
     val names = config.entrySet().asScala.map(entry => entry.getKey)
       .filter(key => key.endsWith(".prefix"))
@@ -147,7 +150,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
   private val emptyRoute: Route = {
     get {
-      complete(StatusCodes.InternalServerError, "There is no way.")
+      complete(StatusCodes.InternalServerError, "There is no way to go.")
     }
   }
 }
