@@ -215,11 +215,55 @@ client.on('connect', function () {
 
 ```
 
+### Customize behaviors
+
+#### Client Authentication
+
+Every application has its own policy to authenticate client's connections. SMQD put this role under `AuthDelegate`.
+Application that needs to customize the policy shlould implement `AuthDelegate`.
+The following code is SMQD's default AuthDelegate implimentation.
+
+There are three parameters for the method `authenticate`.
+`clientId` represents client-id that is defined in MQTT specification.
+And `userName` and `password` are `Option` as MQTT protocol.
+If your application doesn't want to allow zero-length clientId or empty `userName`,
+just return `BaseNameOrpassword` otherwise return `SmqSuccess`
+
+> The AuthDelegate is called only when a client is connecting to the SMQD (e.g: mqtt client).
+> Internal publishing/subscription via SMQD api is not a subject of the authentication
+
+```scala
+class MyAuthDelegate extends t2x.smqd.AuthDelegate {
+  override def authenticate(clientId: String, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
+    Future {
+      println(s"[$clientId] userName: $userName password: $password")
+      if (userName.isDefined && password.isDefined) {
+        if (userName.get == new String(password.get, "utf-8"))
+          SmqSuccess
+        else
+          BadUserNameOrPassword(clientId, "Bad user name or password ")
+      }
+      else {
+        SmqSuccess
+      }
+    }
+  }
+}
+```
+
+`SmqdBuilder` takes an instance of `AuthDelegate` implementation with `setAuthDelegate`
+
+```scala
+val smqd = SmqdBuilder(config)
+    .setAuthDelegate(new MyAuthDelegate())
+    .build()
+```
 
 ### Bridges
 
 To use bridge, smqd requires driver definition (BridgeDriver) and bridge config (Bridge).
 In general, the bridge and it's driver configurations are defined in `smqd.bridge` sections in the config file
+
 ```
 smqd {
   bridge {
