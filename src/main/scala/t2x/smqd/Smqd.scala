@@ -86,7 +86,7 @@ class Smqd(val config: Config,
   override def start(): Unit = {
 
     //// start Metric Registries
-    SharedMetricRegistries.setDefault("SMQ", new MetricRegistry())
+    Smqd.registerMetricRegistry()
 
     //// actors
     try {
@@ -288,6 +288,16 @@ class Smqd(val config: Config,
 }
 
 object Smqd {
+
+  private[smqd] def registerMetricRegistry(): Unit = {
+    // lock is required if multiple smqd instnaces exist in a JVM
+    synchronized{
+      if (SharedMetricRegistries.tryGetDefault == null) {
+        SharedMetricRegistries.setDefault("smqd", new MetricRegistry())
+      }
+    }
+  }
+
   /**
     *
     * @param address node's address that has format as "system@ipaddress:port"

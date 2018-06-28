@@ -15,14 +15,14 @@ SMQD is a Scalable Message Broker, runing as an standalone and can be embeded in
 ```scala
     resolvers += Resolver.bintrayRepo("smqd", "smqd")
 
-    libraryDependencies += "t2x.smqd" %% "smqd-core" % "0.1.0"
+    libraryDependencies += "t2x.smqd" %% "smqd-core" % "0.2.1"
 ```
 
 ### Features
 
 - [x] Mqtt 3.1.1 (protocol level 0x04)
-- [x] Mqtt over TLS (mqtts, wss)
-- [x] Mqtt over Websockets
+- [x] Mqtt over TLS (mqtt, mqtts)
+- [x] Mqtt over Websockets (ws, wss)
 - [x] Clustering (inter-nodes message routing)
 - [x] Local Topic
 - [x] Queued Topic
