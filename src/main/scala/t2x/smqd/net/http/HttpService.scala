@@ -27,7 +27,7 @@ import akka.stream.scaladsl.Sink
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import t2x.smqd.rest.RestController
-import t2x.smqd.{Service, Smqd}
+import t2x.smqd._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,13 +39,13 @@ import scala.util.{Failure, Success}
   */
 class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
 
-  val localEnabled: Boolean = config.getBoolean("local.enabled")
-  val localBindAddress: String = config.getString("local.address")
-  val localBindPort: Int = config.getInt("local.port")
+  val localEnabled: Boolean = config.getOptionBoolean("local.enabled").getOrElse(true)
+  val localBindAddress: String = config.getOptionString("local.address").getOrElse("0.0.0.0")
+  val localBindPort: Int = config.getOptionInt("local.port").getOrElse(80)
 
-  val localSecureEnabled: Boolean = config.getBoolean("local.secure.enabled")
-  val localSecureBindAddress: String = config.getString("local.secure.address")
-  val localSecureBindPort: Int = config.getInt("local.secure.port")
+  val localSecureEnabled: Boolean = config.getOptionBoolean("local.secure.enabled").getOrElse(false)
+  val localSecureBindAddress: String = config.getOptionString("local.secure.address").getOrElse("0.0.0.0")
+  val localSecureBindPort: Int = config.getOptionInt("local.secure.port").getOrElse(443)
 
   private var bindingFuture: Future[ServerBinding] = _
   private var finalRoutes: Route = _

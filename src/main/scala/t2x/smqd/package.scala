@@ -33,6 +33,18 @@ package object smqd extends DefaultJsonProtocol {
   implicit def stringToTopicPath(str: String): TopicPath = TopicPath(str)
 
   class OptionalConfig(base: Config) {
+    def getOptionBoolean(path: String): Option[Boolean] =
+      if (base.hasPath(path))
+        Some(base.getBoolean(path))
+      else
+        None
+
+    def getOptionLong(path: String): Option[Long] =
+      if (base.hasPath(path))
+        Some(base.getLong(path))
+      else
+        None
+
     def getOptionInt(path: String): Option[Int] =
       if (base.hasPath(path)) {
         Some(base.getInt(path))
