@@ -14,13 +14,17 @@
 
 package t2x.smqd
 
-import akka.actor.{ActorSystem, AddressFromURIString}
+import akka.actor.{ActorSystem, Address, AddressFromURIString}
 import akka.cluster.Cluster
 import com.typesafe.config.Config
+import t2x.smqd.discovery.{EtcdClusterDiscovery, FailedClusterDiscovery, ManualClusterDiscovery, StaticClusterDiscovery}
 import t2x.smqd.session.SessionStoreDelegate
 import t2x.smqd.util.ClassLoading
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Success
 
 /**
   * 2018. 6. 12. - Created by Kwon, Yeong Eon
@@ -67,26 +71,21 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     var isClusterMode = false
 
     if (system == null) {
+      // create actor system
       system = ActorSystem.create(config.getString("smqd.cluster.name"), config)
       isClusterMode = system.settings.ProviderClass match {
         case "akka.cluster.ClusterActorRefProvider" => true
         case _ => false
       }
 
+      // joining cluster
       if (isClusterMode) {
+        // cluster discovery is blocking operation as intended
+        val seeds = waitClusterDiscovery(system, config)
         val cluster = Cluster(system)
-        // no leader, so try to join
-        val discovery = config.getString("smqd.cluster.discovery")
-        val seeds = discovery match {
-          case "static" =>
-            config.getStringList("smqd.cluster.static.seeds").asScala
-              .map("akka.tcp://"+system.name+"@"+_)
-              .map(AddressFromURIString.parse)
-              .toList
-          case _ =>
-            Nil
-        }
-        cluster.joinSeedNodes(seeds)
+        if (seeds.isEmpty)
+          throw new IllegalStateException("Clsuter seeds not found")
+        cluster.joinSeedNodes(seeds.toList)
       }
     }
     else {
@@ -136,5 +135,42 @@ class SmqdBuilder(config: Config) extends ClassLoading {
       authDelegate,
       registryDelegate,
       sessionStoreDelegate)
+  }
+
+  // cluster discovery is blocking operation as intended
+  private def waitClusterDiscovery(system: ActorSystem, config: Config): Seq[Address] = {
+
+    implicit val ec: ExecutionContext = system.dispatcher
+    implicit val sys: ActorSystem = system
+
+    val discovery = config.getString("smqd.cluster.discovery")
+    val discoveryTimeout = config.getDuration("smqd.cluster.discovery_timeout").toMillis.millis
+    val nodeName = config.getString("smqd.nodename")
+    val selfAddress = {
+      val sys  = config.getString("smqd.cluster.name")
+      val host = config.getString("akka.remote.netty.tcp.hostname")
+      val port = config.getInt("akka.remote.netty.tcp.port")
+      AddressFromURIString.parse(s"akka.tcp://$sys@$host:$port")
+    }
+
+    logger.info("cluster discovery mode: {}", discovery)
+
+    val cfg = config.getConfig("smqd.cluster." + discovery)
+
+    val seeds = discovery match {
+      case "manual" =>
+        new ManualClusterDiscovery(cfg).seeds
+      case "static" =>
+        new StaticClusterDiscovery(cfg).seeds
+      case "etcd" =>
+        new EtcdClusterDiscovery(cfg, nodeName, selfAddress).seeds
+      case _ =>
+        new FailedClusterDiscovery(cfg).seeds
+    }
+
+    Await.ready(seeds, discoveryTimeout).value.get match {
+      case Success(ss) => ss
+      case _ => Nil
+    }
   }
 }

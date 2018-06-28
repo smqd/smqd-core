@@ -53,6 +53,11 @@ object Dependencies {
     "io.netty" % "netty-transport-native-kqueue" % Versions.netty // classifier "macos-x86_64"  // for macOS
   )
 
+  val etcd: Seq[ModuleID] = Seq(
+    //"com.coreos" % "jetcd-core" % "0.0.2"
+    "org.mousio" % "etcd4j" % "2.15.0"
+  )
+
   val crypto: Seq[ModuleID] = Seq(
     "org.bouncycastle" % "bcprov-jdk15on" % "1.56"
   )

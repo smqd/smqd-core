@@ -63,7 +63,7 @@ SMQD will not make cluster ranged routes for local subscription, and only delive
 
 #### Embeded Mode
 
-> SMQD's API is not stable yet which means application code using embeded SMQD may be changed according to the evolving SMQD
+> SMQD is work-in-progress and may break backward compatibility.
 
 * how to initialize
 
@@ -251,7 +251,19 @@ class MyAuthDelegate extends t2x.smqd.AuthDelegate {
 }
 ```
 
-`SmqdBuilder` takes an instance of `AuthDelegate` implementation with `setAuthDelegate`
+There are two ways to change AuthDelegate
+
+1) Application can change AuthDelegate through configuration
+
+```
+smqd {
+  delegates {
+    authentication = com.sample.MyAuthDelegate
+  }
+}
+```
+
+2) `SmqdBuilder` has `setAuthDelegate` API that takes an instance of `AuthDelegate`
 
 ```scala
 val smqd = SmqdBuilder(config)

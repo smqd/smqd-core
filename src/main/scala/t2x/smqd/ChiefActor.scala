@@ -110,5 +110,7 @@ class ChiefActor(smqd: Smqd, registry: Registry, router: Router, retainer: Retai
       }
     case evt: MemberEvent =>
       logger.info("Member event: {}", evt)
+    case props: Props =>
+      logger.info("received actor props: {}", props.toString)
   }
 }
