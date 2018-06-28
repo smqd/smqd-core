@@ -3,7 +3,7 @@
 smqd is scalable message queue daemon and also asynchronous messaging framework
 
 [![Build Status](https://travis-ci.org/smqd/smqd-core.svg?branch=develop)](https://travis-ci.org/smqd/smqd-core)
-[![Download](https://api.bintray.com/packages/smqd/smqd/smqd-core_2.12/images/download.svg?version=0.1.0)](https://bintray.com/smqd/smqd/smqd-core_2.12/0.1.0/link)
+[![Download](https://api.bintray.com/packages/smqd/smqd/smqd-core_2.12/images/download.svg?version=0.2.1)](https://bintray.com/smqd/smqd/smqd-core_2.12/0.2.1/link)
 [![License](http://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 
