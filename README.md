@@ -1,16 +1,12 @@
 # SMQD core
 
-smqd is scalable message queue daemon and also asynchronous messaging framework
-
 [![Build Status](https://travis-ci.org/smqd/smqd-core.svg?branch=develop)](https://travis-ci.org/smqd/smqd-core)
 [![Download](https://api.bintray.com/packages/smqd/smqd/smqd-core_2.12/images/download.svg?version=0.2.1)](https://bintray.com/smqd/smqd/smqd-core_2.12/0.2.1/link)
 [![License](http://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
-
+SMQD :: Scala Message Queue Daemon
 
 ## Usage
-
-SMQD is a Scalable Message Broker, runing as an standalone and can be embeded in a scala application
 
 ```scala
     libraryDependencies += "com.thing2x" %% "smqd-core" % "0.3.0"
