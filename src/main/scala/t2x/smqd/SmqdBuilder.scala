@@ -116,6 +116,7 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     //// load services
     serviceDefs = if (this.serviceDefs == null || serviceDefs.isEmpty) {
       val serviceNames = if (this.serviceDefs == null) config.getStringList("smqd.services").asScala else Nil
+      logger.debug("Services try loading service config: {}", serviceNames.mkString(", "))
       Map( serviceNames.map { sname =>
         val sconf = config.getConfig("smqd."+sname)
         sname -> sconf
@@ -124,7 +125,7 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     else {
       serviceDefs
     }
-    logger.info("Services: {}", serviceDefs.map{ case (name, _) => name}.mkString(", "))
+    logger.info("Services to load: {}", serviceDefs.map{ case (name, _) => name}.mkString(", "))
 
     //// create an instance
     new Smqd(config,

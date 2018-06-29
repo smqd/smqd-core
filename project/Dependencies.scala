@@ -8,6 +8,7 @@ object Dependencies {
   object Versions {
     val scala = "2.12.6"
     val akka = "2.5.13"
+    val akkaHttp = "10.1.3"
     val netty = "4.1.22.Final"
     val alpakka = "0.19"
   }
@@ -41,6 +42,8 @@ object Dependencies {
     //////////////////////////////////
     // Test
     "com.typesafe.akka" %% "akka-testkit" % Versions.akka % Test,
+    "com.typesafe.akka" %% "akka-stream-testkit" % Versions.akka % Test,
+    "com.typesafe.akka" %% "akka-http-testkit" % Versions.akkaHttp % Test,
     "org.scalatest" %% "scalatest" % "3.0.5" % Test
   )
 
@@ -55,7 +58,7 @@ object Dependencies {
 
   val etcd: Seq[ModuleID] = Seq(
     //"com.coreos" % "jetcd-core" % "0.0.2"
-    "org.mousio" % "etcd4j" % "2.15.0"
+    "org.mousio" % "etcd4j" % "2.15.0" excludeAll ExclusionRule(organization = "io.netty") force()
   )
 
   val crypto: Seq[ModuleID] = Seq(

@@ -56,24 +56,23 @@ class Smqd(val config: Config,
     s"${mxb.getVmName} ${mxb.getSpecVersion} (${mxb.getVmVendor} ${mxb.getVmVersion})"
   }
   val nodeName: String = config.getString("smqd.node_name")
-  val nodeHostPort: String = {
+  val isClusterMode: Boolean = system.settings.ProviderClass match {
+    case "akka.cluster.ClusterActorRefProvider" => true
+    case _ => false
+  }
+  val nodeHostPort: String = if (isClusterMode) {
     val name = system.settings.name
     val host = system.settings.config.getString("akka.remote.netty.tcp.hostname")
     val port = system.settings.config.getString("akka.remote.netty.tcp.port")
     s"$name@$host:$port"
+  } else {
+    nodeName
   }
-  val nodeAddress: Address = AddressFromURIString.parse(s"akka.tcp://$nodeHostPort")
+  val nodeAddress: Address = if (isClusterMode) AddressFromURIString.parse(s"akka.tcp://$nodeHostPort") else Address("", system.settings.name, nodeName, 0)
   def uptime: Duration = system.uptime.second // uptime  Start-up time since the epoch
   def uptimeString: String = humanReadableTime(system.uptime * 1000)
 
-
-
   implicit val gloablDispatcher: MessageDispatcher = system.dispatchers.defaultGlobalDispatcher
-
-  private val isClusterMode = system.settings.ProviderClass match {
-    case "akka.cluster.ClusterActorRefProvider" => true
-    case _ => false
-  }
 
   private val registry: Registry          = if (isClusterMode) new ClusterModeRegistry(system)  else new LocalModeRegistry(system)
   private val router: Router              = if (isClusterMode) new ClusterModeRouter()          else new LocalModeRouter(registry)
