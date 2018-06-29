@@ -3,7 +3,7 @@ import sbt.Keys._
 
 import scala.sys.process._
 
-val versionString = "0.3.0-SNAPSHOT"
+val versionString = "0.3.0"
 
 lazy val gitBranch = "git rev-parse --abbrev-ref HEAD".!!.trim
 lazy val gitCommitShort = "git rev-parse HEAD | cut -c 1-7".!!.trim
@@ -13,7 +13,7 @@ val versionFile       = s"echo version = $versionString" #> file("src/main/resou
 val commitVersionFile = s"echo commit-version = $gitCommitFull" #>> file("src/main/resources/smqd-core-version.conf") !
 
 val `smqd-core` = project.in(file(".")).settings(
-  organization := "t2x.smqd",
+  organization := "com.thing2x",
   name := "smqd-core",
   version := versionString,
   scalaVersion := Dependencies.Versions.scala,
@@ -28,9 +28,20 @@ val `smqd-core` = project.in(file(".")).settings(
       Dependencies.crypto
 ).settings(
   // Publishing
-  publishTo := Some(
-    "bintray" at "https://api.bintray.com/maven/smqd/"+"smqd/smqd-core_2.12/;publish=1"),
-  credentials += Credentials(Path.userHome / ".sbt" / "bintray_credentials"),
+  publishTo := {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value)
+      Some("snapshots" at nexus + "content/repositories/snapshots")
+    else
+      Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  },
+  credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials"),
+  homepage := Some(url("https://github.com/smqd/")),
+  scmInfo := Some(ScmInfo(url("https://github.com/smqd/smqd-core"), "scm:git@github.com:smqd/smqd-core.git")),
+  developers := List(
+    Developer("OutOfBedlam", "Kwon, Yeong Eon", "eirny@uangel.com", url("http://www.uangel.com"))
+  ),
+  publishArtifact in Test := false, // Not publishing the test artifacts (default)
   publishMavenStyle := true
 ).settings(
   // PGP signing

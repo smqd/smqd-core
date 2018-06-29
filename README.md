@@ -13,9 +13,7 @@ smqd is scalable message queue daemon and also asynchronous messaging framework
 SMQD is a Scalable Message Broker, runing as an standalone and can be embeded in a scala application
 
 ```scala
-    resolvers += Resolver.bintrayRepo("smqd", "smqd")
-
-    libraryDependencies += "t2x.smqd" %% "smqd-core" % "0.2.1"
+    libraryDependencies += "com.thing2x" %% "smqd-core" % "0.3.0"
 ```
 
 ### Features
