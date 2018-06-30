@@ -5,12 +5,12 @@
 [![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/https/oss.sonatype.org/com.thing2x/smqd-core_2.12.svg)](https://oss.sonatype.org/content/groups/public/com/thing2x/smqd-core_2.12/)
 [![License](http://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
-SMQD :: Scala Message Queue Daemon
+SMQD :: Scala MQtt Daemon
 
 ## Usage
 
 ```scala
-    libraryDependencies += "com.thing2x" %% "smqd-core" % "0.3.0"
+    libraryDependencies += "com.thing2x" %% "smqd-core" % "$version"
 ```
 
 If you want to try snapshot version, add a resolver for soatype repository
@@ -19,7 +19,7 @@ If you want to try snapshot version, add a resolver for soatype repository
     resolvers += Resolver.sonatypeRepo("public")
 ```
 
-### Features
+## Features
 
 - [x] Mqtt 3.1.1 (protocol level 0x04)
 - [x] Mqtt over TLS (mqtt, mqtts)
@@ -62,13 +62,13 @@ SMQD will not make cluster ranged routes for local subscription, and only delive
 - [x] $SYS/faults : system fault messages
 - [x] $SYS/protocols : MQTT network control packet tracking
 
-#### Embeded Mode
+## Embeded Mode
 
 > SMQD is work-in-progress and may break backward compatibility.
 
 * how to initialize
 
-simplest way
+#### simplest way
 
 ```scala
 val config = ConfigFactory.load("application.conf")
@@ -81,7 +81,7 @@ scala.sys.addShutdownHook {
 }
 ```
 
-customized way
+#### customized way
 
 ```scala
   val config = ConfigFactory.load("application.conf")
@@ -221,17 +221,17 @@ client.on('connect', function () {
 #### Client Authentication
 
 Every application has its own policy to authenticate client's connections. SMQD put this role under `AuthDelegate`.
-Application that needs to customize the policy shlould implement `AuthDelegate`.
+Application that needs to customize the authentication policy shlould implement `AuthDelegate`.
 The following code is SMQD's default AuthDelegate implimentation.
 
-There are three parameters for the method `authenticate`.
+There are three parameters for the method `authenticate()`.
 `clientId` represents client-id that is defined in MQTT specification.
 And `userName` and `password` are `Option` as MQTT protocol.
 If your application doesn't want to allow zero-length clientId or empty `userName`,
-just return `BaseNameOrpassword` otherwise return `SmqSuccess`
+just return `BaseNameOrpassword` instead of `SmqSuccess`
 
-> The AuthDelegate is called only when a client is connecting to the SMQD (e.g: mqtt client).
-> Internal publishing/subscription via SMQD api is not a subject of the authentication
+> The AuthDelegate is called only when a client is connecting to the SMQD via network as mqtt client.
+> Internal publishing/subscription by api is not a subject of the authentication
 
 ```scala
 class MyAuthDelegate extends com.thing2x.smqd.AuthDelegate {
@@ -252,9 +252,11 @@ class MyAuthDelegate extends com.thing2x.smqd.AuthDelegate {
 }
 ```
 
-There are two ways to change AuthDelegate
+There are two ways to register your `AuthDelegate`.
 
-1) Application can change AuthDelegate through configuration
+1) Change configuration to replace `AuthDelegate`.
+
+> In this case your customized AuthDelegate class shouldn't have any parameter to instanciate.
 
 ```
 smqd {
@@ -264,7 +266,9 @@ smqd {
 }
 ```
 
-2) `SmqdBuilder` has `setAuthDelegate` API that takes an instance of `AuthDelegate`
+2) `SmqdBuilder` has `setAuthDelegate()` that takes an instance of `AuthDelegate`.
+
+> If your `AuthDelegate` needs parameters to instanciate, this is the way to do.
 
 ```scala
 val smqd = SmqdBuilder(config)
