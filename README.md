@@ -1,7 +1,8 @@
 # SMQD core
 
 [![Build Status](https://travis-ci.org/smqd/smqd-core.svg?branch=develop)](https://travis-ci.org/smqd/smqd-core)
-[![Download](https://api.bintray.com/packages/smqd/smqd/smqd-core_2.12/images/download.svg?version=0.2.1)](https://bintray.com/smqd/smqd/smqd-core_2.12/0.2.1/link)
+[![Sonatype Nexus (Releases)](https://img.shields.io/nexus/r/https/oss.sonatype.org/com.thing2x/smqd-core_2.12.svg)](https://oss.sonatype.org/content/groups/public/com/thing2x/smqd-core_2.12/)
+[![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/https/oss.sonatype.org/com.thing2x/smqd-core_2.12.svg)](https://oss.sonatype.org/content/groups/public/com/thing2x/smqd-core_2.12/)
 [![License](http://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 SMQD :: Scala Message Queue Daemon
@@ -10,6 +11,12 @@ SMQD :: Scala Message Queue Daemon
 
 ```scala
     libraryDependencies += "com.thing2x" %% "smqd-core" % "0.3.0"
+```
+
+If you want to try snapshot version, add a resolver for soatype repository
+
+```scala
+    resolvers += Resolver.sonatypeRepo("public")
 ```
 
 ### Features
