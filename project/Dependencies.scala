@@ -9,7 +9,7 @@ object Dependencies {
     val scala = "2.12.6"
     val akka = "2.5.13"
     val akkaHttp = "10.1.3"
-    val netty = "4.1.22.Final"
+    val netty = "4.1.25.Final"
     val alpakka = "0.19"
   }
 
@@ -53,7 +53,8 @@ object Dependencies {
     "io.netty" % "netty-codec-http" % Versions.netty,
     "io.netty" % "netty-handler" % Versions.netty,
     "io.netty" % "netty-transport-native-epoll" % Versions.netty, //classifier "linux-x86_64",  // for Linux
-    "io.netty" % "netty-transport-native-kqueue" % Versions.netty // classifier "macos-x86_64"  // for macOS
+    "io.netty" % "netty-transport-native-kqueue" % Versions.netty, // classifier "macos-x86_64"  // for macOS
+    "io.netty" % "netty-resolver-dns" % Versions.netty
   )
 
   val etcd: Seq[ModuleID] = Seq(

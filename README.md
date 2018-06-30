@@ -234,7 +234,7 @@ just return `BaseNameOrpassword` otherwise return `SmqSuccess`
 > Internal publishing/subscription via SMQD api is not a subject of the authentication
 
 ```scala
-class MyAuthDelegate extends t2x.smqd.AuthDelegate {
+class MyAuthDelegate extends com.thing2x.smqd.AuthDelegate {
   override def authenticate(clientId: String, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
     Future {
       println(s"[$clientId] userName: $userName password: $password")
