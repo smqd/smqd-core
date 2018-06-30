@@ -207,7 +207,7 @@ class Smqd(val config: Config,
     }
 
     cluster match {
-      case Some(cl) =>
+      case Some(cl) => // cluster mode
         val leaderAddress = cl.state.leader
         cl.state.members.map{ m =>
           NodeInfo(
@@ -222,7 +222,16 @@ class Smqd(val config: Config,
                 false
             })
         }
-      case None => Set.empty
+      case None => // non-cluster mode
+        Set(
+          NodeInfo(
+            nodeHostPort,
+            "Up",
+            Set.empty,
+            "<non-cluster>",
+            isLeader = true
+          )
+        )
     }
   }
 

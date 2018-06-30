@@ -17,5 +17,5 @@
   </root>
 
   <logger name="io.netty" level="INFO"/>
-  <logger name="t2x" level="TRACE"/>
+  <logger name="com.thing2x" level="TRACE"/>
 </configuration>

@@ -20,7 +20,6 @@ import com.codahale.metrics.Counter
 import com.typesafe.config.Config
 import spray.json._
 import com.thing2x.smqd.Smqd.NodeInfo
-import com.thing2x.smqd.rest.jsonFormat6
 
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 import scala.language.implicitConversions
