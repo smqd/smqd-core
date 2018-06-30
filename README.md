@@ -10,7 +10,7 @@ SMQD :: Scala MQtt Daemon
 ## Usage
 
 ```scala
-    libraryDependencies += "com.thing2x" %% "smqd-core" % "$version"
+    libraryDependencies += "com.thing2x" %% "smqd-core" % "x.y.z"
 ```
 
 If you want to try snapshot version, add a resolver for soatype repository
@@ -50,7 +50,7 @@ SMQD will not make cluster ranged routes for local subscription, and only delive
     pub 'topic'
 ```
 
-#### Shared Subscription (Load balancing among the same group subscribers
+#### Shared Subscription (Load balancing among the same group subscribers)
 
 ```
     sub '$share/<group>/topic'
@@ -62,13 +62,63 @@ SMQD will not make cluster ranged routes for local subscription, and only delive
 - [x] $SYS/faults : system fault messages
 - [x] $SYS/protocols : MQTT network control packet tracking
 
+
+* how to subscribe to smqd via mqtt
+
+```
+mosquitto_sub -t sensor/1/# -h 127.0.0.1 -p 1883 -u user -P user -d -V mqttv311
+```
+
+* how to publish to smqd via mqtt
+
+```
+mosquitto_pub -t sensor/1/temp -h 127.0.0.1 -p 1883 -m "test message" -u user -P user -d -V mqttv311 -q 2
+```
+
+#### Mqtt over WebSocket
+
+* how to subscribe to smqd via ws
+
+```
+$ npm install mqtt --save
+```
+
+```javascript
+var mqtt = require('mqtt')
+var client  = mqtt.connect('ws://127.0.0.1:8086')
+
+client.on('connect', function () {
+  client.subscribe('sensor/+/temperature')
+})
+
+client.on('message', function (topic, message) {
+  // message is Buffer
+  console.log(message.toString())
+})
+```
+
+* how to publish to smqd via ws
+
+```javascript
+var mqtt = require('mqtt')
+var client  = mqtt.connect('ws://127.0.0.1:8086')
+
+client.on('connect', function () {
+  client.publish('sensor/1/temperature', '10')
+  client.publish('sensor/2/temperature', '20')
+  client.publish('sensor/3/temperature', '30')
+})
+
+```
+
 ## Embeded Mode
 
 > SMQD is work-in-progress and may break backward compatibility.
 
-* how to initialize
 
-#### simplest way
+### Initialize
+
+#### Simplest way
 
 ```scala
 val config = ConfigFactory.load("application.conf")
@@ -81,7 +131,7 @@ scala.sys.addShutdownHook {
 }
 ```
 
-#### customized way
+#### Customized way
 
 ```scala
   val config = ConfigFactory.load("application.conf")
@@ -105,13 +155,7 @@ scala.sys.addShutdownHook {
   }
 ```
 
-#### how to subscribe
-
-* standard mqtt client subscription
-
-```
-mosquitto_sub -t sensor/1/# -h 127.0.0.1 -p 1883 -u user -P user -d -V mqttv311
-```
+#### Subscribe API
 
 * actor subscription
 
@@ -119,8 +163,7 @@ mosquitto_sub -t sensor/1/# -h 127.0.0.1 -p 1883 -u user -P user -d -V mqttv311
 class SubsriberActor extends Actor {
   override def receive: Receive = {
     case (topic: TopicPath, msg: Any) =>
-      printlns"====> ${msg}")
-      origin ! msg + " World"
+      printlns"====> ${topic} ${msg}")
   }
 }
 
@@ -150,21 +193,13 @@ val subr = smqd.subscribe("registry/test/+/temp"){
 smqd.unsubscribe(subr)
 ```
 
-#### how to publish
-
-* standard mqtt client publish
-
-```
-mosquitto_pub -t sensor/1/temp -h 127.0.0.1 -p 1883 -m "test message" -u user -P user -d -V mqttv311 -q 2
-```
-
-* publish api for embeded mode
+#### Publish API
 
 ```scala
 smqd.publish("my/topic", "Hello Message")
 ```
 
-#### how to use request-response pattern
+#### Request-response API
 
 ```scala
 implicit val timeout: Timeout = 1 second
@@ -180,43 +215,7 @@ f.onComplete {
 }
 ```
 
-### Mqtt over WebSocket
-
-```
-$ npm install mqtt --save
-```
-
-#### how to subscribe via ws
-
-```javascript
-var mqtt = require('mqtt')
-var client  = mqtt.connect('ws://127.0.0.1:8086')
-
-client.on('connect', function () {
-  client.subscribe('sensor/+/temperature')
-})
-
-client.on('message', function (topic, message) {
-  // message is Buffer
-  console.log(message.toString())
-})
-```
-
-#### how to publish via ws
-
-```javascript
-var mqtt = require('mqtt')
-var client  = mqtt.connect('ws://127.0.0.1:8086')
-
-client.on('connect', function () {
-  client.publish('sensor/1/temperature', '10')
-  client.publish('sensor/2/temperature', '20')
-  client.publish('sensor/3/temperature', '30')
-})
-
-```
-
-### Customize behaviors
+## Customize behaviors
 
 #### Client Authentication
 
@@ -276,7 +275,7 @@ val smqd = SmqdBuilder(config)
     .build()
 ```
 
-### Bridges
+## Bridges
 
 To use bridge, smqd requires driver definition (BridgeDriver) and bridge config (Bridge).
 In general, the bridge and it's driver configurations are defined in `smqd.bridge` sections in the config file
