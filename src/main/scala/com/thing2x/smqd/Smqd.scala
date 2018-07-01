@@ -30,8 +30,6 @@ import com.thing2x.smqd.util._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
-import play.api.libs.ws.ahc.StandaloneAhcWSClient
-import play.shaded.ahc.org.asynchttpclient.DefaultAsyncHttpClientConfig
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
@@ -52,7 +50,6 @@ class Smqd(val config: Config,
     with ActorIdentifying
     with JvmAware
     with AkkaSystemAware
-    with AhcWSClientAware
     with StrictLogging {
 
   object Implicit {
@@ -74,8 +71,6 @@ class Smqd(val config: Config,
   def uptime: Duration = super.uptime
   def uptimeString: String = super.uptimeString
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
-
-  implicit lazy val wsClient: StandaloneAhcWSClient = createAhcWSClient(config.getOptionConfig("smqd.ahc_ws_client"))
 
   private val registry: Registry          = if (isClusterMode) new ClusterModeRegistry(system)  else new LocalModeRegistry(system)
   private val router: Router              = if (isClusterMode) new ClusterModeRouter()          else new LocalModeRouter(registry)

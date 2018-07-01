@@ -23,7 +23,7 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-distributed-data" % Versions.akka,
     //////////////////////////////////
     // akka http
-    "com.typesafe.akka" %% "akka-http"   % "10.1.3",
+    "com.typesafe.akka" %% "akka-http"   % Versions.akkaHttp,
     //////////////////////////////////
     // akka Stream
     "com.typesafe.akka" %% "akka-stream" % Versions.akka,
@@ -33,9 +33,6 @@ object Dependencies {
     //////////////////////////////////
     // json
     "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.3",
-    //////////////////////////////////
-    // ahc-ws
-    "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.0.0-M2",
     //////////////////////////////////
     // Logging
     "com.typesafe.akka" %% "akka-slf4j" % Versions.akka force(),
