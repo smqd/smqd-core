@@ -35,6 +35,11 @@ import scala.collection.JavaConverters._
   */
 object TlsProvider {
   def apply(config: Config) = new TlsProvider(config)
+  def apply(config: Option[Config]): Option[TlsProvider] = config match {
+    case Some(tlsConfig) =>
+      Some(TlsProvider(tlsConfig))
+    case None => None
+  }
 }
 
 class TlsProvider(config: Config) extends StrictLogging {

@@ -14,23 +14,24 @@
 
 package com.thing2x.smqd
 
-import java.lang.management.ManagementFactory
-
-import akka.actor.{ActorRef, ActorSystem, Address, AddressFromURIString, Props}
+import akka.actor.{ActorRef, ActorSystem, Address, Props}
 import akka.cluster.Cluster
 import akka.dispatch.MessageDispatcher
 import akka.pattern.ask
+import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
-import com.typesafe.config.Config
-import com.typesafe.scalalogging.StrictLogging
-import io.netty.buffer.ByteBuf
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.Smqd._
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.session.{SessionId, SessionStore, SessionStoreDelegate}
 import com.thing2x.smqd.util._
+import com.typesafe.config.Config
+import com.typesafe.scalalogging.StrictLogging
+import io.netty.buffer.ByteBuf
+import play.api.libs.ws.ahc.StandaloneAhcWSClient
+import play.shaded.ahc.org.asynchttpclient.DefaultAsyncHttpClientConfig
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
@@ -40,39 +41,41 @@ import scala.language.postfixOps
   * 2018. 6. 12. - Created by Kwon, Yeong Eon
   */
 class Smqd(val config: Config,
-           val system: ActorSystem,
+           _system: ActorSystem,
            bridgeDriverDefs: Map[String, Config],
            bridgeDefs: List[Config],
            serviceDefs: Map[String, Config],
            authDelegate: AuthDelegate,
            registryDelegate: RegistryDelegate,
            sessionStoreDelegate: SessionStoreDelegate)
-  extends LifeCycle with ActorIdentifying with StrictLogging {
+  extends LifeCycle
+    with ActorIdentifying
+    with JvmAware
+    with AkkaSystemAware
+    with AhcWSClientAware
+    with StrictLogging {
+
+  object Implicit {
+    implicit val system: ActorSystem = _system
+    private val materializerSettings = ActorMaterializerSettings.create(system)
+    implicit val materializer: Materializer = ActorMaterializer(materializerSettings, system.name)
+    implicit val gloablDispatcher: MessageDispatcher = system.dispatchers.defaultGlobalDispatcher
+  }
+
+  import Implicit._
 
   val version: String = config.getString("smqd.version")
   val commitVersion: String = config.getString("smqd.commit-version")
-  val javaVersion: String = {
-    val mxb = ManagementFactory.getRuntimeMXBean
-    s"${mxb.getVmName} ${mxb.getSpecVersion} (${mxb.getVmVendor} ${mxb.getVmVersion})"
-  }
   val nodeName: String = config.getString("smqd.node_name")
-  val isClusterMode: Boolean = system.settings.ProviderClass match {
-    case "akka.cluster.ClusterActorRefProvider" => true
-    case _ => false
-  }
-  val nodeHostPort: String = if (isClusterMode) {
-    val name = system.settings.name
-    val host = system.settings.config.getString("akka.remote.netty.tcp.hostname")
-    val port = system.settings.config.getString("akka.remote.netty.tcp.port")
-    s"$name@$host:$port"
-  } else {
-    nodeName
-  }
-  val nodeAddress: Address = if (isClusterMode) AddressFromURIString.parse(s"akka.tcp://$nodeHostPort") else Address("", system.settings.name, nodeName, 0)
-  def uptime: Duration = system.uptime.second // uptime  Start-up time since the epoch
-  def uptimeString: String = humanReadableTime(system.uptime * 1000)
+  val isClusterMode: Boolean = super.isClusterMode
+  val cluster: Option[Cluster] = super.cluster
+  val nodeHostPort: String = super.localNodeHostPort(nodeName)
+  val nodeAddress: Address = super.localNodeAddress(nodeName)
+  def uptime: Duration = super.uptime
+  def uptimeString: String = super.uptimeString
+  val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
 
-  implicit val gloablDispatcher: MessageDispatcher = system.dispatchers.defaultGlobalDispatcher
+  implicit lazy val wsClient: StandaloneAhcWSClient = createAhcWSClient(config.getOptionConfig("smqd.ahc_ws_client"))
 
   private val registry: Registry          = if (isClusterMode) new ClusterModeRegistry(system)  else new LocalModeRegistry(system)
   private val router: Router              = if (isClusterMode) new ClusterModeRouter()          else new LocalModeRouter(registry)
@@ -80,17 +83,9 @@ class Smqd(val config: Config,
   private val sessionStore: SessionStore  = new SessionStore(sessionStoreDelegate)
   private lazy val requestor: Requestor   = new Requestor(this)
 
-  val cluster: Option[Cluster] = if (isClusterMode) Some(Cluster(system)) else None
-
   private var chiefActor: ActorRef = _
   private var services: Seq[Service] = Nil
   private var bridgeDrivers: Map[String, BridgeDriver] = Map.empty
-
-  val tlsProvider: Option[TlsProvider] = config.getOptionConfig("smqd.tls") match {
-    case Some(tlsConfig) =>
-      Some(TlsProvider(tlsConfig))
-    case None => None
-  }
 
   override def start(): Unit = {
 

@@ -132,8 +132,8 @@ val subscribeActor = system.actorOf(Props(classOf[PublishTest.SubsribeActor], te
   "Request & Response" must {
     smqd.subscribe("request/func", serverActor)
 
+    import smqd.Implicit._
     implicit val timeout: Timeout = 1 second
-    implicit val ec: ExecutionContext = smqd.gloablDispatcher
 
     "success case" in {
 

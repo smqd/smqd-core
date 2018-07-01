@@ -46,7 +46,8 @@ class MqttChannelInitializer(smqd: Smqd,
     with ActorIdentifying
     with StrictLogging {
 
-  private val sessionManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+SessionManagerActor.actorName)(smqd.system)
+  import smqd.Implicit._
+  private val sessionManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+SessionManagerActor.actorName)
 
   override def initChannel(ch: SocketChannel): Unit = {
 

@@ -40,9 +40,10 @@ class MgmtController(name: String, smqd: Smqd, config: Config) extends RestContr
           case _ =>
             complete(StatusCodes.OK, restSuccess(0,
               JsObject(
-                "version"-> JsString(smqd.version),
+                "version" -> JsString(smqd.version),
                 "commitVersion" -> JsString(smqd.commitVersion),
-                "nodename"-> JsString(smqd.nodeName))))
+                "nodename" -> JsString(smqd.nodeName),
+                "jvm" -> JsString(smqd.javaVersionString))))
         }
       }
     }

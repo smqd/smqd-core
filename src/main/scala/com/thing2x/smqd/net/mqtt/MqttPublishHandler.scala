@@ -110,7 +110,7 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
 
     // AuthorizePublish
     val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-    import sessionCtx.smqd.gloablDispatcher
+    import sessionCtx.smqd.Implicit._
 
     sessionCtx.smqd.allowPublish(topicPath, sessionCtx.sessionId, sessionCtx.userName).onComplete {
 

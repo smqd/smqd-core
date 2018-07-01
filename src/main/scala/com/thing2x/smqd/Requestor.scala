@@ -33,7 +33,7 @@ import scala.language.postfixOps
   */
 class Requestor(smqd: Smqd) extends ActorIdentifying with StrictLogging {
 
-  private implicit val system: ActorSystem = smqd.system
+  import smqd.Implicit._
 
   private val requestManager: ActorRef = identifyActor(manager(RequestManagerActor.actorName))(system)
 

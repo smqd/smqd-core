@@ -53,8 +53,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
   override def start(): Unit = {
     logger.info(s"Http Service [$name] Starting...")
 
-    implicit val system: ActorSystem = smqd.system
-    implicit val materializer: ActorMaterializer = ActorMaterializer()
+    import smqd.Implicit._
 
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 
@@ -75,8 +74,6 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
     }
 
     val handler = Route.asyncHandler(finalRoutes)
-
-    implicit val executionContext: ExecutionContext = smqd.gloablDispatcher
 
     if (localEnabled) {
       val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(system), logAdapter)
@@ -119,7 +116,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
   override def stop(): Unit = {
     logger.info(s"Http Service [$name] Stopping...")
 
-    implicit val executionContext: ExecutionContext = smqd.gloablDispatcher
+    import smqd.Implicit._
     bindingFuture.flatMap(_.unbind()) // trigger unbinding from the port
     logger.info(s"Http Service [$name] Stopped.")
   }

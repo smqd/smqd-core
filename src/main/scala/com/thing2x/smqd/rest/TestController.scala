@@ -33,9 +33,7 @@ class TestController(name: String, smqd: Smqd, config: Config) extends RestContr
 
   override def routes: Route = metrics
 
-  private implicit val system: ActorSystem = smqd.system
-  private implicit val ec: ExecutionContext = smqd.gloablDispatcher
-  private implicit val materializer: ActorMaterializer = ActorMaterializer()
+  import smqd.Implicit._
 
   def metrics: Route = {
     ignoreTrailingSlash {

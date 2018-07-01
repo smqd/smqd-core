@@ -179,7 +179,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
   private def subscribe(subs: Seq[Subscription], promise: Promise[Seq[QoS]]): Unit = {
     var retained = List.empty[RetainedMessage]
 
-    import smqd.gloablDispatcher
+    import smqd.Implicit._
 
     val allowFuture = subs.map{ s =>
 
@@ -261,7 +261,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
   }
 
   private def unsubscribe(unsubs: Seq[String], promise: Promise[Seq[Boolean]]): Unit = {
-    import smqd.gloablDispatcher
+    import smqd.Implicit._
 
     val future = Future {
       unsubs.map { topicName =>

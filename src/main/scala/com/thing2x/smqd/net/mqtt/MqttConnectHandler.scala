@@ -166,7 +166,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     sessionCtx.userName = if (hasUserName) Some(pl.userName) else None
     sessionCtx.password = if (hasPassword) Some(pl.passwordInBytes) else None
 
-    import sessionCtx.smqd.gloablDispatcher
+    import sessionCtx.smqd.Implicit._
 
     // [MQTT-3.1.3-9] If the Server rejects the ClientId it MUST respond to the CONNECT Packet with a CONNACK
     //                return code 0x02 (Identifier rejected) and then close the Network Connection
@@ -270,7 +270,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.2.2-1] If the Server accepts a connection with CleanSession set to 1, the Server MUST set
       // Session Present to 0 in the CONNACK packet in addition to setting a zero return code in CONNACK packet
 
-      import sessionCtx.smqd.gloablDispatcher
+      import sessionCtx.smqd.Implicit._
       implicit val timeout: Timeout = 1.second
       sessionManager ? CreateSession(sessionCtx) map {
         case SessionCreated(clientId, sessionActor) =>
@@ -294,8 +294,8 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.2.2-2] If the Server has stored Session state, it MUST set Session Present to 1
       // [MQTT-3.2.2-3] If the Server does not have stored Session State, it MUST set Session Present to 0
 
+      import sessionCtx.smqd.Implicit._
       implicit val timeout: Timeout = 1 second
-      implicit val ec = sessionCtx.smqd.system.dispatchers.defaultGlobalDispatcher
       val clientId = sessionCtx.sessionId.id
 
       sessionManager ? FindSession(sessionCtx, createIfNotExist = true) map {

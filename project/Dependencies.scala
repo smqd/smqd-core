@@ -31,9 +31,11 @@ object Dependencies {
     // alpakka Stream
     "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % Versions.alpakka,
     //////////////////////////////////
-    // akka Stream
-    "io.spray" %% "spray-json" % "1.3.3",
+    // json
     "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.3",
+    //////////////////////////////////
+    // ahc-ws
+    "com.typesafe.play" %% "play-ahc-ws-standalone" % "2.0.0-M2",
     //////////////////////////////////
     // Logging
     "com.typesafe.akka" %% "akka-slf4j" % Versions.akka force(),

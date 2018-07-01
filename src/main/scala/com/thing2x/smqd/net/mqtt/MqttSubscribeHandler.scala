@@ -82,7 +82,7 @@ class MqttSubscribeHandler extends ChannelInboundHandlerAdapter with StrictLoggi
       Subscription(s.topicName(), s.qualityOfService())
     }
 
-    import sessionCtx.smqd.gloablDispatcher
+    import sessionCtx.smqd.Implicit._
 
     val result = Promise[Seq[QoS]]
 
@@ -112,7 +112,7 @@ class MqttSubscribeHandler extends ChannelInboundHandlerAdapter with StrictLoggi
     val pl = m.payload()
     val unsubs = pl.topics().asScala
 
-    import sessionCtx.smqd.gloablDispatcher
+    import sessionCtx.smqd.Implicit._
 
     val result = Promise[Seq[Boolean]]
 
