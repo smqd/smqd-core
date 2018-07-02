@@ -19,6 +19,7 @@ import io.netty.channel._
 import io.netty.handler.codec.mqtt.MqttMessageType._
 import io.netty.handler.codec.mqtt._
 import com.thing2x.smqd.protocol._
+import com.thing2x.smqd.session.SessionState
 
 import scala.collection.JavaConverters._
 
@@ -59,7 +60,7 @@ trait MqttProtocolNotifier {
 
   def notifyMessage(handlerContext: ChannelHandlerContext, msg: MqttMessage, dir: ProtocolDirection): Unit = {
     val channelCtx = handlerContext.channel.attr(ATTR_SESSION_CTX).get
-    val clientId = if (channelCtx.haveConnectMessage) {
+    val clientId = if (channelCtx.state >= SessionState.ConnectReceived) {
       channelCtx.clientId.toString
     } else {
       msg match {

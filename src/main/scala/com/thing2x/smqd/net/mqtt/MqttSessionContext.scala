@@ -14,14 +14,14 @@
 
 package com.thing2x.smqd.net.mqtt
 
+import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd._
+import com.thing2x.smqd.session.{SessionActor, SessionContext}
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.{ChannelFuture, ChannelHandlerContext}
 import io.netty.handler.codec.mqtt._
-import com.thing2x.smqd.QoS.QoS
-import com.thing2x.smqd._
-import com.thing2x.smqd.session.{SessionActor, SessionContext}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -34,15 +34,32 @@ object MqttSessionContext {
   def apply(channelContext: ChannelHandlerContext, smqd: Smqd) = new MqttSessionContext(channelContext, smqd)
 }
 
+import com.thing2x.smqd.session.SessionState
+import com.thing2x.smqd.session.SessionState.{SessionState => State}
+
 class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd) extends SessionContext with StrictLogging {
   val channelId = MqttChannelId(channelContext.channel().asInstanceOf[SocketChannel].remoteAddress())
 
-  private var _haveConnectMessage: Boolean = false
-  def haveConnectMessage: Boolean = _haveConnectMessage
-  def haveConnectMessage_= (flag: Boolean): Unit = {
-    if (_haveConnectMessage) return // allow only one time change
-    _haveConnectMessage = flag
+  private var _state: State = SessionState.Initiated
+  override def state: State = _state
+  override def state_= (state: State): Unit = {
+    import SessionState._
+    _state = _state match {
+      case Failed => Failed
+      case Initiated if state != ConnectReceived => Failed
+      case ConnectReceived if state != ConnectAcked => Failed
+      case ConnectAcked => Failed
+      case _ => state
+    }
   }
+
+//  // Did we have received CONNECT?
+//  private var _haveConnectMessage: Boolean = false
+//  def haveConnectMessage: Boolean = _haveConnectMessage
+//  def haveConnectMessage_= (flag: Boolean): Unit = {
+//    if (_haveConnectMessage) return // allow only one time change
+//    _haveConnectMessage = flag
+//  }
 
   private var _clientId: ClientId = _
   override def clientId: ClientId = _clientId

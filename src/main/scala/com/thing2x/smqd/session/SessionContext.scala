@@ -29,6 +29,9 @@ trait SessionContext {
   def keepAliveTimeSeconds: Int
   def cleanSession: Boolean
 
+  def state: SessionState.SessionState
+  def state_= (state: SessionState.SessionState): Unit
+
   def sessionStarted(): Unit
   def sessionStopped(): Unit
   def sessionTimeout(): Unit
@@ -36,3 +39,9 @@ trait SessionContext {
 
   def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: ByteBuf): Unit
 }
+
+object SessionState extends Enumeration {
+  type SessionState = super.Value
+  val Failed, Initiated, ConnectReceived, ConnectAcked = Value
+}
+

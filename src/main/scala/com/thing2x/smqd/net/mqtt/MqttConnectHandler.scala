@@ -19,6 +19,7 @@ import akka.util.Timeout
 import com.thing2x.smqd._
 import com.thing2x.smqd.fault._
 import com.thing2x.smqd.session.SessionManagerActor._
+import com.thing2x.smqd.session.SessionState
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.{ChannelHandlerContext, ChannelInboundHandlerAdapter}
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode._
@@ -26,7 +27,7 @@ import io.netty.handler.codec.mqtt.MqttMessageType._
 import io.netty.handler.codec.mqtt.MqttQoS._
 import io.netty.handler.codec.mqtt._
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.matching.Regex
@@ -94,15 +95,13 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
 
     // prevent multiple CONNECT messages
-    if (sessionCtx.haveConnectMessage) {
+    sessionCtx.state = SessionState.ConnectReceived
+    if (sessionCtx.state == SessionState.Failed) {
       // [MQTT-3.1.0-2] A client can only send the CONNECT Packet once over a Network Connection.
       // The Server MUST process a second CONNECT Packet sent from Client as a protocol violation and disconnect the Client
       sessionCtx.smqd.notifyFault(MutipleConnectRejected)
       channelCtx.close()
       return
-    }
-    else {
-      sessionCtx.haveConnectMessage = true
     }
 
     val vh = m.variableHeader // variable header
@@ -261,6 +260,9 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // [MQTT-3.1.3-2] Each Client connecting to the Server has a unique ClientId. The ClientId MUST be used by Clients
     // and by Servers to identify state that they hold relating to this MQTT Session between the Client and the Server
 
+    import sessionCtx.smqd.Implicit._
+    implicit val timeout: Timeout = 2.second
+
     if (sessionCtx.cleanSession){
       // [MQTT-3.1.2-6] If CleanSession is set to 1, the Client and Server MUST discard any previous Session and start
       // a new one. This Session lasts as long as the Network Connection. State data associated with this Session
@@ -269,12 +271,19 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.2.2-1] If the Server accepts a connection with CleanSession set to 1, the Server MUST set
       // Session Present to 0 in the CONNACK packet in addition to setting a zero return code in CONNACK packet
 
-      import sessionCtx.smqd.Implicit._
-      implicit val timeout: Timeout = 1.second
-      sessionManager ? CreateCleanSession(sessionCtx) map {
-        case SessionCreated(clientId, sessionActor) =>
-          logger.debug(s"[$clientId] Session created(1) ${sessionActor.path}")
-          channelCtx.channel.attr(ATTR_SESSION).set(sessionActor)
+      val createResult = Promise[SessionResult]()
+
+      sessionManager ! CreateSession(sessionCtx, cleanSession = true, createResult)
+      createResult.future.map {
+        case r: SessionCreated => // success to create a clean session
+          logger.debug(s"[${r.clientId}] Session created(1) ${r.sessionActor.path}")
+          channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
+          false
+        case r: SessionNotCreated => // fail to create a clean session
+          logger.debug(s"[${r.clientId}] Session creation failed")
+          false
+        case m =>
+          logger.debug(s"[${sessionCtx.clientId}] Session creation failed: {}", m.getClass.getName)
           false
       }
     }
@@ -293,19 +302,21 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.2.2-2] If the Server has stored Session state, it MUST set Session Present to 1
       // [MQTT-3.2.2-3] If the Server does not have stored Session State, it MUST set Session Present to 0
 
-      import sessionCtx.smqd.Implicit._
-      implicit val timeout: Timeout = 1 second
-      val clientId = sessionCtx.clientId.id
+      val findResult = Promise[SessionResult]()
 
-      sessionManager ? FindSession(sessionCtx, createIfNotExist = true) map {
-        case SessionFound(_, sessionActor) =>
+      sessionManager ! FindSession(sessionCtx, createIfNotExist = true, findResult)
+      findResult.future.map {
+        case r: SessionFound =>
           // TODO: restore previous subscriptions
-          logger.debug(s"[$clientId] Session found ${sessionActor.path}")
-          channelCtx.channel.attr(ATTR_SESSION).set(sessionActor)
+          logger.debug(s"[${r.clientId}] Session found ${r.sessionActor.path}")
+          channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
           true
-        case SessionCreated(_, sessionActor) =>
-          logger.debug(s"[$clientId] Session created(2) ${sessionActor.path}")
-          channelCtx.channel.attr(ATTR_SESSION).set(sessionActor)
+        case r: SessionCreated =>
+          logger.debug(s"[${r.clientId}] Session created(2) ${r.sessionActor.path}")
+          channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
+          false
+        case m =>
+          logger.debug(s"[${sessionCtx.clientId}] Session creation failed: {}", m.getClass.getName)
           false
       }
     }
