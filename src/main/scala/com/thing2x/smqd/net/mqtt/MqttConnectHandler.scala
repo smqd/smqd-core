@@ -113,11 +113,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.1.2-2] The Server MUST respond to the CONNECT Packet with CONNACK return code 0x01
       // (unacceptable_protocol_level) and then disconnect the Client if the Protocol Level is not supported by the Server
       sessionCtx.smqd.notifyFault(UnacceptableProtocolVersion(protocolName, protocolLevel))
-
-      channelCtx.writeAndFlush(new MqttConnAckMessage(
-        new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
-        new MqttConnAckVariableHeader(CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION, false)))
-      channelCtx.close()
+      connectAck(channelCtx, CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION, false, true)
       return
     }
 
@@ -149,11 +145,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.1.3-9] If the Server rejects the ClientId it MUST respond to CONNECT Packet with a CONNACK
       // return code 0x02 (Identifier rejected) and then close the Network Connection
       sessionCtx.smqd.notifyFault(IdentifierRejected(sessionCtx.clientId.toString, "clientid is not a valid format"))
-      channelCtx.writeAndFlush(
-        new MqttConnAckMessage(
-          new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
-          new MqttConnAckVariableHeader(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED, false)))
-      channelCtx.close()
+      connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, false, true)
       return
     }
 
@@ -171,7 +163,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // [MQTT-3.1.4-2] If the ClientId represents a Client already connected to the Sever then the Server MUST disconnect the existing Client
     // [MQTT-3.1.4-3] The Server MUST perform the processing of CleanSession that is described in section 3.1.2.4
     //                Start message delivery and keep alive monitoring
-    sessionCtx.smqd.authenticate(sessionCtx.clientId.toString, sessionCtx.userName, sessionCtx.password).onComplete {
+    sessionCtx.smqd.authenticate(sessionCtx.clientId.id, sessionCtx.userName, sessionCtx.password).onComplete {
       case Success(result) if result == SmqSuccess =>
         sessionCtx.authorized = true
 
@@ -209,23 +201,12 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
           case r: SessionCreated => // success to create a session
             logger.debug(s"[${r.clientId}] Session created, clean session: ${sessionCtx.cleanSession}, session present: ${r.hadPreviousSession}")
             channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
-            // send CONNACK
-            channelCtx.channel.writeAndFlush(
-              new MqttConnAckMessage(
-                new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
-                new MqttConnAckVariableHeader(CONNECTION_ACCEPTED, r.hadPreviousSession)))
-
-            channelCtx.fireChannelReadComplete()
+            connectAck(channelCtx, CONNECTION_ACCEPTED, r.hadPreviousSession, false)
 
           case r: SessionNotCreated => // fail to create a clean session
             logger.debug(s"[${r.clientId}] Session creation failed: ${r.reason}")
-
             sessionCtx.smqd.notifyFault(MutipleConnectRejected)
-            channelCtx.writeAndFlush(
-              new MqttConnAckMessage(
-                new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
-                new MqttConnAckVariableHeader(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED, true)))
-            channelCtx.close()
+            connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, true, true)
         }
 
       case Success(result) => // if result != SmqSuccess
@@ -237,20 +218,24 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
           case _: NotAuthorized => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
           case _ => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
         }
-        channelCtx.channel.writeAndFlush(
-          new MqttConnAckMessage(
-            new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
-            new MqttConnAckVariableHeader(code, false)))
-        channelCtx.fireChannelReadComplete()
+        connectAck(channelCtx, code, false, true)
 
       case Failure(_) =>
-        channelCtx.fireChannelReadComplete()
-        channelCtx.close()
+        connectAck(channelCtx, CONNECTION_REFUSED_SERVER_UNAVAILABLE, false, true)
     }
 
     sessionCtx.state = SessionState.ConnectAcked
   }
 
+  private def connectAck(channelCtx: ChannelHandlerContext, returnCode: MqttConnectReturnCode, sessionPresent: Boolean, close: Boolean): Unit = {
+    channelCtx.channel.writeAndFlush(
+      new MqttConnAckMessage(
+        new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
+        new MqttConnAckVariableHeader(returnCode, sessionPresent)))
+
+    channelCtx.fireChannelReadComplete()
+    if (close) channelCtx.close()
+  }
 
   private def isValidClientIdentifierFormat(handlerCtx: ChannelHandlerContext): Boolean = {
 
