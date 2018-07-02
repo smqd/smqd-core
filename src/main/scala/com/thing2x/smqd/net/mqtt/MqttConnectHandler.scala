@@ -14,7 +14,6 @@
 
 package com.thing2x.smqd.net.mqtt
 
-import akka.pattern.ask
 import akka.util.Timeout
 import com.thing2x.smqd._
 import com.thing2x.smqd.fault._
@@ -27,8 +26,8 @@ import io.netty.handler.codec.mqtt.MqttMessageType._
 import io.netty.handler.codec.mqtt.MqttQoS._
 import io.netty.handler.codec.mqtt._
 
-import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 import scala.util.matching.Regex
 import scala.util.{Failure, Success}
@@ -165,6 +164,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     sessionCtx.password = if (hasPassword) Some(pl.passwordInBytes) else None
 
     import sessionCtx.smqd.Implicit._
+    implicit val timeout: Timeout = 2.second
 
     // [MQTT-3.1.3-9] If the Server rejects the ClientId it MUST respond to the CONNECT Packet with a CONNACK
     //                return code 0x02 (Identifier rejected) and then close the Network Connection
@@ -174,19 +174,61 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     sessionCtx.smqd.authenticate(sessionCtx.clientId.toString, sessionCtx.userName, sessionCtx.password).onComplete {
       case Success(result) if result == SmqSuccess =>
         sessionCtx.authorized = true
-        // create a new session or restore previous session
-        val sessionPresentFuture = getOrCreateSession(channelCtx)
-        sessionPresentFuture map { sessionPresent =>
-          // send CONNACK
-          channelCtx.channel.writeAndFlush(
-            new MqttConnAckMessage(
-              new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
-              new MqttConnAckVariableHeader(CONNECTION_ACCEPTED, sessionPresent)))
 
-          channelCtx.fireChannelReadComplete()
+        val sessionManager = channelCtx.channel.attr(ATTR_SESSION_MANAGER).get
+
+        // [MQTT-3.1.3-2] Each Client connecting to the Server has a unique ClientId. The ClientId MUST be used by Clients
+        // and by Servers to identify state that they hold relating to this MQTT Session between the Client and the Server
+
+        // [MQTT-3.1.2-6] If CleanSession is set to 1, the Client and Server MUST discard any previous Session and start
+        // a new one. This Session lasts as long as the Network Connection. State data associated with this Session
+        // MUST NOT be resused in any subsequent Session
+
+        // [MQTT-3.2.2-1] If the Server accepts a connection with CleanSession set to 1, the Server MUST set
+        // Session Present to 0 in the CONNACK packet in addition to setting a zero return code in CONNACK packet
+
+        // [MQTT-3.1.2-4] If CleanSession is set to 0, the Server MUST resume communications with the Client based
+        // on state from the current Session (as Identifieied by the Client identifier). If there is no Session
+        // associated with the Client identifier the Server MUST create a new Session.
+        // The Client and Server MUST store the Session after the Client and Server are disconnected
+
+        // [MQTT-3.1.2-5] After the disconnection of a Session that had CleanSession to 0, the Server MUST store further
+        // QoS1 and QoS2 messages that match any subscriptions that the client had at the time of disconnection as part
+        // of the Session state
+
+        // If the Server accepts a connection with CleanSession set to 0, the value set in
+        // Session Present depends on whether the Server already has stored Session state for the supplied client ID.
+        // [MQTT-3.2.2-2] If the Server has stored Session state, it MUST set Session Present to 1
+        // [MQTT-3.2.2-3] If the Server does not have stored Session State, it MUST set Session Present to 0
+
+        // create a new session or restore previous session
+        val createResult = Promise[CreateSessionResult]()
+
+        sessionManager ! CreateSession(sessionCtx, sessionCtx.cleanSession, createResult)
+        createResult.future.map {
+          case r: SessionCreated => // success to create a session
+            logger.debug(s"[${r.clientId}] Session created, clean session: ${sessionCtx.cleanSession}, session present: ${r.hadPreviousSession}")
+            channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
+            // send CONNACK
+            channelCtx.channel.writeAndFlush(
+              new MqttConnAckMessage(
+                new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
+                new MqttConnAckVariableHeader(CONNECTION_ACCEPTED, r.hadPreviousSession)))
+
+            channelCtx.fireChannelReadComplete()
+
+          case r: SessionNotCreated => // fail to create a clean session
+            logger.debug(s"[${r.clientId}] Session creation failed: ${r.reason}")
+
+            sessionCtx.smqd.notifyFault(MutipleConnectRejected)
+            channelCtx.writeAndFlush(
+              new MqttConnAckMessage(
+                new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
+                new MqttConnAckVariableHeader(MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED, true)))
+            channelCtx.close()
         }
 
-      case Success(result) =>
+      case Success(result) => // if result != SmqSuccess
         sessionCtx.smqd.notifyFault(result)
         val code = result match {
           case _: IdentifierRejected => CONNECTION_REFUSED_IDENTIFIER_REJECTED // 0x02
@@ -205,6 +247,8 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
         channelCtx.fireChannelReadComplete()
         channelCtx.close()
     }
+
+    sessionCtx.state = SessionState.ConnectAcked
   }
 
 
@@ -241,84 +285,6 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
         }
       case _ =>
         false
-    }
-  }
-
-  /**
-    * MqttChannelHandler and ChannelHandlerContext's life is as long as the physical connection. But a session can
-    * lives longer across a connection after another connection
-    *
-    * this method is called when CONNECT packet pass the authentication process, apply mqtt cleanSession rule
-    *
-    * @return true if previous session exists, then restored or removed correctly according to the cleanSession option
-    *         false if previous session doesn't exist
-    */
-  private def getOrCreateSession(channelCtx: ChannelHandlerContext): Future[Boolean] = {
-    val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
-    val sessionManager = channelCtx.channel.attr(ATTR_SESSION_MANAGER).get
-
-    // [MQTT-3.1.3-2] Each Client connecting to the Server has a unique ClientId. The ClientId MUST be used by Clients
-    // and by Servers to identify state that they hold relating to this MQTT Session between the Client and the Server
-
-    import sessionCtx.smqd.Implicit._
-    implicit val timeout: Timeout = 2.second
-
-    if (sessionCtx.cleanSession){
-      // [MQTT-3.1.2-6] If CleanSession is set to 1, the Client and Server MUST discard any previous Session and start
-      // a new one. This Session lasts as long as the Network Connection. State data associated with this Session
-      // MUST NOT be resused in any subsequent Session
-
-      // [MQTT-3.2.2-1] If the Server accepts a connection with CleanSession set to 1, the Server MUST set
-      // Session Present to 0 in the CONNACK packet in addition to setting a zero return code in CONNACK packet
-
-      val createResult = Promise[SessionResult]()
-
-      sessionManager ! CreateSession(sessionCtx, cleanSession = true, createResult)
-      createResult.future.map {
-        case r: SessionCreated => // success to create a clean session
-          logger.debug(s"[${r.clientId}] Session created(1) ${r.sessionActor.path}")
-          channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
-          false
-        case r: SessionNotCreated => // fail to create a clean session
-          logger.debug(s"[${r.clientId}] Session creation failed")
-          false
-        case m =>
-          logger.debug(s"[${sessionCtx.clientId}] Session creation failed: {}", m.getClass.getName)
-          false
-      }
-    }
-    else {
-      // [MQTT-3.1.2-4] If CleanSession is set to 0, the Server MUST resume communications with the Client based
-      // on state from the current Session (as Identifieied by the Client identifier). If there is no Session
-      // associated with the Client identifier the Server MUST create a new Session.
-      // The Client and Server MUST store the Session after the Client and Server are disconnected
-
-      // [MQTT-3.1.2-5] After the disconnection of a Session that had CleanSession to 0, the Server MUST store further
-      // QoS1 and QoS2 messages that match any subscriptions that the client had at the time of disconnection as part
-      // of the Session state
-
-      // If the Server accepts a connection with CleanSession set to 0, the value set in
-      // Session Present depends on whether the Server already has stored Session state for the supplied client ID.
-      // [MQTT-3.2.2-2] If the Server has stored Session state, it MUST set Session Present to 1
-      // [MQTT-3.2.2-3] If the Server does not have stored Session State, it MUST set Session Present to 0
-
-      val findResult = Promise[SessionResult]()
-
-      sessionManager ! FindSession(sessionCtx, createIfNotExist = true, findResult)
-      findResult.future.map {
-        case r: SessionFound =>
-          // TODO: restore previous subscriptions
-          logger.debug(s"[${r.clientId}] Session found ${r.sessionActor.path}")
-          channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
-          true
-        case r: SessionCreated =>
-          logger.debug(s"[${r.clientId}] Session created(2) ${r.sessionActor.path}")
-          channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
-          false
-        case m =>
-          logger.debug(s"[${sessionCtx.clientId}] Session creation failed: {}", m.getClass.getName)
-          false
-      }
     }
   }
 }

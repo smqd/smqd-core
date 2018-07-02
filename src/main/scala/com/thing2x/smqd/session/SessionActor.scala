@@ -17,15 +17,14 @@ package com.thing2x.smqd.session
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import akka.actor.{Actor, ActorRef, Timers}
-import com.typesafe.scalalogging.StrictLogging
-import io.netty.buffer.ByteBuf
 import com.thing2x.smqd.QoS._
 import com.thing2x.smqd._
 import com.thing2x.smqd.fault._
 import com.thing2x.smqd.net.mqtt.MqttSessionContext
 import com.thing2x.smqd.session.SessionActor._
-import com.thing2x.smqd.session.SessionManagerActor.CreateCleanSession
 import com.thing2x.smqd.util.ActorIdentifying
+import com.typesafe.scalalogging.StrictLogging
+import io.netty.buffer.ByteBuf
 
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
@@ -38,7 +37,10 @@ import scala.util.{Failure, Success}
 
 object SessionActor {
 
-  case class ForceDisconnect(reason: String)
+  case class ChallengeConnect(by: ClientId, cleanSession: Boolean, promise: Promise[ChallengeConnectResult])
+  sealed trait ChallengeConnectResult
+  case class ChallengeConnectAccepted() extends ChallengeConnectResult
+  case class ChallengeConnectDenied() extends ChallengeConnectResult
 
   case class Subscription(topicName: String, qos: QoS, var grantedQoS: QoS = QoS.Failure)
 
@@ -95,13 +97,18 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     case ChannelClosed(clearSession) => channelClosed(clearSession)
     case UpdateTimer =>                 updateTimer()
     case Timeout =>                     timeout()
-    case ForceDisconnect(reason) =>     forceDisconnect(sender, reason)
+    case challenge: ChallengeConnect => challengeChannel(sender, challenge)
     case _ =>
   }
 
-  private def forceDisconnect(replyTo: ActorRef, reason: String): Unit = {
-    logger.trace(s"[${ctx.clientId}] Force Disconnect")
-    ctx.sessionDisconnect(reason)
+  private def challengeChannel(replyTo: ActorRef, challenge: ChallengeConnect): Unit = {
+    logger.trace(s"[${ctx.clientId}] Session Challenged by ${challenge.by}")
+    if (ctx.state == SessionState.ConnectAcked || ctx.state == SessionState.Failed) {
+      challenge.promise.success(ChallengeConnectAccepted())
+    }
+    else {
+      challenge.promise.success(ChallengeConnectDenied())
+    }
   }
 
   private def inbound(ipub: InboundPublish): Unit = {
@@ -148,8 +155,8 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     ipub.promise.success(Unit)
   }
 
-  import spray.json._
   import com.thing2x.smqd.protocol._
+  import spray.json._
 
   private def outbound(opub: OutboundPublish): Unit = {
     val msgId = nextMessageId

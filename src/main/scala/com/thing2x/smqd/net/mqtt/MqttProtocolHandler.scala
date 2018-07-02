@@ -72,8 +72,8 @@ trait MqttProtocolNotifier {
     val channelId = channelCtx.channelId.stringId
     val msgType = msg.fixedHeader.messageType
     val msgDebug = msg match {
-      case _: MqttConnectMessage => ""
-      case _: MqttConnAckMessage => ""
+      case m: MqttConnectMessage => s"(cleanSession: ${m.variableHeader.isCleanSession}, will: ${m.variableHeader.isWillFlag})"
+      case m: MqttConnAckMessage => s"(${m.variableHeader.connectReturnCode}, sessionPresent: ${m.variableHeader.isSessionPresent})"
       case _: MqttMessage if msgType == DISCONNECT => ""
       case _: MqttMessage if msgType == PINGREQ => ""
       case _: MqttMessage if msgType == PINGRESP => ""
