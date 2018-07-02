@@ -18,12 +18,12 @@ import akka.actor.{Actor, Props}
 import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberLeft, UnreachableMember}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.delivery.DeliveryManagerActor
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.protocol.ProtocolNotificationManager
 import com.thing2x.smqd.replica.{ClusterModeReplicationActor, LocalModeReplicationActor, ReplicationActor}
-import com.thing2x.smqd.session.SessionManagerActor
+import com.thing2x.smqd.session.{ClusterModeSessionManagerActor, LocalModeSessionManagerActor, SessionManagerActor}
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -46,19 +46,20 @@ class ChiefActor(smqd: Smqd, registry: Registry, router: Router, retainer: Retai
   extends Actor with StrictLogging {
 
   override def preStart(): Unit = {
-    context.actorOf(Props(classOf[SessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
     context.actorOf(Props(classOf[FaultNotificationManager], smqd), FaultNotificationManager.actorName)
     context.actorOf(Props(classOf[ProtocolNotificationManager], smqd), ProtocolNotificationManager.actorName)
     context.actorOf(Props(classOf[DeliveryManagerActor]), DeliveryManagerActor.actorName)
     context.actorOf(Props(classOf[RegistryCallbackManagerActor]), RegistryCallbackManagerActor.actorName)
     context.actorOf(Props(classOf[RequestManagerActor], smqd), RequestManagerActor.actorName)
 
-    smqd.cluster match {
-      case Some(_) =>
-        val localRouter = context.actorOf(Props(classOf[ClusterAwareLocalRouter], registry), ClusterAwareLocalRouter.actorName)
-        context.actorOf(Props(classOf[ClusterModeReplicationActor], router, retainer, localRouter), ReplicationActor.actorName)
-      case _ =>
-        context.actorOf(Props(classOf[LocalModeReplicationActor]), ReplicationActor.actorName)
+    if (smqd.isClusterMode) {
+      context.actorOf(Props(classOf[ClusterModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
+      val localRouter = context.actorOf(Props(classOf[ClusterAwareLocalRouter], registry), ClusterAwareLocalRouter.actorName)
+      context.actorOf(Props(classOf[ClusterModeReplicationActor], router, retainer, localRouter), ReplicationActor.actorName)
+    }
+    else {
+      context.actorOf(Props(classOf[LocalModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
+      context.actorOf(Props(classOf[LocalModeReplicationActor]), ReplicationActor.actorName)
     }
 
     context.children.foreach{ child =>

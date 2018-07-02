@@ -21,7 +21,7 @@ import com.thing2x.smqd.session.SessionActor.{ChallengeConnect, ChallengeConnect
 import com.thing2x.smqd.session.SessionManagerActor._
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 /**
@@ -36,18 +36,21 @@ object SessionManagerActor {
   case class SessionCreated(clientId: ClientId, sessionActor: ActorRef, hadPreviousSession: Boolean) extends CreateSessionResult
   case class SessionNotCreated(clientId: ClientId, reason: String) extends CreateSessionResult
 
-  case class FindSession(ctx: SessionContext, promise: Promise[FindSessionResult])
+  case class FindSession(clientId: ClientId, promise: Promise[FindSessionResult])
 
   sealed trait FindSessionResult
   case class SessionFound(clientId: ClientId, sessionActor: ActorRef) extends FindSessionResult
   case class SessionNotFound(clientId: ClientId) extends FindSessionResult
 }
 
-class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Actor with StrictLogging {
+abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Actor with StrictLogging {
 
   import smqd.Implicit._
 
-  private case class CreateSessionChallenged(child: ActorRef, code: ()=>Unit)
+  private case class ChallengedSessionActorStopped(sessionActor: ActorRef, code: ()=>Unit)
+
+  // find session actor of clientId
+  protected def findSession(clientId: ClientId): Future[Option[ActorRef]]
 
   override def receive: Receive = {
     case ChiefActor.Ready =>
@@ -55,12 +58,11 @@ class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Actor with S
 
     case msg: CreateSession =>
       val clientId = msg.ctx.clientId
-      val childName = clientId.actorName
       val cleanSession = msg.cleanSession
       val promise = msg.promise
 
-      context.child(childName) match {
-        case Some(actor) =>
+      findSession(clientId).onComplete {
+        case Success(Some(sessionActor)) =>
           // [MQTT-3.1.4-2] If the ClientId represents a Client already connected to the Server than the Server MUST
           // disconnect the existing Client
           //
@@ -68,36 +70,38 @@ class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Actor with S
           // Session Present to 0 in the CONNACK packet in addition to setting a zero return code in CONNACK packet
           logger.trace(s"[$clientId] Session already exists, cleanSession: $cleanSession")
           val tryPromise = Promise[ChallengeConnectResult]()
-          actor ! ChallengeConnect(by = clientId, cleanSession, tryPromise)
+          sessionActor ! ChallengeConnect(by = clientId, cleanSession, tryPromise)
           tryPromise.future map {
             case _: ChallengeConnectAccepted =>
               // wait until previous actor stop by watch().
               // then code for creating new session actor passed as a wachWith message
-              context.watchWith(actor, CreateSessionChallenged(actor, { () =>
+              context.watchWith(sessionActor, ChallengedSessionActorStopped(sessionActor, { () =>
                 createSession0(clientId, msg.ctx, cleanSession, sessionPresent = true, msg.promise)
               }))
-              context.stop(actor)
+              context.stop(sessionActor)
             case _: ChallengeConnectDenied =>
               promise.success(SessionNotCreated(clientId, "Previous channel denied to give up"))
           }
-        case None => // create new session and session store
-          logger.trace(s"[$clientId] **** Session creating...")
+        case Success(None) => // create new session and session store
+          logger.trace(s"[$clientId] Creating Session...")
           createSession0(clientId, msg.ctx, cleanSession, sessionPresent = false, promise)
+        case Failure(ex) =>
+          logger.trace(s"[$clientId] Finding Session failed")
+          promise.failure(ex)
       }
 
-    case msg: CreateSessionChallenged =>
-      context.unwatch(msg.child)
+    case msg: ChallengedSessionActorStopped =>
+      context.unwatch(msg.sessionActor)
       msg.code()
 
     case msg: FindSession =>
-      val clientId = msg.ctx.clientId
-      val childName = clientId.actorName
-
-      context.child(childName) match {
-        case Some(child) =>
-          msg.promise.success(SessionFound(clientId, child))
-        case _ =>
-          msg.promise.success(SessionNotFound(clientId))
+      findSession(msg.clientId).onComplete {
+        case Success(Some(sessionActor)) =>
+          msg.promise.success(SessionFound(msg.clientId, sessionActor))
+        case Success(None) =>
+          msg.promise.success(SessionNotFound(msg.clientId))
+        case Failure(ex) =>
+          msg.promise.failure(ex)
       }
   }
 
@@ -110,5 +114,21 @@ class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Actor with S
         logger.error(s"[$clientId] SessionCreation failed, cleanSession: $cleanSession", ex)
         promise.success(SessionNotCreated(clientId, "Session Store Error"))
     }
+  }
+}
+
+class LocalModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends SessionManagerActor(smqd, sstore) with StrictLogging {
+  import smqd.Implicit._
+  override def findSession(clientId: ClientId): Future[Option[ActorRef]] = Future {
+    val childName = clientId.actorName
+    context.child(childName)
+  }
+}
+
+class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends SessionManagerActor(smqd, sstore) with StrictLogging {
+  import smqd.Implicit._
+  override def findSession(clientId: ClientId): Future[Option[ActorRef]] = Future {
+    val childName = clientId.actorName
+    context.child(childName)
   }
 }
