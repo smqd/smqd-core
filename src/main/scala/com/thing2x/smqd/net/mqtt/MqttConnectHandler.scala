@@ -163,7 +163,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // [MQTT-3.1.4-2] If the ClientId represents a Client already connected to the Sever then the Server MUST disconnect the existing Client
     // [MQTT-3.1.4-3] The Server MUST perform the processing of CleanSession that is described in section 3.1.2.4
     //                Start message delivery and keep alive monitoring
-    sessionCtx.smqd.authenticate(sessionCtx.clientId.id, sessionCtx.userName, sessionCtx.password).onComplete {
+    sessionCtx.smqd.authenticate(sessionCtx.clientId, sessionCtx.userName, sessionCtx.password).onComplete {
       case Success(result) if result == SmqSuccess =>
         sessionCtx.authorized = true
 
@@ -201,12 +201,12 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
           case r: SessionCreated => // success to create a session
             logger.debug(s"[${r.clientId}] Session created, clean session: ${sessionCtx.cleanSession}, session present: ${r.hadPreviousSession}")
             channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
-            connectAck(channelCtx, CONNECTION_ACCEPTED, r.hadPreviousSession, false)
+            connectAck(channelCtx, CONNECTION_ACCEPTED, r.hadPreviousSession, close = false)
 
           case r: SessionNotCreated => // fail to create a clean session
             logger.debug(s"[${r.clientId}] Session creation failed: ${r.reason}")
             sessionCtx.smqd.notifyFault(MutipleConnectRejected)
-            connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, true, true)
+            connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = true, close = true)
         }
 
       case Success(result) => // if result != SmqSuccess
@@ -218,10 +218,10 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
           case _: NotAuthorized => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
           case _ => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
         }
-        connectAck(channelCtx, code, false, true)
+        connectAck(channelCtx, code, sessionPresent = false, close = true)
 
       case Failure(_) =>
-        connectAck(channelCtx, CONNECTION_REFUSED_SERVER_UNAVAILABLE, false, true)
+        connectAck(channelCtx, CONNECTION_REFUSED_SERVER_UNAVAILABLE, sessionPresent = false, close = true)
     }
 
     sessionCtx.state = SessionState.ConnectAcked

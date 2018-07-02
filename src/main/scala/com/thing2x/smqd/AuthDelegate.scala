@@ -14,11 +14,11 @@
 
 package com.thing2x.smqd
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
   */
 trait AuthDelegate {
-  def authenticate(clientId: String, userName: Option[String], password: Option[Array[Byte]]): Future[com.thing2x.smqd.SmqResult]
+  def authenticate(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]])(implicit ec: ExecutionContext): Future[com.thing2x.smqd.SmqResult]
 }

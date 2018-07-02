@@ -22,7 +22,6 @@ import com.thing2x.smqd.session.SessionManagerActor._
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Promise
-import scala.reflect.macros.blackbox
 import scala.util.{Failure, Success}
 
 /**

@@ -14,28 +14,30 @@
 
 package com.thing2x.smqd.impl
 
-import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.fault.BadUserNameOrPassword
-import com.thing2x.smqd.{AuthDelegate, SmqResult, SmqSuccess}
+import com.thing2x.smqd.{AuthDelegate, ClientId, SmqResult, SmqSuccess}
+import com.typesafe.scalalogging.StrictLogging
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * 2018. 5. 31. - Created by Kwon, Yeong Eon
   */
 class DefaultAuthDelegate extends AuthDelegate with StrictLogging {
 
-  override def authenticate(clientId: String, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
+  override def authenticate(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]])(implicit ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global): Future[SmqResult] = {
 
     Future {
       logger.debug(s"[$clientId] userName: $userName password: $password")
 
       if (userName.isDefined && password.isDefined) {
-        if (userName.get == new String(password.get, "utf-8"))
+        if (userName.get == new String(password.get, "utf-8")) // username == password
           SmqSuccess
         else
-          BadUserNameOrPassword(clientId, "Bad user name or password ")
+          BadUserNameOrPassword(clientId.id, "Bad user name or password ")
+      }
+      else if (userName.isEmpty && password.isEmpty) { // allow anonymous
+        SmqSuccess
       }
       else {
         SmqSuccess

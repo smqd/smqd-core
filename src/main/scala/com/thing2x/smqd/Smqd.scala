@@ -281,7 +281,7 @@ class Smqd(val config: Config,
     p.future
   }
 
-  def authenticate(clientId: String, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
+  def authenticate(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
     val p = Promise[SmqResult]
     p.completeWith( authDelegate.authenticate(clientId, userName, password) )
     p.future

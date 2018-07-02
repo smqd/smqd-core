@@ -42,7 +42,7 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
     val token = Token(clientId, cleanSession)
 
     def createSession0(clientId: ClientId): Unit = {
-      logger.trace(s"[$clientId] *** cleanSession: {}", cleanSession)
+      logger.trace(s"[$clientId] *** createSessionData, cleanSession: {}", cleanSession)
       val info = SessionData(clientId)
       map.put(clientId, info)
     }
@@ -66,7 +66,7 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
   }
 
   override def flushSession(token: SessionStoreToken): Future[SmqResult] = Future {
-    logger.trace(s"[${token.clientId}] *** cleanSession: {}", token.cleanSession)
+    logger.trace(s"[${token.clientId}] *** flushSessionData, cleanSession: {}", token.cleanSession)
     SmqSuccess
   }
 }
