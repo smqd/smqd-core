@@ -42,11 +42,11 @@ object ChiefActor {
 
 import com.thing2x.smqd.ChiefActor._
 
-class ChiefActor(smqd: Smqd, registry: Registry, router: Router, retainer: Retainer)
+class ChiefActor(smqd: Smqd, registry: Registry, router: Router, retainer: Retainer, sstore: SessionStore)
   extends Actor with StrictLogging {
 
   override def preStart(): Unit = {
-    context.actorOf(Props(classOf[SessionManagerActor], smqd), SessionManagerActor.actorName)
+    context.actorOf(Props(classOf[SessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
     context.actorOf(Props(classOf[FaultNotificationManager], smqd), FaultNotificationManager.actorName)
     context.actorOf(Props(classOf[ProtocolNotificationManager], smqd), ProtocolNotificationManager.actorName)
     context.actorOf(Props(classOf[DeliveryManagerActor]), DeliveryManagerActor.actorName)

@@ -15,10 +15,13 @@
 package com.thing2x.smqd.session
 
 import akka.actor.{Actor, ActorRef, Props}
-import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.ChiefActor.ReadyAck
-import com.thing2x.smqd.session.SessionManagerActor._
 import com.thing2x.smqd._
+import com.thing2x.smqd.session.SessionActor.ForceDisconnect
+import com.thing2x.smqd.session.SessionManagerActor._
+import com.typesafe.scalalogging.StrictLogging
+
+import scala.util.{Failure, Success}
 
 /**
   * 2018. 6. 2. - Created by Kwon, Yeong Eon
@@ -26,46 +29,64 @@ import com.thing2x.smqd._
 object SessionManagerActor {
   val actorName = "sessions"
 
-  case class CreateSession(ctx: SessionContext)
+  case class CreateCleanSession(ctx: SessionContext)
   case class FindSession(ctx: SessionContext, createIfNotExist: Boolean)
 
-  case class SessionFound(sessionId: SessionId, sessionActor: ActorRef)
-  case class SessionNotFound(sessionId: SessionId)
-  case class SessionCreated(sessionId: SessionId, sessionActor: ActorRef)
+  case class SessionFound(clientId: ClientId, sessionActor: ActorRef)
+  case class SessionNotFound(clientIdId: ClientId)
+  case class SessionCreated(clientId: ClientId, sessionActor: ActorRef)
 }
 
-class SessionManagerActor(smqd: Smqd) extends Actor with StrictLogging {
+class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Actor with StrictLogging {
+
+  import smqd.Implicit._
 
   override def receive: Receive = {
     case ChiefActor.Ready =>
       sender ! ReadyAck
 
-    case msg: CreateSession =>
-      context.child(msg.ctx.sessionId.actorName) match {
+    case msg: CreateCleanSession =>
+      val clientId = msg.ctx.clientId
+      val childName = clientId.actorName
+      context.child(childName) match {
         case Some(actor) =>
+          logger.trace(s"[$clientId] **** Session already exists")
+          // [MQTT-3.1.4-2] If the ClientId represents a Client already connected to the Server than the Server MUST
+          // disconnect the existing Client
+          context.watchWith(actor, msg)
+          actor ! ForceDisconnect(s"[$clientId] *** new channel connected with same clientId")
           context.stop(actor)
-          self forward msg
-        case None =>
-          val child = context.actorOf(Props(classOf[SessionActor], msg.ctx, smqd), name = msg.ctx.sessionId.actorName)
-          sender ! SessionCreated(msg.ctx.sessionId, child)
+        case None => // create new session and session store
+          createSession0(sender, clientId, msg.ctx, cleanSession = true)
+          logger.trace(s"[$clientId] **** Session created")
       }
 
     case msg: FindSession =>
-      val sessionId = msg.ctx.sessionId
-      val childName = sessionId.actorName
+      val clientId = msg.ctx.clientId
+      val childName = clientId.actorName
       val createIfNotExist = msg.createIfNotExist
 
       context.child(childName) match {
         case Some(child) =>
-          sender ! SessionFound(sessionId, child)
+          sender ! SessionFound(clientId, child)
         case _ =>
-          if( createIfNotExist ){
-            val child = context.actorOf(Props(classOf[SessionActor], msg.ctx), name = childName)
-            sender ! SessionCreated(sessionId, child)
-          }
-          else {
-            sender ! SessionNotFound(sessionId)
-          }
+          if( createIfNotExist )
+            createSession0(sender, clientId, msg.ctx, cleanSession = false)
+          else
+            sender ! SessionNotFound(clientId)
       }
+  }
+
+  private def createSession0(requestor: ActorRef, clientId: ClientId, ctx: SessionContext, cleanSession: Boolean): Unit = {
+    val childName = clientId.actorName
+
+    sstore.createSession(clientId, cleanSession).onComplete {
+      case Success(stoken) =>
+        val child = context.actorOf(Props(classOf[SessionActor], ctx, smqd, sstore, stoken), name = childName)
+        requestor ! SessionCreated(clientId, child)
+      case Failure(ex) =>
+        logger.error(s"[$clientId] SessionCreation failed, cleanSession: $cleanSession", ex)
+        requestor ! SessionNotFound(clientId)
+    }
   }
 }

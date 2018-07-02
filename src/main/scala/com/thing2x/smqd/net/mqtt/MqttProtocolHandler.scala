@@ -60,7 +60,7 @@ trait MqttProtocolNotifier {
   def notifyMessage(handlerContext: ChannelHandlerContext, msg: MqttMessage, dir: ProtocolDirection): Unit = {
     val channelCtx = handlerContext.channel.attr(ATTR_SESSION_CTX).get
     val clientId = if (channelCtx.haveConnectMessage) {
-      channelCtx.sessionId.toString
+      channelCtx.clientId.toString
     } else {
       msg match {
         case _: MqttConnectMessage =>
@@ -68,7 +68,7 @@ trait MqttProtocolNotifier {
         case _ => "unknown clientId"
       }
     }
-    val channelId = channelCtx.channelId.toString
+    val channelId = channelCtx.channelId.stringId
     val msgType = msg.fixedHeader.messageType
     val msgDebug = msg match {
       case _: MqttConnectMessage => ""

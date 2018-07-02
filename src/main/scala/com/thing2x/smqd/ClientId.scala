@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd.session
+package com.thing2x.smqd
 
 /**
   * 2018. 6. 11. - Created by Kwon, Yeong Eon
   */
-object SessionId {
-  def apply(id: String) = new SessionId(id)
+object ClientId {
+  def apply(id: String, channelId: Option[String]) = new ClientId(id, channelId)
+  def apply(id: String, channelId: String) = new ClientId(id, Option(channelId))
 
   def fromActorName(actorName: String): String = {
     if (actorName.startsWith("_")) {
@@ -33,12 +34,10 @@ object SessionId {
   def toActorName(id: String): String = "_" + id
 }
 
-import com.thing2x.smqd.session.SessionId._
+class ClientId(val id: String, val channelId: Option[String] = None) {
+  val actorName: String = ClientId.toActorName(id)
 
-class SessionId(val id: String) {
-  val actorName: String = toActorName(id)
-
-  override def toString: String = id
+  override def toString: String = if (channelId.isEmpty) id + "@_" else id + "@" + channelId.get
 
   override def hashCode(): Int = id.hashCode
 }

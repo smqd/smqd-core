@@ -16,7 +16,7 @@ package com.thing2x.smqd.session
 
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
-import akka.actor.{Actor, Timers}
+import akka.actor.{Actor, ActorRef, Timers}
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
 import com.thing2x.smqd.QoS._
@@ -24,6 +24,7 @@ import com.thing2x.smqd._
 import com.thing2x.smqd.fault._
 import com.thing2x.smqd.net.mqtt.MqttSessionContext
 import com.thing2x.smqd.session.SessionActor._
+import com.thing2x.smqd.session.SessionManagerActor.CreateCleanSession
 import com.thing2x.smqd.util.ActorIdentifying
 
 import scala.concurrent.duration._
@@ -36,6 +37,8 @@ import scala.util.{Failure, Success}
   */
 
 object SessionActor {
+
+  case class ForceDisconnect(reason: String)
 
   case class Subscription(topicName: String, qos: QoS, var grantedQoS: QoS = QoS.Failure)
 
@@ -56,7 +59,7 @@ object SessionActor {
   private case object Timeout
 }
 
-class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers with ActorIdentifying with StrictLogging {
+class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken) extends Actor with Timers with ActorIdentifying with StrictLogging {
 
   private val localMessageId: AtomicLong = new AtomicLong(1)
   private def nextMessageId: Int = math.abs((localMessageId.getAndIncrement() % 0xFFFF).toInt)
@@ -73,6 +76,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
   }
 
   override def postStop(): Unit = {
+    sstore.flushSession(stoken)
     ctx.sessionStopped()
   }
 
@@ -91,7 +95,13 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
     case ChannelClosed(clearSession) => channelClosed(clearSession)
     case UpdateTimer =>                 updateTimer()
     case Timeout =>                     timeout()
+    case ForceDisconnect(reason) =>     forceDisconnect(sender, reason)
     case _ =>
+  }
+
+  private def forceDisconnect(replyTo: ActorRef, reason: String): Unit = {
+    logger.trace(s"[${ctx.clientId}] Force Disconnect")
+    ctx.sessionDisconnect(reason)
   }
 
   private def inbound(ipub: InboundPublish): Unit = {
@@ -165,15 +175,15 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
   }
 
   private def outboundAck(oack: OutboundPublishAck): Unit = {
-    logger.trace(s"[${ctx.sessionId}] Message Ack: (mid: ${oack.msgId})")
+    logger.trace(s"[${ctx.clientId}] Message Ack: (mid: ${oack.msgId})")
   }
 
   private def outboundRec(orec: OutboundPublishRec): Unit = {
-    logger.trace(s"[${ctx.sessionId}] Message Rec: (mid: ${orec.msgId})")
+    logger.trace(s"[${ctx.clientId}] Message Rec: (mid: ${orec.msgId})")
   }
 
   private def outboundComp(ocomp: OutboundPublishComp): Unit = {
-    logger.trace(s"[${ctx.sessionId}] Message Comp: (mid: ${ocomp.msgId})")
+    logger.trace(s"[${ctx.clientId}] Message Comp: (mid: ${ocomp.msgId})")
   }
 
   private def subscribe(subs: Seq[Subscription], promise: Promise[Seq[QoS]]): Unit = {
@@ -182,11 +192,10 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
     import smqd.Implicit._
 
     val allowFuture = subs.map{ s =>
-
       // check if the topic name is valid
       TPath.parseForFilter(s.topicName) match {
         case Some(filterPath) =>
-          smqd.allowSubscribe(filterPath, ctx.sessionId, ctx.userName).map { allow =>
+          smqd.allowSubscribe(filterPath, ctx.clientId, ctx.userName).map { allow =>
             // check if subscription is allowed by registry
             if (allow) (s.qos, s.topicName, "Allowed")
             else (QoS.Failure, s.topicName, "NotAllowed")
@@ -197,7 +206,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
           }.map { case (qos, topicName, msg) =>
             // actual subscription, only for topics that are passed allowance check point
             if (qos != QoS.Failure) {
-              val finalQoS = smqd.subscribe(topicName, self, ctx.sessionId, qos)
+              val finalQoS = smqd.subscribe(topicName, self, ctx.clientId, qos)
               (finalQoS, topicName, if (finalQoS == QoS.Failure) "Subscribe failed by registry" else msg)
             }
             else {
@@ -215,13 +224,13 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
           if (qos == QoS.Failure) {
             reason match {
               case "NotAllowed" =>       // subscription not allowed
-                smqd.notifyFault(TopicNotAllowedToSubscribe(ctx.sessionId.toString, s"Subscribe not allowed: $topic"))
+                smqd.notifyFault(TopicNotAllowedToSubscribe(ctx.clientId.toString, s"Subscribe not allowed: $topic"))
               case "InvalidTopic" =>     // failure if the topicName is unable to parse
-                smqd.notifyFault(InvalidTopicNameToSubscribe(ctx.sessionId.toString, s"Invalid topic to subscribe: $topic"))
+                smqd.notifyFault(InvalidTopicNameToSubscribe(ctx.clientId.toString, s"Invalid topic to subscribe: $topic"))
               case "DelegateFailure" =>  // subscription failure, so no retained messages
-                smqd.notifyFault(UnknownErrorToSubscribe(ctx.sessionId.toString, s"Subscribe failed by Delegate: $topic"))
+                smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe failed by Delegate: $topic"))
               case ex =>  // subscription failure, so no retained messages
-                smqd.notifyFault(UnknownErrorToSubscribe(ctx.sessionId.toString, s"Subscribe failed $ex: $topic"))
+                smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe failed $ex: $topic"))
             }
           }
           else {
@@ -229,7 +238,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
             if (topic == "$SYS/protocols" || topic.startsWith("$SYS/protocols/")) {
               ctx match {
                 case mqttCtx: MqttSessionContext =>
-                  logger.info(s"[${mqttCtx.sessionId.toString} echo cancelling for protocol notification")
+                  logger.info(s"[${mqttCtx.clientId.toString} echo cancelling for protocol notification")
                   mqttCtx.cancelProtocolNotification()
                 case _ =>
               }
@@ -270,7 +279,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
             smqd.unsubscribe(filterPath, self)
           case _=>
             // failure if the topicName is unable to parse
-            smqd.notifyFault(InvalidTopicNameToUnsubscribe(ctx.sessionId.toString, topicName))
+            smqd.notifyFault(InvalidTopicNameToUnsubscribe(ctx.clientId.toString, topicName))
             false
         }
       }
@@ -291,7 +300,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd) extends Actor with Timers wi
   }
 
   private def channelClosed(clearSession: Boolean): Unit = {
-    logger.trace(s"[${ctx.sessionId}] channel closed, clearSession: $clearSession")
+    logger.trace(s"[${ctx.clientId}] channel closed, clearSession: $clearSession")
     if (noOfSubscription.get > 0)
       smqd.unsubscribe(self)
     context.stop(self)

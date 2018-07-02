@@ -81,7 +81,7 @@ class MqttWsChannelInitializer(smqd: Smqd,
     val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
     if (channelCtx != null) {
       val channelId = channelCtx.channelId
-      val sessionId = channelCtx.sessionId
+      val sessionId = channelCtx.clientId
 
       logger.error(s"[$sessionId] $channelId Unexpected Exception", cause)
     }

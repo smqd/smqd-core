@@ -19,7 +19,6 @@ import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.QoS._
 import com.thing2x.smqd.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
 import com.thing2x.smqd.replica.ReplicationActor
-import com.thing2x.smqd.session.SessionId
 import com.thing2x.smqd.util.ActorIdentifying
 
 import scala.collection.mutable
@@ -30,7 +29,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
   */
 
 trait Registry {
-  def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: Option[SessionId] = None, qos: QoS = QoS.AtMostOnce): QoS
+  def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): QoS
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean
   def unsubscribeAll(actor: ActorRef): Boolean
   def filter(topicPath: TopicPath): Seq[Registration]
@@ -39,13 +38,13 @@ trait Registry {
   def subscribe(filterPath: FilterPath)(callback: PartialFunction[(TopicPath, Any), Unit]): ActorRef
 }
 
-case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, sessionId: Option[SessionId]) {
+case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, sessionId: Option[ClientId]) {
   override def toString = s"${filterPath.toString} ($qos) => ${actor.path.toString}"
 }
 
 abstract class AbstractRegistry(system: ActorSystem) extends Registry with ActorIdentifying with StrictLogging {
 
-  def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: Option[SessionId] = None, qos: QoS = QoS.AtMostOnce): QoS = {
+  def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): QoS = {
     subscribe0(Registration(filterPath, qos, actor, sessionId))
   }
 
@@ -86,8 +85,8 @@ abstract class AbstractRegistry(system: ActorSystem) extends Registry with Actor
 }
 
 trait RegistryDelegate {
-  def allowSubscribe(filterPath: FilterPath, sessionId: SessionId, userName: Option[String]): Future[Boolean]
-  def allowPublish(topicPath: TopicPath, sessionId: SessionId, userName: Option[String]): Future[Boolean]
+  def allowSubscribe(filterPath: FilterPath, sessionId: ClientId, userName: Option[String]): Future[Boolean]
+  def allowPublish(topicPath: TopicPath, sessionId: ClientId, userName: Option[String]): Future[Boolean]
 }
 
 trait HashMapRegistry extends StrictLogging {

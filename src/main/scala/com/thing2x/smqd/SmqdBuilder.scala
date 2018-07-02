@@ -16,14 +16,13 @@ package com.thing2x.smqd
 
 import akka.actor.{ActorSystem, Address, AddressFromURIString}
 import akka.cluster.Cluster
-import com.typesafe.config.Config
 import com.thing2x.smqd.discovery.{EtcdClusterDiscovery, FailedClusterDiscovery, ManualClusterDiscovery, StaticClusterDiscovery}
-import com.thing2x.smqd.session.SessionStoreDelegate
 import com.thing2x.smqd.util.ClassLoading
+import com.typesafe.config.Config
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Success
 
 /**
@@ -32,6 +31,7 @@ import scala.util.Success
 object SmqdBuilder {
   def apply(config: Config): SmqdBuilder = new SmqdBuilder(config)
 }
+
 class SmqdBuilder(config: Config) extends ClassLoading {
 
   private var authDelegate: AuthDelegate = _

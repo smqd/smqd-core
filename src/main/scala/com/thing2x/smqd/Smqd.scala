@@ -25,7 +25,6 @@ import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.Smqd._
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
-import com.thing2x.smqd.session.{SessionId, SessionStore, SessionStoreDelegate}
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
@@ -89,7 +88,7 @@ class Smqd(val config: Config,
 
     //// actors
     try {
-      chiefActor = system.actorOf(Props(classOf[ChiefActor], this, registry, router, retainer), ChiefActor.actorName)
+      chiefActor = system.actorOf(Props(classOf[ChiefActor], this, registry, router, retainer, sessionStore), ChiefActor.actorName)
 
       implicit val readyTimeout: Timeout = 3 second
       val future = chiefActor ? ChiefActor.Ready
@@ -236,7 +235,7 @@ class Smqd(val config: Config,
   def subscribe(filterPath: FilterPath, actor: ActorRef): Unit =
     registry.subscribe(filterPath, actor)
 
-  def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: SessionId, qos: QoS): QoS =
+  def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: ClientId, qos: QoS): QoS =
     registry.subscribe(filterPath, actor, Some(sessionId), qos)
 
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef =
@@ -270,13 +269,13 @@ class Smqd(val config: Config,
   def retainedMessages(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage] =
     retainer.filter(filterPath, qos)
 
-  def allowSubscribe(filterPath: FilterPath, sessionId: SessionId, userName: Option[String]): Future[Boolean] = {
+  def allowSubscribe(filterPath: FilterPath, sessionId: ClientId, userName: Option[String]): Future[Boolean] = {
     val p = Promise[Boolean]
     p.completeWith( registryDelegate.allowSubscribe(filterPath, sessionId, userName) )
     p.future
   }
 
-  def allowPublish(topicPath: TopicPath, sessionId: SessionId, userName: Option[String]): Future[Boolean] = {
+  def allowPublish(topicPath: TopicPath, sessionId: ClientId, userName: Option[String]): Future[Boolean] = {
     val p = Promise[Boolean]
     p.completeWith(registryDelegate.allowPublish(topicPath, sessionId, userName))
     p.future

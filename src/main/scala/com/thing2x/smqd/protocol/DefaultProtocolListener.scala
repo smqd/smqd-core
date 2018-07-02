@@ -59,10 +59,10 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
   def notified(topicPath: TopicPath, msg: Any): Unit = {
     msg match {
       case m: ProtocolNotification =>
-        val connId  = s"${m.channelId}"
-        val cId = s"${m.clientId}"
+        val channelId = m.channelId
+        val clientId = if (m.clientId.contains("@")) m.clientId else m.clientId + "@"+channelId
         val dirType = s"${if(m.direction == Recv) "Recv" else if(m.direction == Send) "Send" else "---" }"
-        logger.debug(s"${colored(s"[$cId] $connId $dirType ${m.messageType}", connId.hashCode)} ${m.message}")
+        logger.debug(s"${colored(s"[$clientId] $dirType ${m.messageType}", channelId.hashCode)} ${m.message}")
 
       case _ =>
     }

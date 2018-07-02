@@ -103,7 +103,7 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
       case Some(tp) => tp
       case _ => // invalid topic name
         val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-        sessionCtx.smqd.notifyFault(InvalidTopicToPublish(sessionCtx.sessionId.toString, topicName))
+        sessionCtx.smqd.notifyFault(InvalidTopicToPublish(sessionCtx.clientId.toString, topicName))
         ctx.close()
         return
     }
@@ -112,7 +112,7 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
     val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
     import sessionCtx.smqd.Implicit._
 
-    sessionCtx.smqd.allowPublish(topicPath, sessionCtx.sessionId, sessionCtx.userName).onComplete {
+    sessionCtx.smqd.allowPublish(topicPath, sessionCtx.clientId, sessionCtx.userName).onComplete {
 
       case Success(canPublish) if canPublish =>
         // this client has permission to publish message on this topic
@@ -146,7 +146,7 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
         }
 
       case _ =>
-        sessionCtx.smqd.notifyFault(InvalidTopicToPublish(sessionCtx.sessionId.toString, topicName))
+        sessionCtx.smqd.notifyFault(InvalidTopicToPublish(sessionCtx.clientId.toString, topicName))
         ctx.close()
     }
   }

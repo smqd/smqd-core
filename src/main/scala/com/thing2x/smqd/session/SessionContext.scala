@@ -16,22 +16,23 @@ package com.thing2x.smqd.session
 
 import io.netty.buffer.ByteBuf
 import com.thing2x.smqd.QoS.QoS
-import com.thing2x.smqd.SmqResult
+import com.thing2x.smqd.{ClientId, SmqResult}
 
 /**
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
   */
 trait SessionContext {
-  def sessionId: SessionId
+  def clientId: ClientId
   def userName: Option[String]
   def password: Option[Array[Byte]]
 
   def keepAliveTimeSeconds: Int
-  def isCleanSession: Boolean
+  def cleanSession: Boolean
 
   def sessionStarted(): Unit
   def sessionStopped(): Unit
   def sessionTimeout(): Unit
+  def sessionDisconnect(reason: String): Unit
 
   def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: ByteBuf): Unit
 }

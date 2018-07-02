@@ -38,12 +38,12 @@ class MqttKeepAliveHandler extends ChannelInboundHandlerAdapter with StrictLoggi
         }
         else {
           val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-          logger.warn(s"[${sessionCtx.sessionId}] ${sessionCtx.channelId} unable to parse the mqtt message: $msg")
+          logger.warn(s"[${sessionCtx.clientId}] ${sessionCtx.channelId} unable to parse the mqtt message: $msg")
           ctx.close()
         }
       case _ =>
         val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-        logger.warn(s"[${sessionCtx.sessionId}] ${sessionCtx.channelId} unknown message: $msg")
+        logger.warn(s"[${sessionCtx.clientId}] ${sessionCtx.channelId} unknown message: $msg")
         ctx.close()
     }
   }

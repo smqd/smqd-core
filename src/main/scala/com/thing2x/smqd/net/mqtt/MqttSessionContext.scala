@@ -21,7 +21,7 @@ import io.netty.channel.{ChannelFuture, ChannelHandlerContext}
 import io.netty.handler.codec.mqtt._
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd._
-import com.thing2x.smqd.session.{SessionActor, SessionContext, SessionId}
+import com.thing2x.smqd.session.{SessionActor, SessionContext}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -44,12 +44,12 @@ class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd) 
     _haveConnectMessage = flag
   }
 
-  private var _clientId: SessionId = _
-  override def sessionId: SessionId = _clientId
-  def sessionId_= (id: String): Unit = {
-    _clientId = SessionId(id)
+  private var _clientId: ClientId = _
+  override def clientId: ClientId = _clientId
+  def clientId_= (id: String): Unit = {
+    _clientId = ClientId(id, channelId.stringId)
   }
-  def sessionId_= (id: SessionId): Unit = {
+  def clientId_= (id: ClientId): Unit = {
     _clientId = id
   }
 
@@ -58,8 +58,8 @@ class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd) 
   var authorized: Boolean = false
 
   private var _isCleanSession: Boolean = false
-  override def isCleanSession: Boolean = _isCleanSession
-  def isCleanSession_= (flag: Boolean): Unit = _isCleanSession = flag
+  override def cleanSession: Boolean = _isCleanSession
+  def cleanSession_= (flag: Boolean): Unit = _isCleanSession = flag
 
   var will: Option[Will] = None
 
@@ -68,7 +68,7 @@ class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd) 
 
     will match {
       case Some(w) =>
-        logger.debug(s"[$sessionId] $channelId publish Will: [${w.topicPath}] isRetain=${w.retain} msg=${w.msg}")
+        logger.debug(s"[$clientId] publish Will: [${w.topicPath}] isRetain=${w.retain} msg=${w.msg}")
         smqd.publish(RoutableMessage(w.topicPath, io.netty.buffer.Unpooled.copiedBuffer(w.msg), w.retain))
       case _ =>
     }
@@ -94,35 +94,40 @@ class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd) 
   }
 
   override def sessionStarted(): Unit = {
-    logger.trace(s"[$sessionId] $channelId session started")
+    logger.trace(s"[$clientId] session started")
   }
 
   override def sessionStopped(): Unit = {
-    logger.trace(s"[$sessionId] $channelId session stopped")
+    logger.trace(s"[$clientId] session stopped")
     channelContext.close()
   }
 
   override def sessionTimeout(): Unit = {
-    logger.trace(s"[$sessionId] $channelId session timedout")
+    logger.trace(s"[$clientId] session timedout")
+    channelContext.close()
+  }
+
+  override def sessionDisconnect(reason: String): Unit = {
+    logger.trace(s"[$clientId] session disconnect: $reason")
     channelContext.close()
   }
 
   channelContext.channel.closeFuture.addListener(channelClosed)
 
   private def channelClosed(future: ChannelFuture): Unit = {
-    logger.debug(s"[$sessionId] $channelId channel closed (authorized = $authorized, isCleanSession = $isCleanSession, hasWill = ${will.isDefined})")
+    logger.debug(s"[$clientId] channel closed (authorized = $authorized, isCleanSession = $cleanSession, hasWill = ${will.isDefined})")
 
     if (authorized) {
       val session = channelContext.channel.attr(ATTR_SESSION).getAndSet(null)
       if (session != null)
-        session ! SessionActor.ChannelClosed(isCleanSession)
+        session ! SessionActor.ChannelClosed(cleanSession)
 
       publishWill(channelContext)
     }
   }
 
   override def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: ByteBuf): Unit = {
-    logger.trace(s"[$sessionId] $channelId Message Deliver: $topic qos:${qos.value} msgId: ($msgId) ${msg.capacity}")
+    logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: ($msgId) ${msg.capacity}")
     channelContext.channel.writeAndFlush(new MqttPublishMessage(
       new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, isRetain, 0),
       new MqttPublishVariableHeader(topic, msgId),
@@ -131,19 +136,19 @@ class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd) 
   }
 
   def deliverAck(msgId: Int): Unit = {
-    logger.trace(s"[$sessionId] $channelId Message Ack: (mid: $msgId)")
+    logger.trace(s"[$clientId] Message Ack: (mid: $msgId)")
     val session = channelContext.channel.attr(ATTR_SESSION).get
     session ! SessionActor.OutboundPublishAck(msgId)
   }
 
   def deliverRec(msgId: Int): Unit = {
-    logger.trace(s"[$sessionId] $channelId Message Rec: (mid: $msgId)")
+    logger.trace(s"[$clientId] Message Rec: (mid: $msgId)")
     val session = channelContext.channel.attr(ATTR_SESSION).get
     session ! SessionActor.OutboundPublishRec(msgId)
   }
 
   def deliverComp(msgId: Int): Unit = {
-    logger.trace(s"[$sessionId] $channelId Message Comp: (mid: $msgId)")
+    logger.trace(s"[$clientId] Message Comp: (mid: $msgId)")
     val session = channelContext.channel.attr(ATTR_SESSION).get
     session ! SessionActor.OutboundPublishComp(msgId)
   }

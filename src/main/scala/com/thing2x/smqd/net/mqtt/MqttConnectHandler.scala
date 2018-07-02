@@ -16,22 +16,21 @@ package com.thing2x.smqd.net.mqtt
 
 import akka.pattern.ask
 import akka.util.Timeout
+import com.thing2x.smqd._
+import com.thing2x.smqd.fault._
+import com.thing2x.smqd.session.SessionManagerActor._
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.{ChannelHandlerContext, ChannelInboundHandlerAdapter}
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode._
 import io.netty.handler.codec.mqtt.MqttMessageType._
 import io.netty.handler.codec.mqtt.MqttQoS._
 import io.netty.handler.codec.mqtt._
-import com.thing2x.smqd._
-
-import scala.util.{Failure, Success}
-import com.thing2x.smqd.fault._
-import com.thing2x.smqd.session.SessionManagerActor.{CreateSession, FindSession, SessionCreated, SessionFound}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.matching.Regex
+import scala.util.{Failure, Success}
 
 /**
   * 2018. 5. 30. - Created by Kwon, Yeong Eon
@@ -125,10 +124,10 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     }
 
     // Client Identifier
-    sessionCtx.sessionId = pl.clientIdentifier
+    sessionCtx.clientId = pl.clientIdentifier
 
     // Clean Session
-    sessionCtx.isCleanSession = vh.isCleanSession
+    sessionCtx.cleanSession = vh.isCleanSession
 
     // Keep Alive Time
     sessionCtx.keepAliveTimeSeconds = vh.keepAliveTimeSeconds()
@@ -139,7 +138,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
         case Some(willPath) =>
           Some(Will(willPath, vh.isWillRetain, pl.willMessageInBytes()))
         case _ =>
-          sessionCtx.smqd.notifyFault(InvalidWillTopic(sessionCtx.sessionId.toString, pl.willTopic))
+          sessionCtx.smqd.notifyFault(InvalidWillTopic(sessionCtx.clientId.toString, pl.willTopic))
           None
       }
     }
@@ -151,7 +150,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     if (!isValidClientIdentifierFormat(channelCtx)) {
       // [MQTT-3.1.3-9] If the Server rejects the ClientId it MUST respond to CONNECT Packet with a CONNACK
       // return code 0x02 (Identifier rejected) and then close the Network Connection
-      sessionCtx.smqd.notifyFault(IdentifierRejected(sessionCtx.sessionId.toString, "clientid is not a valid format"))
+      sessionCtx.smqd.notifyFault(IdentifierRejected(sessionCtx.clientId.toString, "clientid is not a valid format"))
       channelCtx.writeAndFlush(
         new MqttConnAckMessage(
           new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
@@ -173,7 +172,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // [MQTT-3.1.4-2] If the ClientId represents a Client already connected to the Sever then the Server MUST disconnect the existing Client
     // [MQTT-3.1.4-3] The Server MUST perform the processing of CleanSession that is described in section 3.1.2.4
     //                Start message delivery and keep alive monitoring
-    sessionCtx.smqd.authenticate(sessionCtx.sessionId.toString, sessionCtx.userName, sessionCtx.password).onComplete {
+    sessionCtx.smqd.authenticate(sessionCtx.clientId.toString, sessionCtx.userName, sessionCtx.password).onComplete {
       case Success(result) if result == SmqSuccess =>
         sessionCtx.authorized = true
         // create a new session or restore previous session
@@ -220,13 +219,13 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // The Server MAY allow ClientId's that contain more than 23 encoded bytes
     // The Server MAY allow ClientId's that contain characters not included in the list given above
 
-    channelCtx.sessionId.id match {
+    channelCtx.clientId.id match {
       case clientIdentifierFormat(_*) =>
         // [MQTT-3.1.3-7] If the Client supplies a zero-byte ClientId, the Client MUST also set CleanSession to 1
         // [MQTT-3.1.3-8] If the Client supplies a zero-byte ClientId with CleanSession set to 0, the Server MUST respond
         // to the CONNECT packet with a CONNACK return code 0x02(Identifier rejected) and then close the NetworkConnection
-        if (channelCtx.sessionId.id.length == 0) {
-          if (channelCtx.isCleanSession) {
+        if (channelCtx.clientId.id.length == 0) {
+          if (channelCtx.cleanSession) {
             false
           }
           else {
@@ -234,7 +233,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
             // so the Server MUST treat this as a special case and assign a unique ClientId to that Client.
             // It MUST then process the CONNECT packet as if the Client had provided that unique ClientId
             val newClientId = channelCtx.channelId.stringId+"@"+handlerCtx.channel.localAddress.toString
-            channelCtx.sessionId = newClientId
+            channelCtx.clientId = newClientId
             true
           }
         }
@@ -262,7 +261,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // [MQTT-3.1.3-2] Each Client connecting to the Server has a unique ClientId. The ClientId MUST be used by Clients
     // and by Servers to identify state that they hold relating to this MQTT Session between the Client and the Server
 
-    if (sessionCtx.isCleanSession){
+    if (sessionCtx.cleanSession){
       // [MQTT-3.1.2-6] If CleanSession is set to 1, the Client and Server MUST discard any previous Session and start
       // a new one. This Session lasts as long as the Network Connection. State data associated with this Session
       // MUST NOT be resused in any subsequent Session
@@ -272,7 +271,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
 
       import sessionCtx.smqd.Implicit._
       implicit val timeout: Timeout = 1.second
-      sessionManager ? CreateSession(sessionCtx) map {
+      sessionManager ? CreateCleanSession(sessionCtx) map {
         case SessionCreated(clientId, sessionActor) =>
           logger.debug(s"[$clientId] Session created(1) ${sessionActor.path}")
           channelCtx.channel.attr(ATTR_SESSION).set(sessionActor)
@@ -296,7 +295,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
 
       import sessionCtx.smqd.Implicit._
       implicit val timeout: Timeout = 1 second
-      val clientId = sessionCtx.sessionId.id
+      val clientId = sessionCtx.clientId.id
 
       sessionManager ? FindSession(sessionCtx, createIfNotExist = true) map {
         case SessionFound(_, sessionActor) =>
