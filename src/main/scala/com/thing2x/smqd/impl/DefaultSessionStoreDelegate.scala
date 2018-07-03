@@ -14,13 +14,15 @@
 
 package com.thing2x.smqd.impl
 
+import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd.SessionStore.{InitialData, SessionStoreToken, SubscriptionData}
 import com.thing2x.smqd.impl.DefaultSessionStoreDelegate._
-import com.thing2x.smqd.{ClientId, SessionStoreDelegate, SessionStoreToken, SmqResult, SmqSuccess}
+import com.thing2x.smqd.{ClientId, FilterPath, QoS, SessionStoreDelegate, SmqResult, SmqSuccess}
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.mutable
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
   * 2018. 5. 31. - Created by Kwon, Yeong Eon
@@ -29,44 +31,80 @@ object DefaultSessionStoreDelegate {
 
   case class Token(clientId: ClientId, cleanSession: Boolean) extends SessionStoreToken
 
-  case class SessionData(clientId: ClientId)
-
+  case class SessionData(clientId: ClientId, subscriptions: mutable.Set[SubscriptionData])
 }
 
 class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLogging {
 
-  private val map: mutable.HashMap[ClientId, SessionData] = new mutable.HashMap()
+  private val map: mutable.HashMap[String, SessionData] = new mutable.HashMap()
 
-  /** @inheritdoc */
-  override def createSession(clientId: ClientId, cleanSession: Boolean): Future[SessionStoreToken] = Future {
+  override def createSession(clientId: ClientId, cleanSession: Boolean): Future[InitialData] = Future {
     val token = Token(clientId, cleanSession)
 
-    def createSession0(clientId: ClientId): Unit = {
-      logger.trace(s"[$clientId] *** createSessionData, cleanSession: {}", cleanSession)
-      val info = SessionData(clientId)
-      map.put(clientId, info)
-    }
-
-    if (cleanSession) {
+    val subscriptions = if (cleanSession) {
       // always create new session if cleanSession = true
-      createSession0(clientId)
+      logger.trace(s"[$clientId] *** clearSessionData")
+      map.remove(token.clientId.id)
+      Nil
     }
     else {
       // try to restore previous session if cleanSession = false
-      map.get(clientId) match {
-        case Some(_) => // resotre previous session
+      map.get(clientId.id) match {
+        case Some(data) => // resotre previous session
           // There is nothing to do since DefaultSessionStoreDelegate is using HashMap
-          // If you implement the delegate based rdbms, need to deserialization something
+          // If you implement the delegate based rdbms, need to deserialize data
+          logger.trace(s"[$clientId] *** restoreSessionData")
+          data.subscriptions.toSeq
+
         case None => // create new session if it doesn't exist
-          createSession0(clientId)
+          logger.trace(s"[$clientId] *** createSessionData")
+          val data = SessionData(clientId, mutable.Set.empty)
+          map.put(clientId.id, data)
+          Nil
       }
     }
 
-    token
+    InitialData(token, subscriptions)
   }
 
   override def flushSession(token: SessionStoreToken): Future[SmqResult] = Future {
-    logger.trace(s"[${token.clientId}] *** flushSessionData, cleanSession: {}", token.cleanSession)
-    SmqSuccess
+    if (token.cleanSession) {
+      SmqSuccess
+    }
+    else {
+      logger.trace(s"[${token.clientId}] *** flushSessionData")
+      SmqSuccess
+    }
+  }
+
+  override def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData] = {
+    if (token.cleanSession) {
+      Nil
+    }
+    else {
+      map.get(token.clientId.id) match {
+        case Some(data: SessionData) => data.subscriptions.toSeq
+        case _ => Nil
+      }
+    }
+  }
+
+  override def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Unit = {
+    if (!token.cleanSession && (qos == QoS.AtLeastOnce || qos == QoS.ExactlyOnce)) {
+      map.get(token.clientId.id) match {
+        case Some(data: SessionData) =>
+          data.subscriptions += SubscriptionData(filterPath, qos)
+        case _ =>
+      }
+    }
+  }
+
+  override def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Unit = {
+    map.get(token.clientId.id) match {
+      case Some(data: SessionData) =>
+        val removing = data.subscriptions.filter( _.filterPath == filterPath)
+        data.subscriptions --= removing
+      case _ =>
+    }
   }
 }

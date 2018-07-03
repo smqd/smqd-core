@@ -235,8 +235,8 @@ class Smqd(val config: Config,
   def subscribe(filterPath: FilterPath, actor: ActorRef): Unit =
     registry.subscribe(filterPath, actor)
 
-  def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: ClientId, qos: QoS): QoS =
-    registry.subscribe(filterPath, actor, Some(sessionId), qos)
+  def subscribe(filterPath: FilterPath, actor: ActorRef, clientId: ClientId, qos: QoS): QoS =
+    registry.subscribe(filterPath, actor, Some(clientId), qos)
 
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef =
     registry.subscribe(filterPath, callback)
@@ -269,15 +269,15 @@ class Smqd(val config: Config,
   def retainedMessages(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage] =
     retainer.filter(filterPath, qos)
 
-  def allowSubscribe(filterPath: FilterPath, sessionId: ClientId, userName: Option[String]): Future[Boolean] = {
+  def allowSubscribe(filterPath: FilterPath, clientId: ClientId, userName: Option[String]): Future[Boolean] = {
     val p = Promise[Boolean]
-    p.completeWith( registryDelegate.allowSubscribe(filterPath, sessionId, userName) )
+    p.completeWith( registryDelegate.allowSubscribe(filterPath, clientId, userName) )
     p.future
   }
 
-  def allowPublish(topicPath: TopicPath, sessionId: ClientId, userName: Option[String]): Future[Boolean] = {
+  def allowPublish(topicPath: TopicPath, clientId: ClientId, userName: Option[String]): Future[Boolean] = {
     val p = Promise[Boolean]
-    p.completeWith(registryDelegate.allowPublish(topicPath, sessionId, userName))
+    p.completeWith(registryDelegate.allowPublish(topicPath, clientId, userName))
     p.future
   }
 

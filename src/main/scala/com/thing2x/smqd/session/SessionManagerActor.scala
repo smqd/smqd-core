@@ -21,6 +21,7 @@ import akka.cluster.ddata.{DistributedData, LWWMap, LWWMapKey}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.thing2x.smqd.ChiefActor.ReadyAck
+import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd._
 import com.thing2x.smqd.session.SessionActor._
 import com.thing2x.smqd.session.SessionManagerActor._
@@ -176,8 +177,15 @@ abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Act
     logger.trace(s"[$clientId] creating actor")
     val promise = Promise[CreateSessionResult]()
     sstore.createSession(clientId, cleanSession).onComplete {
-      case Success(stoken) =>
-        val child = context.actorOf(Props(classOf[SessionActor], ctx, smqd, sstore, stoken), clientId.actorName)
+      case Success(initialData) =>
+        val child = context.actorOf(Props(classOf[SessionActor], ctx, smqd, sstore, initialData.token), clientId.actorName)
+
+        // restore session state - subscriptions
+        initialData.subscriptions.foreach { d =>
+          smqd.subscribe(d.filterPath, child, clientId, d.qos)
+          logger.trace(s"[$clientId] restore subscription: ${d.filterPath} (${d.qos})")
+        }
+
         promise.success(CreatedSessionSuccess(clientId, child, hadPreviousSession = if (cleanSession) false else sessionPresent))
       case Failure(ex) =>
         logger.error(s"[$clientId] SessionCreation failed, cleanSession: $cleanSession", ex)

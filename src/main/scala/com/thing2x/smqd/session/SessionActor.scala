@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import akka.actor.{Actor, ActorRef, Timers}
 import com.thing2x.smqd.QoS._
+import com.thing2x.smqd.SessionStore.SessionStoreToken
 import com.thing2x.smqd._
 import com.thing2x.smqd.fault._
 import com.thing2x.smqd.net.mqtt.MqttSessionContext
@@ -64,7 +65,8 @@ object SessionActor {
   private case object Timeout
 }
 
-class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken) extends Actor with Timers with ActorIdentifying with StrictLogging {
+class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken)
+  extends Actor with Timers with ActorIdentifying with StrictLogging {
 
   private val localMessageId: AtomicLong = new AtomicLong(1)
   private def nextMessageId: Int = math.abs((localMessageId.getAndIncrement() % 0xFFFF).toInt)
@@ -74,11 +76,8 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   private var challengingActor: Option[ActorRef] = None
 
   override def preStart(): Unit = {
-    // private var deliveryManager: ActorRef = _
-    // deliveryManager = identifyActor("user/"+ChiefActor.actorName+"/"+DeliveryManagerActor.actorName)
-
     ctx.sessionStarted()
-    // session timeout 처리를 위한 타이머
+    // start timer for session timeout trigger
     updateTimer()
   }
 
@@ -86,7 +85,11 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     // notify session actor's death to session manager actor,
     // so that ddata can remove session actor's registration from ddata
     context.parent ! SessionActorPostStopNotification(ctx.clientId, self)
-    sstore.flushSession(stoken)
+
+    import smqd.Implicit._
+    Future{
+      sstore.flushSession(stoken)
+    }
     ctx.sessionStopped()
   }
 
@@ -289,6 +292,14 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
                 case _ =>
               }
             }
+
+            // save state
+            if (qos == QoS.AtLeastOnce || qos == QoS.ExactlyOnce) {
+              Future {
+                sstore.saveSubscription(stoken, topic, qos)
+              }
+            }
+
             // [MQTT-3.3.1-6] When a new subscription is established, the last retained message, if any,
             // on each matching topic name MUST be sent to the subscriber
             retained = retained ++ smqd.retainedMessages(FilterPath(topic), qos)
@@ -322,6 +333,9 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
       unsubs.map { topicName =>
         TPath.parseForFilter(topicName) match {
           case Some(filterPath) =>
+            Future {
+              sstore.deleteSubscription(stoken, filterPath)
+            }
             smqd.unsubscribe(filterPath, self)
           case _=>
             // failure if the topicName is unable to parse
