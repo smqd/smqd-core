@@ -43,50 +43,49 @@ object MqttConnectHandler{
 
 class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHandlerAdapter with StrictLogging {
 
-  override def channelRead(handlerCtx: ChannelHandlerContext, msg: Any): Unit = {
+  override def channelRead(channelCtx: ChannelHandlerContext, msg: Any): Unit = {
 
     msg match {
       //////////////////////////////////
       // CONNECT(1)
       case m: MqttConnectMessage =>
-        processConnect(handlerCtx, m)
+        processConnect(channelCtx, m)
 
       //////////////////////////////////
       // CONNACK(2)
       case _: MqttConnAckMessage =>
-        val channelCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
-        channelCtx.smqd.notifyFault(NotAllowedMqttMessage("CONNACK"))
-        handlerCtx.close()
+        val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+        sessionCtx.smqd.notifyFault(NotAllowedMqttMessage("CONNACK"))
+        channelCtx.close()
 
       //////////////////////////////////
       // DISCONNECT(14)
       case m: MqttMessage if m.fixedHeader.messageType == DISCONNECT =>
-        val session = handlerCtx.channel.attr(ATTR_SESSION).get
-        val channelCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
+        val session = channelCtx.channel.attr(ATTR_SESSION).get
+        val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
         // [MQTT-3.14.4-3] Server MUST discard any Will Message associated with the current connection without publishing
-        channelCtx.will = None
+        sessionCtx.will = None
         session ! InboundDisconnect
 
       //////////////////////////////////
       // PINGREQ(12)
       case m: MqttMessage if m.fixedHeader.messageType == PINGREQ =>
-        val session = handlerCtx.channel.attr(ATTR_SESSION).get
         // [MQTT-3.12.4-1] Server MUST send a PINGRESP Packet in response to a PINGREQ Packet
         val rsp = new MqttMessage(new MqttFixedHeader(PINGRESP, false, AT_MOST_ONCE, false, 0))
-        handlerCtx.channel.writeAndFlush(rsp)
-        handlerCtx.fireChannelReadComplete()
+        channelCtx.channel.writeAndFlush(rsp)
+        channelCtx.fireChannelReadComplete()
 
       //////////////////////////////////
       // PINGRESP(13)
       case m: MqttMessage if m.fixedHeader.messageType == PINGRESP =>
-        val channelCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
-        channelCtx.smqd.notifyFault(NotAllowedMqttMessage("PINGRESP"))
-        handlerCtx.close()
+        val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+        sessionCtx.smqd.notifyFault(NotAllowedMqttMessage("PINGRESP"))
+        channelCtx.close()
 
       //////////////////////////////////
       // other messages
       case _ =>
-        handlerCtx.fireChannelRead(msg)
+        channelCtx.fireChannelRead(msg)
     }
   }
 
@@ -238,9 +237,9 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     if (close) channelCtx.close()
   }
 
-  private def isValidClientIdentifierFormat(handlerCtx: ChannelHandlerContext): Boolean = {
+  private def isValidClientIdentifierFormat(channelCtx: ChannelHandlerContext): Boolean = {
 
-    val channelCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
+    val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
 
     // [MQTT-3.1.3-3] The Client Identifier (ClientId) MUST be present and MUST be the first field in the CONNECT packet payload
     // [MQTT-3.1.3-4] The ClientId MUST be a UTF-8 encoded string
@@ -248,21 +247,21 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // The Server MAY allow ClientId's that contain more than 23 encoded bytes
     // The Server MAY allow ClientId's that contain characters not included in the list given above
 
-    channelCtx.clientId.id match {
+    sessionCtx.clientId.id match {
       case clientIdentifierFormat(_*) =>
         // [MQTT-3.1.3-7] If the Client supplies a zero-byte ClientId, the Client MUST also set CleanSession to 1
         // [MQTT-3.1.3-8] If the Client supplies a zero-byte ClientId with CleanSession set to 0, the Server MUST respond
         // to the CONNECT packet with a CONNACK return code 0x02(Identifier rejected) and then close the NetworkConnection
-        if (channelCtx.clientId.id.length == 0) {
-          if (channelCtx.cleanSession) {
+        if (sessionCtx.clientId.id.length == 0) {
+          if (sessionCtx.cleanSession) {
             false
           }
           else {
             // [MQTT-3.1.3-6] A Server MAY allow a Client to supply zero-length ClientId, however if it does
             // so the Server MUST treat this as a special case and assign a unique ClientId to that Client.
             // It MUST then process the CONNECT packet as if the Client had provided that unique ClientId
-            val newClientId = channelCtx.channelId.stringId+"."+handlerCtx.channel.localAddress.toString
-            channelCtx.clientId = newClientId
+            val newClientId = sessionCtx.channelId.stringId+"."+channelCtx.channel.localAddress.toString
+            sessionCtx.clientId = newClientId
             true
           }
         }
