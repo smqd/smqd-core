@@ -85,7 +85,7 @@ abstract class AbstractRegistry(system: ActorSystem) extends Registry with Actor
 }
 
 trait RegistryDelegate {
-  def allowSubscribe(filterPath: FilterPath, sessionId: ClientId, userName: Option[String]): Future[Boolean]
+  def allowSubscribe(filterPath: FilterPath, qos: QoS, sessionId: ClientId, userName: Option[String]): Future[QoS]
   def allowPublish(topicPath: TopicPath, sessionId: ClientId, userName: Option[String]): Future[Boolean]
 }
 

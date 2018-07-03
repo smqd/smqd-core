@@ -23,6 +23,15 @@ trait SessionStoreDelegate {
   def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Unit
 
   def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData]
+
+  def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isReatin: Boolean, msgId: Int, msg: Any)
+
+  def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit
+
+  def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit
+
+  def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Unit
+
 }
 
 object SessionStore {
@@ -33,6 +42,7 @@ object SessionStore {
   }
 
   case class SubscriptionData(filterPath: FilterPath, qos: QoS)
+  case class MessageData(topicPath: TopicPath, qos: QoS, msgId: Int, msg: Any, var lastTryTime: Long, var acked: Boolean = false)
   case class InitialData(token: SessionStoreToken, subscriptions: Seq[SubscriptionData])
 }
 
@@ -51,5 +61,20 @@ class SessionStore(delegate: SessionStoreDelegate) {
 
   def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData] =
     delegate.loadSubscriptions(token)
+
+  def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isRetain: Boolean, msgId: Int, msg: Any): Unit =
+    delegate.storeBeforeDelivery(token, topicPath, qos, isRetain, msgId, msg)
+
+  // QoS = 1
+  def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit =
+    delegate.deleteAfterDeliveryAck(token, msgId)
+
+  // QoS = 2
+  def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit =
+    delegate.updateAfterDeliveryAck(token, msgId)
+
+  // QoS = 2
+  def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Unit =
+    delegate.deleteAfterDeliveryAck(token, msgId)
 
 }

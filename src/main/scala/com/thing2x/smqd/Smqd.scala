@@ -269,9 +269,9 @@ class Smqd(val config: Config,
   def retainedMessages(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage] =
     retainer.filter(filterPath, qos)
 
-  def allowSubscribe(filterPath: FilterPath, clientId: ClientId, userName: Option[String]): Future[Boolean] = {
-    val p = Promise[Boolean]
-    p.completeWith( registryDelegate.allowSubscribe(filterPath, clientId, userName) )
+  def allowSubscribe(filterPath: FilterPath, qos: QoS, clientId: ClientId, userName: Option[String]): Future[QoS] = {
+    val p = Promise[QoS]
+    p.completeWith( registryDelegate.allowSubscribe(filterPath, qos, clientId, userName) )
     p.future
   }
 

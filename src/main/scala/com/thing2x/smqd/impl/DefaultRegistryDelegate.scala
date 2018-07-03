@@ -14,6 +14,7 @@
 
 package com.thing2x.smqd.impl
 
+import com.thing2x.smqd.QoS.QoS
 import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.{ClientId, _}
 
@@ -24,6 +25,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 
 class DefaultRegistryDelegate extends RegistryDelegate with StrictLogging {
-  def allowSubscribe(filterPath: FilterPath, sessionId: ClientId, userName: Option[String]): Future[Boolean] = Future(true)
+  def allowSubscribe(filterPath: FilterPath, qos: QoS, sessionId: ClientId, userName: Option[String]): Future[QoS] = Future(qos)
   def allowPublish(topicPath: TopicPath, sessionId: ClientId, userName: Option[String]): Future[Boolean] = Future(true)
 }

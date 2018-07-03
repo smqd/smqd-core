@@ -216,23 +216,25 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
         ctx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
 
       case QoS.AtLeastOnce => // wait ack
+        sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, msg)
         ctx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
 
       case QoS.ExactlyOnce => // wait rec, comp
+        sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, msg)
         ctx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
     }
   }
 
   private def outboundAck(oack: OutboundPublishAck): Unit = {
-    logger.trace(s"[${ctx.clientId}] Message Ack: (mid: ${oack.msgId})")
+    sstore.deleteAfterDeliveryAck(stoken, oack.msgId)
   }
 
   private def outboundRec(orec: OutboundPublishRec): Unit = {
-    logger.trace(s"[${ctx.clientId}] Message Rec: (mid: ${orec.msgId})")
+    sstore.updateAfterDeliveryAck(stoken, orec.msgId)
   }
 
   private def outboundComp(ocomp: OutboundPublishComp): Unit = {
-    logger.trace(s"[${ctx.clientId}] Message Comp: (mid: ${ocomp.msgId})")
+    sstore.deleteAfterDeliveryComplete(stoken, ocomp.msgId)
   }
 
   private def subscribe(subs: Seq[Subscription], promise: Promise[Seq[QoS]]): Unit = {
@@ -240,14 +242,13 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
 
     import smqd.Implicit._
 
-    val allowFuture = subs.map{ s =>
+    val subscribeFutures = subs.map{ s =>
       // check if the topic name is valid
       TPath.parseForFilter(s.topicName) match {
         case Some(filterPath) =>
-          smqd.allowSubscribe(filterPath, ctx.clientId, ctx.userName).map { allow =>
+          smqd.allowSubscribe(filterPath, s.qos, ctx.clientId, ctx.userName).map { qos =>
             // check if subscription is allowed by registry
-            if (allow) (s.qos, s.topicName, "Allowed")
-            else (QoS.Failure, s.topicName, "NotAllowed")
+            (qos, s.topicName, if(qos == QoS.Failure) "NotAllowed" else "Allowed")
           }.recover {
             // make over for not allowed cases
             case x: Throwable => (QoS.Failure, s.topicName, x.getMessage)
@@ -256,7 +257,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
             // actual subscription, only for topics that are passed allowance check point
             if (qos != QoS.Failure) {
               val finalQoS = smqd.subscribe(topicName, self, ctx.clientId, qos)
-              (finalQoS, topicName, if (finalQoS == QoS.Failure) "Subscribe failed by registry" else msg)
+              (finalQoS, topicName, if (finalQoS == QoS.Failure) "RegistryFailure" else msg)
             }
             else {
               (qos, topicName, msg)
@@ -267,7 +268,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
       }
     }
 
-    Future.sequence(allowFuture).onComplete{
+    Future.sequence(subscribeFutures).onComplete{
       case Success(results) =>
         val acks = results.map{ case (qos, topic, reason) =>
           if (qos == QoS.Failure) {
@@ -276,8 +277,10 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
                 smqd.notifyFault(TopicNotAllowedToSubscribe(ctx.clientId.toString, s"Subscribe not allowed: $topic"))
               case "InvalidTopic" =>     // failure if the topicName is unable to parse
                 smqd.notifyFault(InvalidTopicNameToSubscribe(ctx.clientId.toString, s"Invalid topic to subscribe: $topic"))
-              case "DelegateFailure" =>  // subscription failure, so no retained messages
-                smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe failed by Delegate: $topic"))
+              case "DelegateFailure" =>  // subscription failure on registry delegate, so no retained messages
+                smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe failed by delegate: $topic"))
+              case "RegistryFailure" =>  // subscription failure on registry
+                smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe filaed by registry"))
               case ex =>  // subscription failure, so no retained messages
                 smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe failed $ex: $topic"))
             }
@@ -293,7 +296,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
               }
             }
 
-            // save state
+            // save subscription state
             if (qos == QoS.AtLeastOnce || qos == QoS.ExactlyOnce) {
               Future {
                 sstore.saveSubscription(stoken, topic, qos)

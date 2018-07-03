@@ -15,9 +15,9 @@
 package com.thing2x.smqd.impl
 
 import com.thing2x.smqd.QoS.QoS
-import com.thing2x.smqd.SessionStore.{InitialData, SessionStoreToken, SubscriptionData}
+import com.thing2x.smqd.SessionStore.{InitialData, MessageData, SessionStoreToken, SubscriptionData}
 import com.thing2x.smqd.impl.DefaultSessionStoreDelegate._
-import com.thing2x.smqd.{ClientId, FilterPath, QoS, SessionStoreDelegate, SmqResult, SmqSuccess}
+import com.thing2x.smqd.{ClientId, FilterPath, QoS, SessionStoreDelegate, SmqResult, SmqSuccess, TopicPath}
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.mutable
@@ -31,7 +31,7 @@ object DefaultSessionStoreDelegate {
 
   case class Token(clientId: ClientId, cleanSession: Boolean) extends SessionStoreToken
 
-  case class SessionData(clientId: ClientId, subscriptions: mutable.Set[SubscriptionData])
+  case class SessionData(clientId: ClientId, subscriptions: mutable.Set[SubscriptionData], messages: mutable.Queue[MessageData])
 }
 
 class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLogging {
@@ -58,7 +58,7 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
 
         case None => // create new session if it doesn't exist
           logger.trace(s"[$clientId] *** createSessionData")
-          val data = SessionData(clientId, mutable.Set.empty)
+          val data = SessionData(clientId, mutable.Set.empty, mutable.Queue.empty)
           map.put(clientId.id, data)
           Nil
       }
@@ -104,6 +104,45 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
       case Some(data: SessionData) =>
         val removing = data.subscriptions.filter( _.filterPath == filterPath)
         data.subscriptions --= removing
+      case _ =>
+    }
+  }
+
+  override def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isReatin: Boolean, msgId: Int, msg: Any): Unit = {
+    if (qos == QoS.AtLeastOnce || qos == QoS.ExactlyOnce) {
+      map.get(token.clientId.id) match {
+        case Some(data: SessionData) =>
+          data.messages.enqueue(MessageData(topicPath, qos, msgId, msg, System.currentTimeMillis))
+        case _ =>
+      }
+    }
+  }
+
+  override def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit = {
+    map.get(token.clientId.id) match {
+      case Some(data: SessionData) =>
+        data.messages.dequeueFirst(d => d.msgId == msgId)
+      case _ =>
+    }
+  }
+
+  override def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit = {
+    map.get(token.clientId.id) match {
+      case Some(data: SessionData) =>
+        data.messages.find(d => d.msgId == msgId) match {
+          case Some(msg) =>
+            msg.acked = true
+            msg.lastTryTime = System.currentTimeMillis()
+          case _ =>
+        }
+      case _ =>
+    }
+  }
+
+  override def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Unit = {
+    map.get(token.clientId.id) match {
+      case Some(data: SessionData) =>
+        data.messages.dequeueFirst(d => d.msgId == msgId)
       case _ =>
     }
   }
