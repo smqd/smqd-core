@@ -39,8 +39,8 @@ class ClientId(val id: String, val channelId: Option[String] = None) extends Ser
 
   override def toString: String = {
     channelId match {
-      case Some(ch) => id + "@" + ch
-      case None => id + "@_._"
+      case Some(ch) => ch + "@" + id
+      case None =>  "-:-:-:-@" + id
     }
   }
 
