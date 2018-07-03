@@ -159,58 +159,61 @@ class TNameTest extends FlatSpec {
   }
 
   "Local subscription path" should "parse" in {
-    val fl = TPath.parseForFilter("$local/topic")
-    assert(fl.isDefined)
-    val f = fl.get
+    val f = FilterPath("$local/topic")
     assert(f.prefix == FilterPathPrefix.Local, "should be local")
 
-    val tl = TPath.parseForTopic("topic")
-    assert(tl.isDefined)
-    val t = tl.get
-
+    val t = TopicPath("topic")
     assert(f.matchFor(t), "local match")
+
     assert(f.toString == "$local/topic")
   }
 
   "Local subscription path with $SYS" should "parse" in {
-    val fl = TPath.parseForFilter("$local/$SYS/topic")
-    assert(fl.isDefined)
-    val f = fl.get
+    val f = FilterPath("$local/$SYS/topic")
     assert(f.prefix == FilterPathPrefix.Local, "should be local")
 
-    val tl = TPath.parseForTopic("$SYS/topic")
-    assert(tl.isDefined)
-    val t = tl.get
+    val t = TopicPath("$SYS/topic")
 
     assert(f.matchFor(t), "local $SYS match")
     assert(f.toString == "$local/$SYS/topic")
   }
 
   "Queue subscription path" should "parse" in {
-    val fl = TPath.parseForFilter("$queue/topic")
-    assert(fl.isDefined)
-    val f = fl.get
+    val f = FilterPath("$queue/topic")
     assert(f.prefix == FilterPathPrefix.Queue, "should be queue")
+    assert(f.tokens.head.name == "topic")
 
-    val tl = TPath.parseForTopic("topic")
-    assert(tl.isDefined)
-    val t = tl.get
-
+    val t = TopicPath("topic")
     assert(f.matchFor(t), "queue match")
     assert(f.toString == "$queue/topic")
   }
 
+  "Queue subscription path with wildcard" should "parse" in {
+    val f = FilterPath("$queue/topic/+/temp")
+    assert(f.prefix == FilterPathPrefix.Queue, "should be queue")
+
+    var tokens = f.tokens
+    assert(tokens.head.name == "topic")
+    tokens = tokens.tail
+
+    assert(tokens.head.name == "+")
+    assert(tokens.head.isInstanceOf[TNameSingleWildcard])
+
+    tokens = tokens.tail
+    assert(tokens.head.name == "temp")
+
+    val t = TopicPath("topic/abc100/temp")
+    assert(f.matchFor(t), "queue match")
+    assert(f.toString == "$queue/topic/+/temp")
+  }
+
   "Shared subscription path" should "parse" in {
-    val fl = TPath.parseForFilter("$share/group/topic")
-    assert(fl.isDefined)
-    val f = fl.get
+    val f = FilterPath("$share/group/topic")
     assert(f.prefix == FilterPathPrefix.Share, "should be share")
     assert(f.group.isDefined)
     assert(f.group.get == "group")
 
-    val tl = TPath.parseForTopic("topic")
-    assert(tl.isDefined)
-    val t = tl.get
+    val t = TopicPath("topic")
 
     assert(f.matchFor(t), "share match")
     assert(f.toString == "$share/group/topic")
