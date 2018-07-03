@@ -38,17 +38,17 @@ object SessionManagerActor {
 
   case class CreateSession(ctx: SessionContext, cleanSession: Boolean, promise: Promise[CreateSessionResult])
 
-  case class StopNotificationFromSessionActor(clientId: ClientId, sessionActor: ActorRef)
-
   sealed trait CreateSessionResult
-  case class SessionCreated(clientId: ClientId, sessionActor: ActorRef, hadPreviousSession: Boolean) extends CreateSessionResult
-  case class SessionNotCreated(clientId: ClientId, reason: String) extends CreateSessionResult
+  case class CreatedSessionSuccess(clientId: ClientId, sessionActor: ActorRef, hadPreviousSession: Boolean) extends CreateSessionResult
+  case class CreateSessionFailure(clientId: ClientId, reason: String) extends CreateSessionResult
 
   case class FindSession(clientId: ClientId, promise: Promise[FindSessionResult])
 
   sealed trait FindSessionResult
-  case class SessionFound(clientId: ClientId, sessionActor: ActorRef) extends FindSessionResult
-  case class SessionNotFound(clientId: ClientId) extends FindSessionResult
+  case class FindSessionSuccess(clientId: ClientId, sessionActor: ActorRef) extends FindSessionResult
+  case class FindSessionFailure(clientId: ClientId) extends FindSessionResult
+
+  case class SessionActorPostStopNotification(clientId: ClientId, sessionActor: ActorRef)
 }
 
 abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Actor with StrictLogging {
@@ -82,31 +82,29 @@ abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Act
           // Session Present to 0 in the CONNACK packet in addition to setting a zero return code in CONNACK packet
           logger.trace(s"[$clientId] session already exists, cleanSession: $cleanSession, previous actor: ${sessionActor.toString}")
           challengeConnect(clientId, cleanSession, sessionActor).onComplete {
-            case Success(ChallengeConnectAccepted(previousClientId)) =>
+            case Success(NewSessionChallengeAccepted(previousClientId)) =>
               logger.trace(s"[$clientId] previous channel $previousClientId agree to give up")
               // we don't know exact time of death, so need to "watch" it
               // wait until previous actor stop by watch().
 
               val r = for {
                 _ <- watchActorDeath(clientId, sessionActor, previousClientId)
-                //_ <- unregisterSession(clientId)
                 result <- createSession0(clientId, msg.ctx, cleanSession, sessionPresent = true)
-                _ <- registerSession(clientId, result.asInstanceOf[SessionCreated].sessionActor)
+                _ <- registerSession(clientId, result.asInstanceOf[CreatedSessionSuccess].sessionActor)
               } yield {
                 result
               }
               r.map (c => msg.promise.success(c))
 
-            case Success(ChallengeConnectDenied(previousClientId)) =>
+            case Success(NewSessionChallengeDenied(previousClientId)) =>
               logger.trace(s"[$clientId] previous channel $previousClientId denied to give up")
-              promise.success(SessionNotCreated(clientId, s"Previous channel $previousClientId denied to give up"))
+              promise.success(CreateSessionFailure(clientId, s"Previous channel $previousClientId denied to give up"))
 
             case Failure(ex) =>
               logger.trace(s"[$clientId] previous session actor doesn't answer for challenge", ex)
               val r = for {
-                //_ <- unregisterSession(clientId)
                 result <- createSession0(clientId, msg.ctx, cleanSession, sessionPresent = false)
-                _ <- registerSession(clientId, result.asInstanceOf[SessionCreated].sessionActor)
+                _ <- registerSession(clientId, result.asInstanceOf[CreatedSessionSuccess].sessionActor)
               } yield result
               r.map(c => msg.promise.success(c))
 
@@ -117,11 +115,11 @@ abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Act
           logger.trace(s"[$clientId] creating Session...")
           createSession0(clientId, msg.ctx, cleanSession, sessionPresent = false).onComplete {
             case Success(result) =>
-              registerSession(clientId, result.asInstanceOf[SessionCreated].sessionActor).onComplete {
+              registerSession(clientId, result.asInstanceOf[CreatedSessionSuccess].sessionActor).onComplete {
                 case Success(true) =>
                   msg.promise.success(result)
                 case Success(false) =>
-                  msg.promise.success(SessionNotCreated(clientId, "registration failed"))
+                  msg.promise.success(CreateSessionFailure(clientId, "registration failed"))
                 case Failure(ex) =>
                   msg.promise.failure(ex)
               }
@@ -140,13 +138,14 @@ abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Act
     case msg: FindSession =>
       findSession(msg.clientId).onComplete {
         case Success(Some(sessionActor)) =>
-          msg.promise.success(SessionFound(msg.clientId, sessionActor))
+          msg.promise.success(FindSessionSuccess(msg.clientId, sessionActor))
         case Success(None) =>
-          msg.promise.success(SessionNotFound(msg.clientId))
+          msg.promise.success(FindSessionFailure(msg.clientId))
         case Failure(ex) =>
           msg.promise.failure(ex)
       }
-    case StopNotificationFromSessionActor(clientId, sessionActor) =>
+    case SessionActorPostStopNotification(clientId, _) =>
+      // whenever child session actor dies, remove it from ddata registry
       unregisterSession(clientId)
   }
 
@@ -160,13 +159,13 @@ abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Act
   }
 
   /** ask exsting session actor to give up itself for new coming connection */
-  protected def challengeConnect(clientId: ClientId, cleanSession: Boolean, sessionActor: ActorRef): Future[ChallengeConnectResult] = {
+  protected def challengeConnect(clientId: ClientId, cleanSession: Boolean, sessionActor: ActorRef): Future[NewSessionChallengeResult] = {
     // if existing session actor is in remote scope use ask pattern
-    val promise = Promise[ChallengeConnectResult]()
+    val promise = Promise[NewSessionChallengeResult]()
     implicit val timeout: Timeout = 2.second
-    val response = sessionActor ? ChallengeConnect(clientId, cleanSession)
+    val response = sessionActor ? NewSessionChallenge(clientId, cleanSession)
     response.onComplete {
-      case Success(r: ChallengeConnectResult) => promise.success(r)
+      case Success(r: NewSessionChallengeResult) => promise.success(r)
       case Failure(ex) => logger.warn(s"[$clientId] challenged actor return exception", ex)
       case m => promise.failure(new TimeoutException(s"challenged actor has unexpected answer: ${m.toString}"))
     }
@@ -179,10 +178,10 @@ abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Act
     sstore.createSession(clientId, cleanSession).onComplete {
       case Success(stoken) =>
         val child = context.actorOf(Props(classOf[SessionActor], ctx, smqd, sstore, stoken), clientId.actorName)
-        promise.success(SessionCreated(clientId, child, hadPreviousSession = if (cleanSession) false else sessionPresent))
+        promise.success(CreatedSessionSuccess(clientId, child, hadPreviousSession = if (cleanSession) false else sessionPresent))
       case Failure(ex) =>
         logger.error(s"[$clientId] SessionCreation failed, cleanSession: $cleanSession", ex)
-        promise.success(SessionNotCreated(clientId, "Session Store Error"))
+        promise.success(CreateSessionFailure(clientId, "Session Store Error"))
     }
 
     implicit val timeout: Timeout = 2.second
@@ -216,8 +215,6 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
   private val writeConsistency = WriteMajority(timeout = 2.second)
 
   import smqd.Implicit._
-
-  private val readyDData = Promise[Boolean]
 
   override def preStart(): Unit = {
     ddata ! akka.cluster.ddata.Replicator.Subscribe(SessionsKey, self)

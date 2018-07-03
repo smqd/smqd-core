@@ -198,12 +198,12 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
 
         sessionManager ! CreateSession(sessionCtx, sessionCtx.cleanSession, createResult)
         createResult.future.map {
-          case r: SessionCreated => // success to create a session
+          case r: CreatedSessionSuccess => // success to create a session
             logger.debug(s"[${r.clientId}] Session created, clean session: ${sessionCtx.cleanSession}, session present: ${r.hadPreviousSession}")
             channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
             connectAck(channelCtx, CONNECTION_ACCEPTED, r.hadPreviousSession, close = false)
 
-          case r: SessionNotCreated => // fail to create a clean session
+          case r: CreateSessionFailure => // fail to create a clean session
             logger.debug(s"[${r.clientId}] Session creation failed: ${r.reason}")
             sessionCtx.smqd.notifyFault(MutipleConnectRejected)
             connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = true, close = true)
