@@ -31,14 +31,17 @@ import scala.language.postfixOps
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
   */
 object MqttSessionContext {
-  def apply(channelContext: ChannelHandlerContext, smqd: Smqd) = new MqttSessionContext(channelContext, smqd)
+  def apply(channelContext: ChannelHandlerContext, smqd: Smqd, listenerName: String) =
+    new MqttSessionContext(channelContext, smqd, listenerName)
 }
 
 import com.thing2x.smqd.session.SessionState
 import com.thing2x.smqd.session.SessionState.{SessionState => State}
 
-class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd) extends SessionContext with StrictLogging {
-  val channelId = MqttChannelId(channelContext.channel().asInstanceOf[SocketChannel].remoteAddress())
+class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd, listenerName: String)
+  extends SessionContext with StrictLogging {
+
+  val channelId = MqttChannelId(listenerName, channelContext.channel().asInstanceOf[SocketChannel].remoteAddress(), smqd.nodeName)
 
   private var _state: State = SessionState.Initiated
   override def state: State = _state

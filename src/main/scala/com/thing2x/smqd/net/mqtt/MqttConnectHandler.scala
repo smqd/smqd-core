@@ -260,7 +260,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
             // [MQTT-3.1.3-6] A Server MAY allow a Client to supply zero-length ClientId, however if it does
             // so the Server MUST treat this as a special case and assign a unique ClientId to that Client.
             // It MUST then process the CONNECT packet as if the Client had provided that unique ClientId
-            val newClientId = channelCtx.channelId.stringId+"@"+handlerCtx.channel.localAddress.toString
+            val newClientId = channelCtx.channelId.stringId+"."+handlerCtx.channel.localAddress.toString
             channelCtx.clientId = newClientId
             true
           }

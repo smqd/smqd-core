@@ -34,6 +34,7 @@ import scala.util.matching.Regex
   */
 
 class MqttWsChannelInitializer(smqd: Smqd,
+                               listenerName: String,
                                sslProvider: Option[TlsProvider],
                                channelBpsCounter: ChannelHandler,
                                channelTpsCounter: ChannelHandler,
@@ -69,7 +70,7 @@ class MqttWsChannelInitializer(smqd: Smqd,
   override def handlerAdded(ctx: ChannelHandlerContext): Unit = {
     super.handlerAdded(ctx)
 
-    val channelContext = MqttSessionContext(ctx, smqd)
+    val channelContext = MqttSessionContext(ctx, smqd, listenerName)
     channelContext.keepAliveTimeSeconds = defaultKeepAliveTime
 
     ctx.channel.attr(ATTR_SESSION_CTX).set(channelContext)

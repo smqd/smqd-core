@@ -37,7 +37,12 @@ object ClientId {
 class ClientId(val id: String, val channelId: Option[String] = None) extends Serializable {
   val actorName: String = ClientId.toActorName(id)
 
-  override def toString: String = if (channelId.isEmpty) id + "@_" else id + "@" + channelId.get
+  override def toString: String = {
+    channelId match {
+      case Some(ch) => id + "@" + ch
+      case None => id + "@_._"
+    }
+  }
 
   override def hashCode(): Int = id.hashCode
 }

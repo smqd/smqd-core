@@ -25,21 +25,29 @@ object MqttChannelId {
 
   private val idSeq = new AtomicLong
 
-  def apply(remoteAddr : InetSocketAddress): MqttChannelId = {
+  def apply(listenerName: String, remoteAddr : InetSocketAddress, localNodeName: String): MqttChannelId = {
     val id: Long = idSeq.incrementAndGet
-    new MqttChannelId(id, Some(remoteAddr.toString))
+    new MqttChannelId(listenerName, id, Some(remoteAddr.toString), Option(localNodeName))
   }
 
-  def apply(): MqttChannelId = {
+  def apply(listenerName: String, remoteAddr : InetSocketAddress): MqttChannelId = {
     val id: Long = idSeq.incrementAndGet
-    new MqttChannelId(id, None)
+    new MqttChannelId(listenerName, id, Some(remoteAddr.toString), None)
+  }
+
+  def apply(listenerName: String): MqttChannelId = {
+    val id: Long = idSeq.incrementAndGet
+    new MqttChannelId(listenerName, id, None, None)
   }
 }
 
-class MqttChannelId(id: Long, remoteAddress: Option[String]) {
+class MqttChannelId(val listenerName: String, val id: Long, _remoteAddress: Option[String], _localNodeName: Option[String]) {
   override val hashCode: Int = (id ^ (id >>> 32)).toInt
 
-  val stringId: String = "mqtt"+id
+  val nodeName: String = _localNodeName match { case Some(str) => str case _ => "local" }
+  val remoteAddress: String = _remoteAddress match { case Some(str) => str case _ => "-"}
 
-  override val toString: String = s"<mqtt-$id>"
+  val stringId: String =  s"$nodeName:$listenerName:$id"
+
+  override val toString: String = s"<$stringId>"
 }
