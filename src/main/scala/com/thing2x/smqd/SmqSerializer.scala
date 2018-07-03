@@ -73,7 +73,9 @@ class SmqSerializer extends Serializer with StrictLogging {
           throw new RuntimeException(s"Unsupported payload: ${other.getClass.getCanonicalName}")
       }
 
-      buf.array()
+      val arr = buf.array()
+      buf.release()
+      arr
 
     case m: ByteBuf =>
       val buf = io.netty.buffer.Unpooled.buffer()
@@ -82,7 +84,9 @@ class SmqSerializer extends Serializer with StrictLogging {
       buf.writeInt(m.readableBytes)
       buf.writeBytes(m)
       m.resetReaderIndex()
-      buf.array()
+      val arr = buf.array()
+      buf.release()
+      arr
 
     case f: FilterPath =>
       val buf = io.netty.buffer.Unpooled.buffer()
@@ -90,7 +94,9 @@ class SmqSerializer extends Serializer with StrictLogging {
       val ba = f.toByteArray
       buf.writeInt(ba.length)
       buf.writeBytes(ba)
-      buf.array()
+      val arr = buf.array()
+      buf.release()
+      arr
 
     case other => throw new IllegalArgumentException(
       s"${getClass.getName} only serializes RoutedMessage, not [${other.getClass.getName}]")
@@ -101,7 +107,7 @@ class SmqSerializer extends Serializer with StrictLogging {
 
     val buf = io.netty.buffer.Unpooled.wrappedBuffer(bytes)
 
-    buf.readByte() match {
+    val rt = buf.readByte() match {
       case 'M' => // RoutableMessage
         val pathLen = buf.readInt()
         val path = buf.readCharSequence(pathLen, Charset.forName("utf-8")).toString
@@ -138,5 +144,7 @@ class SmqSerializer extends Serializer with StrictLogging {
         val str = buf.readCharSequence(len, Charset.forName("utf-8")).toString
         FilterPath(str)
     }
+    buf.release()
+    rt
   }
 }

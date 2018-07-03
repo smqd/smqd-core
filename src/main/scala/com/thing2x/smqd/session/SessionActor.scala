@@ -50,7 +50,7 @@ object SessionActor {
   case class Subscribe(subs: Seq[Subscription], promise: Promise[Seq[QoS]])
   case class Unsubscribe(subs: Seq[String], promise: Promise[Seq[Boolean]])
 
-  case class InboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, msg: ByteBuf, promise: Promise[Unit])
+  case class InboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, msg: ByteBuf, promise: Promise[Boolean])
   case class OutboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, msg: Any)
   case class OutboundPublishAck(msgId: Int)
   case class OutboundPublishRec(msgId: Int)
@@ -151,7 +151,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
         // retained message for that topic
 
         // store retained message
-        smqd.retain(ipub.topicPath, ipub.msg.copy)
+        smqd.retain(ipub.topicPath, ipub.msg)
       }
     }
     else {
@@ -165,7 +165,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     // because it matches an established subscription regardless of how the flag was set in the message it received
     smqd.publish(ipub.topicPath, ipub.msg)
 
-    ipub.promise.success(Unit)
+    ipub.promise.success(true)
   }
 
   import com.thing2x.smqd.protocol._

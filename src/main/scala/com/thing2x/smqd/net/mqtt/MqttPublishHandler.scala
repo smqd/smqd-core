@@ -121,8 +121,8 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
         // It has no way of informing that Client. It MUST either make a positive acknowledgement, according to the
         // normal QoS rules, or close the Network Connection.
         val sessionActor = ctx.channel.attr(ATTR_SESSION).get
-        val promise = Promise[Unit]
-        sessionActor ! InboundPublish(topicPath, qosLevel, isRetain, payload, promise)
+        val promise = Promise[Boolean]
+        sessionActor ! InboundPublish(topicPath, qosLevel, isRetain, payload.copy(), promise)
 
         promise.future.onComplete {
           case Success(_) =>
@@ -141,8 +141,10 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
 
               case _ =>
             }
+            payload.release()
 
           case Failure(_) =>
+            payload.release()
         }
 
       case _ =>

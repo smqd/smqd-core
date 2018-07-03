@@ -98,7 +98,7 @@ trait SendingOutboundPublish {
     if (reg.sessionId.isDefined) { // session associated subscriber, which means this is not a internal actor (callback)
       rm.msg match {
         case bb: ByteBuf =>
-          reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, bb.retain)
+          reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, bb)
         case uk =>
           reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, uk)
       }

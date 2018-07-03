@@ -70,11 +70,14 @@ class LocalModeRetainer extends Retainer {
   override def set(map: Map[TopicPath, ByteBuf]): Unit = ???
 
   override def put(topicPath: TopicPath, msg: ByteBuf): Unit = {
-    maps.put(topicPath, msg)
+    maps.put(topicPath, msg.retain())
   }
 
   override def remove(topicPath: TopicPath): Unit = {
-    maps.remove(topicPath)
+    maps.remove(topicPath) match {
+      case Some(v) => v.release()
+      case _ =>
+    }
   }
 
   override def filter(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage] = {
