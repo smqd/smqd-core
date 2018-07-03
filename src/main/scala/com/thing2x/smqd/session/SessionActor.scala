@@ -22,6 +22,7 @@ import com.thing2x.smqd._
 import com.thing2x.smqd.fault._
 import com.thing2x.smqd.net.mqtt.MqttSessionContext
 import com.thing2x.smqd.session.SessionActor._
+import com.thing2x.smqd.session.SessionManagerActor.StopNotificationFromSessionActor
 import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
@@ -37,10 +38,11 @@ import scala.util.{Failure, Success}
 
 object SessionActor {
 
-  case class ChallengeConnect(by: ClientId, cleanSession: Boolean, promise: Promise[ChallengeConnectResult])
-  sealed trait ChallengeConnectResult
-  case class ChallengeConnectAccepted() extends ChallengeConnectResult
-  case class ChallengeConnectDenied() extends ChallengeConnectResult
+  case class ChallengeConnect(by: ClientId, cleanSession: Boolean) extends Serializable
+
+  sealed trait ChallengeConnectResult extends Serializable
+  case class ChallengeConnectAccepted(clientId: ClientId) extends ChallengeConnectResult
+  case class ChallengeConnectDenied(clientId: ClientId) extends ChallengeConnectResult
 
   case class Subscription(topicName: String, qos: QoS, var grantedQoS: QoS = QoS.Failure)
 
@@ -68,6 +70,8 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
 
   private val noOfSubscription = new AtomicInteger()
 
+  private var challengingActor: Option[ActorRef] = None
+
   override def preStart(): Unit = {
     // private var deliveryManager: ActorRef = _
     // deliveryManager = identifyActor("user/"+ChiefActor.actorName+"/"+DeliveryManagerActor.actorName)
@@ -78,6 +82,9 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   }
 
   override def postStop(): Unit = {
+    // notify session actor's death to session manager actor,
+    // so that ddata can remove session actor's registration from ddata
+    context.parent ! StopNotificationFromSessionActor(ctx.clientId, self)
     sstore.flushSession(stoken)
     ctx.sessionStopped()
   }
@@ -102,12 +109,18 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   }
 
   private def challengeChannel(replyTo: ActorRef, challenge: ChallengeConnect): Unit = {
-    logger.trace(s"[${ctx.clientId}] Session Challenged by ${challenge.by}")
-    if (ctx.state == SessionState.ConnectAcked || ctx.state == SessionState.Failed) {
-      challenge.promise.success(ChallengeConnectAccepted())
+    logger.trace(s"[${ctx.clientId}] challenged new channel by ${challenge.by}")
+    if (challengingActor.isEmpty && (ctx.state == SessionState.ConnectAcked || ctx.state == SessionState.Failed)) {
+      // if requestor (SessionManager) is in the same local node, it sends promise directly
+      // in other case (remote node), reply as normal message
+      replyTo ! ChallengeConnectAccepted(ctx.clientId)
+      // the actor picks its successor
+      challengingActor = Some(replyTo)
     }
     else {
-      challenge.promise.success(ChallengeConnectDenied())
+      // if the session actor is during the CONNECT process or has already successor(challengingAcotr),
+      // makes other challengers failed.
+      replyTo ! ChallengeConnectDenied(ctx.clientId)
     }
   }
 

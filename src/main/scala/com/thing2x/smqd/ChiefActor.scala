@@ -64,7 +64,7 @@ class ChiefActor(smqd: Smqd, registry: Registry, router: Router, retainer: Retai
 
     context.children.foreach{ child =>
       try {
-        implicit val readyTimeout: Timeout = 1 second
+        implicit val readyTimeout: Timeout = 3 second
         val future = child ? ChiefActor.Ready
         Await.result(future, readyTimeout.duration) match {
           case ChiefActor.ReadyAck =>

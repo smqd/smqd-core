@@ -14,13 +14,17 @@
 
 package com.thing2x
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.pattern.after
 import akka.stream.OverflowStrategy
+import akka.util.Timeout
 import com.codahale.metrics.Counter
+import com.thing2x.smqd.Smqd.NodeInfo
 import com.typesafe.config.Config
 import spray.json._
-import com.thing2x.smqd.Smqd.NodeInfo
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 import scala.language.implicitConversions
 
@@ -85,6 +89,12 @@ package object smqd extends DefaultJsonProtocol {
   }
 
   implicit def configToOptionalConfig(base: Config): OptionalConfig = new OptionalConfig(base)
+
+  implicit class FutureWithTimeout[T](f: Future[T]) {
+    def withTimeout(exception: => Throwable)(implicit timeout: Timeout, system: ActorSystem, ec: ExecutionContext): Future[T] = {
+      Future.firstCompletedOf(Seq(f, after(timeout.duration, system.scheduler)(Future.failed(exception))))
+    }
+  }
 
   implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat5(NodeInfo)
 

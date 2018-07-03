@@ -34,7 +34,7 @@ object ClientId {
   def toActorName(id: String): String = "_" + id
 }
 
-class ClientId(val id: String, val channelId: Option[String] = None) {
+class ClientId(val id: String, val channelId: Option[String] = None) extends Serializable {
   val actorName: String = ClientId.toActorName(id)
 
   override def toString: String = if (channelId.isEmpty) id + "@_" else id + "@" + channelId.get
