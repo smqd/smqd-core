@@ -14,9 +14,8 @@
 
 package com.thing2x.smqd.session
 
-import io.netty.buffer.ByteBuf
+import com.thing2x.smqd.ClientId
 import com.thing2x.smqd.QoS.QoS
-import com.thing2x.smqd.{ClientId, SmqResult}
 
 /**
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
@@ -37,7 +36,7 @@ trait SessionContext {
   def sessionTimeout(): Unit
   def sessionDisconnect(reason: String): Unit
 
-  def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: ByteBuf): Unit
+  def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit
 }
 
 object SessionState extends Enumeration {

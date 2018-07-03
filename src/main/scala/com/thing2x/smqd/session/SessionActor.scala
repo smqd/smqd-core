@@ -50,12 +50,13 @@ object SessionActor {
   case class Subscribe(subs: Seq[Subscription], promise: Promise[Seq[QoS]])
   case class Unsubscribe(subs: Seq[String], promise: Promise[Seq[Boolean]])
 
-  case class InboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, msg: ByteBuf, promise: Promise[Boolean])
+  case class InboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, msg: Array[Byte], promise: Option[Promise[Boolean]])
   case class OutboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, msg: Any)
   case class OutboundPublishAck(msgId: Int)
   case class OutboundPublishRec(msgId: Int)
   case class OutboundPublishComp(msgId: Int)
   case class ChannelClosed(clearSession: Boolean)
+  case object InboundDisconnect
 
   case object UpdateTimer
 
@@ -96,16 +97,16 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   override def receive: Receive = {
     case Subscribe(subs, promise) =>   subscribe(subs, promise)
     case Unsubscribe(subs, promise) => unsubscribe(subs, promise)
-    case ipub: InboundPublish =>        inbound(ipub)
-    case opub: OutboundPublish =>       outbound(opub)
+    case ipub: InboundPublish =>        inboundPublish(ipub)
+    case opub: OutboundPublish =>       outboundPublish(opub)
     case oack: OutboundPublishAck =>    outboundAck(oack)
     case orec: OutboundPublishRec =>    outboundRec(orec)
     case ocomp: OutboundPublishComp =>  outboundComp(ocomp)
     case ChannelClosed(clearSession) => channelClosed(clearSession)
+    case InboundDisconnect =>           inboundDisconnect()
     case UpdateTimer =>                 updateTimer()
     case Timeout =>                     timeout()
     case challenge: ChallengeConnect => challengeChannel(sender, challenge)
-    case _ =>
   }
 
   private def challengeChannel(replyTo: ActorRef, challenge: ChallengeConnect): Unit = {
@@ -124,66 +125,88 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     }
   }
 
-  private def inbound(ipub: InboundPublish): Unit = {
+  private def inboundDisconnect(): Unit = {
+    ctx.sessionDisconnect("received Disconnect")
+  }
 
-    if (ipub.isRetain) {
-      // [MQTT-3.3.1-5] If the RETAIN flag is set to 1, in a PUBLISH Packet sent by a Client to Server,
-      // the Server MUST store the Application Message and its QoS, so that it can be delivered to future subscribers
-      // whose subscriptions match its topic name
+  private def inboundPublish(ipub: InboundPublish): Unit = {
 
-      val isZeroSizePayload = ipub.msg.readableBytes() == 0
+    import smqd.Implicit._
 
-      if (isZeroSizePayload) {
-        // [MQTT-3.3.1-10] A PUBILSH Packet with a RETAIN flag set to 1 and playload containing zero bytes will be
-        // processed as normal by the Server and sent to Client with subscription matching the topic name. Additionally
-        // any existing retained message with the same topic name MUST be removed and any future subscribers for
-        // the topic will not receive a retained message
-
-        // [MQTT-3.3.1-11] A zero byte retained message MUST NOT be stored as a retained message on the Server
-
-        // delete retained message
-        smqd.unretain(ipub.topicPath)
-      }
-      else {
-        // [MQTT-3.3.1-7] If the Server receives a QoS 0 message with the RETAIN flag set to 1 it MUST discard
-        // any message previously retained for that topic. It SHOULD store the new QoS 0 message as the new retained
-        // message for that topic, buf MAY choose to discard it at any time - if this happens there will be no
-        // retained message for that topic
-
-        // store retained message
-        val buf = ipub.msg
-        val array = new Array[Byte](buf.readableBytes)
-        buf.readBytes(array)
-        smqd.retain(ipub.topicPath, array)
-      }
-    }
-    else {
-      // [MQTT-3.3.1-12] If the RETAIN flag is 0, in a PUBLISH Packet sent by a Client to Server, the Server
-      // MUST NOT store the message and MUST NOT remove or replace any existing retained message
-    }
-
-    // inter-nodes routing messaging
+    // check if this client has permission to publish message on this topic
     //
-    // [MQTT-3.3.1-9] The server MUST set the RETAIN flag to 0 when a PUBLISH Packet is sent to a Client
-    // because it matches an established subscription regardless of how the flag was set in the message it received
-    smqd.publish(ipub.topicPath, ipub.msg)
+    // [MQTT-3.3.5-2] If a Server implementation does not authorize a PUBLISH to be performed by a Client;
+    // It has no way of informing that Client. It MUST either make a positive acknowledgement, according to the
+    // normal QoS rules, or close the Network Connection.
+    smqd.allowPublish(ipub.topicPath, ctx.clientId, ctx.userName).onComplete {
+      case Success(canPublish) if canPublish =>
+        if (ipub.isRetain) {
+          // [MQTT-3.3.1-5] If the RETAIN flag is set to 1, in a PUBLISH Packet sent by a Client to Server,
+          // the Server MUST store the Application Message and its QoS, so that it can be delivered to future subscribers
+          // whose subscriptions match its topic name
 
-    ipub.promise.success(true)
+          val isZeroSizePayload = ipub.msg.length == 0
+
+          if (isZeroSizePayload) {
+            // [MQTT-3.3.1-10] A PUBILSH Packet with a RETAIN flag set to 1 and playload containing zero bytes will be
+            // processed as normal by the Server and sent to Client with subscription matching the topic name. Additionally
+            // any existing retained message with the same topic name MUST be removed and any future subscribers for
+            // the topic will not receive a retained message
+
+            // [MQTT-3.3.1-11] A zero byte retained message MUST NOT be stored as a retained message on the Server
+
+            // delete retained message
+            smqd.unretain(ipub.topicPath)
+          }
+          else {
+            // [MQTT-3.3.1-7] If the Server receives a QoS 0 message with the RETAIN flag set to 1 it MUST discard
+            // any message previously retained for that topic. It SHOULD store the new QoS 0 message as the new retained
+            // message for that topic, buf MAY choose to discard it at any time - if this happens there will be no
+            // retained message for that topic
+
+            // store retained message
+            smqd.retain(ipub.topicPath, ipub.msg)
+          }
+        }
+        else {
+          // [MQTT-3.3.1-12] If the RETAIN flag is 0, in a PUBLISH Packet sent by a Client to Server, the Server
+          // MUST NOT store the message and MUST NOT remove or replace any existing retained message
+        }
+
+        // inter-nodes routing messaging
+        //
+        // [MQTT-3.3.1-9] The server MUST set the RETAIN flag to 0 when a PUBLISH Packet is sent to a Client
+        // because it matches an established subscription regardless of how the flag was set in the message it received
+        smqd.publish(ipub.topicPath, ipub.msg)
+
+        ipub.promise match {
+          case Some(p) => p.success(true)
+          case None =>
+        }
+      case _ =>
+        smqd.notifyFault(InvalidTopicToPublish(ctx.clientId.toString, ipub.topicPath.toString))
+        ctx.sessionDisconnect(s"publishing message on prohibited topic ${ipub.topicPath.toString}")
+    }
   }
 
   import com.thing2x.smqd.protocol._
   import spray.json._
 
-  private def outbound(opub: OutboundPublish): Unit = {
+  private def outboundPublish(opub: OutboundPublish): Unit = {
     val msgId = nextMessageId
     val msg = opub.msg match {
-      case b: ByteBuf => b
+      case a: Array[Byte] => a
+      case b: ByteBuf =>
+        logger.warn("ByteBuf message has delivered for outgoing message")
+        val arr = new Array[Byte](b.readableBytes)
+        b.readBytes(arr)
+        arr
       case x: ProtocolNotification =>
-        io.netty.buffer.Unpooled.wrappedBuffer(x.toJson.toString.getBytes("utf-8"))
+        x.toJson.toString.getBytes("utf-8")
       case f: Fault =>
-        io.netty.buffer.Unpooled.wrappedBuffer(f.toJson.toString.getBytes("utf-8"))
+        f.toJson.toString.getBytes("utf-8")
       case _ =>
-        io.netty.buffer.Unpooled.wrappedBuffer(opub.msg.toString.getBytes("utf-8"))
+        opub.msg.toString.getBytes("utf-8")
     }
     opub.qos match {
       case QoS.AtMostOnce =>

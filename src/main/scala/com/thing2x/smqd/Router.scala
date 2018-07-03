@@ -15,10 +15,9 @@
 package com.thing2x.smqd
 
 import akka.actor.{Actor, ActorRef}
-import com.typesafe.scalalogging.StrictLogging
-import io.netty.buffer.ByteBuf
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.session.SessionActor.OutboundPublish
+import com.typesafe.scalalogging.StrictLogging
 
 /**
   * 2018. 6. 15. - Created by Kwon, Yeong Eon
@@ -96,12 +95,7 @@ class ClusterModeRouter extends Router with StrictLogging {
 trait SendingOutboundPublish {
   def sendOutboundPubish(reg: Registration, rm: RoutableMessage): Unit = {
     if (reg.sessionId.isDefined) { // session associated subscriber, which means this is not a internal actor (callback)
-      rm.msg match {
-        case bb: ByteBuf =>
-          reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, bb)
-        case uk =>
-          reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, uk)
-      }
+      reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, rm.msg)
     }
     else { // no session, this subscriber is internal actor (callback)
       reg.actor ! (rm.topicPath, rm.msg)

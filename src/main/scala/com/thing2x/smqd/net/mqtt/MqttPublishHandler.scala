@@ -112,19 +112,17 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
     val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
     import sessionCtx.smqd.Implicit._
 
-    sessionCtx.smqd.allowPublish(topicPath, sessionCtx.clientId, sessionCtx.userName).onComplete {
+    val sessionActor = ctx.channel.attr(ATTR_SESSION).get
+    val array = new Array[Byte](payload.readableBytes)
+    payload.readBytes(array)
+    payload.release()
 
-      case Success(canPublish) if canPublish =>
-        // this client has permission to publish message on this topic
-        //
-        // [MQTT-3.3.5-2] If a Server implementation does not authorize a PUBLISH to be performed by a Client;
-        // It has no way of informing that Client. It MUST either make a positive acknowledgement, according to the
-        // normal QoS rules, or close the Network Connection.
-        val sessionActor = ctx.channel.attr(ATTR_SESSION).get
-        val promise = Promise[Boolean]
-        sessionActor ! InboundPublish(topicPath, qosLevel, isRetain, payload.copy(), promise)
+    val promise = if (qosLevel == AT_LEAST_ONCE || qosLevel == EXACTLY_ONCE) Some(Promise[Boolean]) else None
+    sessionActor ! InboundPublish(topicPath, qosLevel, isRetain, array, promise)
 
-        promise.future.onComplete {
+    promise match {
+      case Some(p) =>
+        p.future.onComplete {
           case Success(_) =>
             qosLevel match {
               case AT_MOST_ONCE =>  // 0,  no ack
@@ -141,16 +139,12 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
 
               case _ =>
             }
-            payload.release()
 
           case Failure(_) =>
-            payload.release()
         }
-
-      case _ =>
-        sessionCtx.smqd.notifyFault(InvalidTopicToPublish(sessionCtx.clientId.toString, topicName))
-        ctx.close()
+      case None =>
     }
+
   }
 
   //// Scenario: Receiving Message from Client, QoS 2

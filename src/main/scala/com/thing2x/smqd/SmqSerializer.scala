@@ -52,6 +52,11 @@ class SmqSerializer extends Serializer with StrictLogging {
           buf.writeBytes(bb)
           bb.resetReaderIndex()
 
+        case arr: Array[Byte] =>
+          buf.writeByte('a')
+          buf.writeInt(arr.length)
+          buf.writeBytes(arr)
+
         case str: String =>
           buf.writeByte('s')
           val data = str.getBytes("utf-8")
@@ -117,6 +122,11 @@ class SmqSerializer extends Serializer with StrictLogging {
             case 'b' => // ByteBuf
               val dataLen = buf.readInt()
               val data = buf.readBytes(dataLen)
+              data
+            case 'a' => // Array[Byte]
+              val dataLen = buf.readInt()
+              val data = new Array[Byte](dataLen)
+              buf.readBytes(data)
               data
             case 's' => // String
               val dataLen = buf.readInt()

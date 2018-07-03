@@ -17,6 +17,7 @@ package com.thing2x.smqd.net.mqtt
 import akka.util.Timeout
 import com.thing2x.smqd._
 import com.thing2x.smqd.fault._
+import com.thing2x.smqd.session.SessionActor.InboundDisconnect
 import com.thing2x.smqd.session.SessionManagerActor._
 import com.thing2x.smqd.session.SessionState
 import com.typesafe.scalalogging.StrictLogging
@@ -26,8 +27,8 @@ import io.netty.handler.codec.mqtt.MqttMessageType._
 import io.netty.handler.codec.mqtt.MqttQoS._
 import io.netty.handler.codec.mqtt._
 
+import scala.concurrent.Promise
 import scala.concurrent.duration._
-import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 import scala.util.matching.Regex
 import scala.util.{Failure, Success}
@@ -64,7 +65,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
         val channelCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
         // [MQTT-3.14.4-3] Server MUST discard any Will Message associated with the current connection without publishing
         channelCtx.will = None
-        handlerCtx.close()
+        session ! InboundDisconnect
 
       //////////////////////////////////
       // PINGREQ(12)
