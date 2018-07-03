@@ -14,15 +14,14 @@
 
 package com.thing2x.smqd.replica
 
-import akka.actor.{Actor, ActorRef, Stash}
+import akka.actor.{Actor, ActorRef}
 import akka.cluster.Cluster
 import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
-import com.typesafe.scalalogging.StrictLogging
-import io.netty.buffer.ByteBuf
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
-import com.thing2x.smqd.replica.ReplicationActor._
 import com.thing2x.smqd._
+import com.thing2x.smqd.replica.ReplicationActor._
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -36,7 +35,7 @@ object ReplicationActor {
   case class AddRoute(filter: FilterPath)
   case class RemoveRoute(filter: FilterPath)
 
-  case class AddRetainedMessage(topicPath: TopicPath, msg: ByteBuf)
+  case class AddRetainedMessage(topicPath: TopicPath, msg: Array[Byte])
   case class RemoveRetainedMessage(topicPath: TopicPath)
 }
 
@@ -45,7 +44,7 @@ class ClusterModeReplicationActor(router: Router, retainer: Retainer, nodeRouter
   private implicit val node: Cluster = Cluster(context.system)
 
   private val FiltersKey = ORMultiMapKey[FilterPath, SmqdRoute]("smqd.filters")
-  private val RetainsKey = LWWMapKey[TopicPath, ByteBuf]("smqd.retains")
+  private val RetainsKey = LWWMapKey[TopicPath, Array[Byte]]("smqd.retains")
 
   override def preStart(): Unit = {
     replicator ! Subscribe(FiltersKey, self)
@@ -79,10 +78,10 @@ class ClusterModeReplicationActor(router: Router, retainer: Retainer, nodeRouter
       router.set(data.entries)
 
     case AddRetainedMessage(topic, msg) =>
-      replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, ByteBuf], WriteMajority(1 second))( _ + (topic, msg))
+      replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], WriteMajority(1 second))( _ + (topic, msg))
 
     case RemoveRetainedMessage(topic) =>
-      replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, ByteBuf], WriteMajority(1 second))( _ - topic)
+      replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], WriteMajority(1 second))( _ - topic)
 
     case c @ Changed(RetainsKey) =>
       val data = c.get(RetainsKey)

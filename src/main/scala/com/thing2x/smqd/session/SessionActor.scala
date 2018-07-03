@@ -151,7 +151,10 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
         // retained message for that topic
 
         // store retained message
-        smqd.retain(ipub.topicPath, ipub.msg)
+        val buf = ipub.msg
+        val array = new Array[Byte](buf.readableBytes)
+        buf.readBytes(array)
+        smqd.retain(ipub.topicPath, array)
       }
     }
     else {

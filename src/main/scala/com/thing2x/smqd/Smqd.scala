@@ -260,7 +260,7 @@ class Smqd(val config: Config,
   def request[T](topicPath: TopicPath, msg: Any)(implicit ec: ExecutionContext, timeout: Timeout): Future[T] =
     requestor.request(topicPath, msg)
 
-  def retain(topicPath: TopicPath, msg: ByteBuf): Unit =
+  def retain(topicPath: TopicPath, msg: Array[Byte]): Unit =
     retainer.put(topicPath, msg)
 
   def unretain(topicPath: TopicPath): Unit =

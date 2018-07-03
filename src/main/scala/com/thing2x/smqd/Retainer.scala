@@ -15,10 +15,10 @@
 package com.thing2x.smqd
 
 import akka.actor.{ActorRef, ActorSystem}
-import io.netty.buffer.{ByteBuf, ByteBufUtil}
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.replica.ReplicationActor
 import com.thing2x.smqd.util.ActorIdentifying
+import io.netty.buffer.ByteBufUtil
 
 import scala.collection.mutable
 
@@ -27,30 +27,30 @@ import scala.collection.mutable
   */
 trait Retainer {
 
-  def set(map: Map[TopicPath, ByteBuf]): Unit
+  def set(map: Map[TopicPath, Array[Byte]]): Unit
 
-  def put(topicPath: TopicPath, msg: ByteBuf): Unit
+  def put(topicPath: TopicPath, msg: Array[Byte]): Unit
 
   def remove(topicPath: TopicPath): Unit
 
   def filter(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage]
 }
 
-case class RetainedMessage(topicPath: TopicPath, qos: QoS, msg: ByteBuf)
+case class RetainedMessage(topicPath: TopicPath, qos: QoS, msg: Array[Byte])
 
 class ClusterModeRetainer(system: ActorSystem) extends Retainer with ActorIdentifying {
 
   private lazy val ddManager: ActorRef = identifyActor(manager(ReplicationActor.actorName))(system)
 
-  private var maps: Map[TopicPath, ByteBuf] = Map.empty
+  private var maps: Map[TopicPath, Array[Byte]] = Map.empty
 
-  def set(maps: Map[TopicPath, ByteBuf]): Unit = {
+  def set(maps: Map[TopicPath, Array[Byte]]): Unit = {
     this.maps = maps
 
-    logger.trace(maps.map{ case (k, v) => s"${k.toString}\n${ByteBufUtil.prettyHexDump(v)}"}.mkString("\nSet retained messages\n   \t", "\n   \t", ""))
+    logger.trace(maps.map{ case (k, v) => s"${k.toString}\n${ByteBufUtil.hexDump(v)}"}.mkString("\nSet retained messages\n   \t", "\n   \t", ""))
   }
 
-  override def put(topicPath: TopicPath, msg: ByteBuf): Unit = {
+  override def put(topicPath: TopicPath, msg: Array[Byte]): Unit = {
     ddManager ! ReplicationActor.AddRetainedMessage(topicPath, msg)
   }
 
@@ -65,20 +65,15 @@ class ClusterModeRetainer(system: ActorSystem) extends Retainer with ActorIdenti
 
 class LocalModeRetainer extends Retainer {
 
-  private val maps: mutable.Map[TopicPath, ByteBuf] = mutable.HashMap.empty
+  private val maps: mutable.Map[TopicPath, Array[Byte]] = mutable.HashMap.empty
 
-  override def set(map: Map[TopicPath, ByteBuf]): Unit = ???
+  override def set(map: Map[TopicPath, Array[Byte]]): Unit = ???
 
-  override def put(topicPath: TopicPath, msg: ByteBuf): Unit = {
-    maps.put(topicPath, msg.retain())
-  }
+  override def put(topicPath: TopicPath, msg: Array[Byte]): Unit =
+    maps.put(topicPath, msg)
 
-  override def remove(topicPath: TopicPath): Unit = {
-    maps.remove(topicPath) match {
-      case Some(v) => v.release()
-      case _ =>
-    }
-  }
+  override def remove(topicPath: TopicPath): Unit =
+    maps.remove(topicPath)
 
   override def filter(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage] = {
     maps.filter{ case (k, _) => filterPath.matchFor(k) }.map{ case (topic, msg) => RetainedMessage(topic, qos, msg)}.toList
