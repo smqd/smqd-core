@@ -21,7 +21,6 @@ import akka.util.Timeout
 import com.thing2x.smqd.delivery.DeliveryManagerActor
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.protocol.ProtocolNotificationManager
-import com.thing2x.smqd.replica.{ClusterModeReplicationActor, LocalModeReplicationActor, ReplicationActor}
 import com.thing2x.smqd.session.{ClusterModeSessionManagerActor, LocalModeSessionManagerActor, SessionManagerActor}
 import com.typesafe.scalalogging.StrictLogging
 
@@ -42,7 +41,7 @@ object ChiefActor {
 
 import com.thing2x.smqd.ChiefActor._
 
-class ChiefActor(smqd: Smqd, registry: Registry, router: Router, retainer: Retainer, sstore: SessionStore)
+class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: Router, retainer: Retainer, sstore: SessionStore)
   extends Actor with StrictLogging {
 
   override def preStart(): Unit = {
@@ -50,16 +49,15 @@ class ChiefActor(smqd: Smqd, registry: Registry, router: Router, retainer: Retai
     context.actorOf(Props(classOf[ProtocolNotificationManager], smqd), ProtocolNotificationManager.actorName)
     context.actorOf(Props(classOf[DeliveryManagerActor]), DeliveryManagerActor.actorName)
     context.actorOf(Props(classOf[RegistryCallbackManagerActor]), RegistryCallbackManagerActor.actorName)
-    context.actorOf(Props(classOf[RequestManagerActor], smqd), RequestManagerActor.actorName)
+    context.actorOf(Props(classOf[RequestManagerActor], smqd, requestor), RequestManagerActor.actorName)
 
     if (smqd.isClusterMode) {
       context.actorOf(Props(classOf[ClusterModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
-      val localRouter = context.actorOf(Props(classOf[ClusterAwareLocalRouter], registry), ClusterAwareLocalRouter.actorName)
-      context.actorOf(Props(classOf[ClusterModeReplicationActor], router, retainer, localRouter), ReplicationActor.actorName)
+      context.actorOf(Props(classOf[RoutesReplicator], smqd, router, registry), RoutesReplicator.actorName)
+      context.actorOf(Props(classOf[RetainsReplicator], smqd, retainer), RetainsReplicator.actorName)
     }
     else {
       context.actorOf(Props(classOf[LocalModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
-      context.actorOf(Props(classOf[LocalModeReplicationActor]), ReplicationActor.actorName)
     }
 
     context.children.foreach{ child =>

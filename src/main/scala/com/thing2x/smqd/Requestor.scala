@@ -16,11 +16,10 @@ package com.thing2x.smqd
 
 import java.util.concurrent.atomic.AtomicLong
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Cancellable}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import akka.util.Timeout
-import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
-import com.thing2x.smqd.util.ActorIdentifying
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -31,16 +30,18 @@ import scala.language.postfixOps
 /**
   * 2018. 6. 20. - Created by Kwon, Yeong Eon
   */
-class Requestor(smqd: Smqd) extends ActorIdentifying with StrictLogging {
-
-  import smqd.Implicit._
-
-  private val requestManager: ActorRef = identifyActor(manager(RequestManagerActor.actorName))(system)
+class Requestor extends StrictLogging {
 
   def request[T](topicPath: TopicPath, msg: Any)(implicit ec: ExecutionContext, timeout: Timeout): Future[T] = {
     val p = Promise[T]()
     requestManager ! RequestMessage(topicPath, msg, p, timeout)
     p.future
+  }
+
+  private var requestManager: ActorRef = _
+
+  private[smqd] def setRequestManager(rm: ActorRef): Unit = {
+    requestManager = rm
   }
 }
 
@@ -54,9 +55,9 @@ object RequestManagerActor {
   case class Waiting(promise: Promise[Any], dest: String, requestTime: Long, timeout: Long)
 }
 
-import RequestManagerActor._
+import com.thing2x.smqd.RequestManagerActor._
 
-class RequestManagerActor(smqd: Smqd) extends Actor with StrictLogging {
+class RequestManagerActor(smqd: Smqd, requestor: Requestor) extends Actor with StrictLogging {
 
 
   private val reqIdGenerator = new AtomicLong()
@@ -69,21 +70,26 @@ class RequestManagerActor(smqd: Smqd) extends Actor with StrictLogging {
   private val reponseFilter: FilterPath = FilterPath(responsePrefix + "#")
 
   override def preStart(): Unit = {
-    // subscribe topic to receive the reponse message
-    smqd.subscribe(reponseFilter, self)
-
-    import context.dispatcher
+    import smqd.Implicit._
     scheduler = context.system.scheduler.schedule(1 second, 1 second, self, Check)
+    // subscribe topic to receive the reponse message
+    Future { // need to be a different thread
+      smqd.subscribe(reponseFilter, self)
+    }
   }
 
   override def postStop(): Unit = {
-    smqd.unsubscribe(reponseFilter, self)
+    import smqd.Implicit._
+    Future { // need to be a different thread
+      smqd.unsubscribe(reponseFilter, self)
+    }
     scheduler.cancel()
   }
 
   override def receive: Receive = {
     case Ready =>
       context.become(receive0)
+      requestor.setRequestManager(self)
       sender ! ReadyAck
   }
 
@@ -116,16 +122,16 @@ class RequestManagerActor(smqd: Smqd) extends Actor with StrictLogging {
           logger.warn("Missing waiting board for reqId: {}", reqId)
       }
 
-    // cleaning waiting baord
+    // cleaning waiting board
     case Check =>
       val cur = System.currentTimeMillis()
       waitingBoard.filter{ case (reqId, w) => cur - w.requestTime > w.timeout }.keys.foreach{ reqId =>
         waitingBoard.remove(reqId) match {
           case Some(w) =>
-            logger.warn("Waiting baord timeout: reqId({}), dest: {}", reqId, w.dest)
+            logger.warn("Waiting board timeout: reqId({}), dest: {}", reqId, w.dest)
             w.promise.failure(new java.util.concurrent.TimeoutException(s"Request($reqId) get no response from ${w.dest}"))
           case None =>
-            logger.warn("Waiting baord timeout: {} missing entry (strange behavior)", reqId)
+            logger.warn("Waiting board timeout: {} missing entry (strange behavior)", reqId)
         }
       }
   }

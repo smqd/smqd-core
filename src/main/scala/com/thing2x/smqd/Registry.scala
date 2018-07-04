@@ -14,15 +14,14 @@
 
 package com.thing2x.smqd
 
-import akka.actor.{ActorRef, ActorSystem}
-import com.typesafe.scalalogging.StrictLogging
+import akka.actor.ActorRef
 import com.thing2x.smqd.QoS._
 import com.thing2x.smqd.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
-import com.thing2x.smqd.replica.ReplicationActor
 import com.thing2x.smqd.util.ActorIdentifying
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.mutable
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, Future}
 
 /**
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
@@ -42,7 +41,7 @@ case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, sessi
   override def toString = s"${filterPath.toString} ($qos) => ${actor.path.toString}"
 }
 
-abstract class AbstractRegistry(system: ActorSystem) extends Registry with ActorIdentifying with StrictLogging {
+abstract class AbstractRegistry(smqd: Smqd) extends Registry with ActorIdentifying with StrictLogging {
 
   def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): QoS = {
     subscribe0(Registration(filterPath, qos, actor, sessionId))
@@ -61,12 +60,11 @@ abstract class AbstractRegistry(system: ActorSystem) extends Registry with Actor
 
   import akka.pattern.ask
   import akka.util.Timeout
+  import smqd.Implicit._
 
   import scala.concurrent.duration._
   import scala.language.postfixOps
-
   private lazy val callbackManager = identifyActor(manager(RegistryCallbackManagerActor.actorName))(system)
-  private implicit val ec: ExecutionContext = system.dispatchers.defaultGlobalDispatcher
   private implicit val timeout: Timeout = 1 second
 
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef = {
@@ -89,11 +87,10 @@ trait RegistryDelegate {
   def allowPublish(topicPath: TopicPath, sessionId: ClientId, userName: Option[String]): Future[Boolean]
 }
 
-trait HashMapRegistry extends StrictLogging {
-  protected def registry: mutable.HashMap[FilterPath, List[Registration]]
 
-  def addRoute(filterPath: FilterPath): Unit = ???
-  def removeRoute(filterPath: FilterPath): Unit = ???
+final class HashMapRegistry(smqd: Smqd) extends AbstractRegistry(smqd)  {
+
+  protected val registry: mutable.HashMap[FilterPath, List[Registration]] = mutable.HashMap[FilterPath, List[Registration]]()
 
   def subscribe0(reg: Registration): QoS = {
     //logger.debug("subscribe0 {}{}", reg.actor.path, if (reg.filterPath == null) "" else ": "+reg.filterPath.toString)
@@ -103,7 +100,8 @@ trait HashMapRegistry extends StrictLogging {
           registry.put(reg.filterPath, reg :: list)
         case None =>
           registry.put(reg.filterPath, List(reg))
-          addRoute(reg.filterPath)
+          // a fresh new filter registration, so it requires local-node be in routes for cluster-wise delivery
+          smqd.addRoute(reg.filterPath)
       }
       // logger.debug(dump)
       reg.qos
@@ -136,7 +134,7 @@ trait HashMapRegistry extends StrictLogging {
           if (updated.isEmpty) {
             registry.remove(filterPath)
             // this topic filter do not have any subscriber anymore, so ask cluster not to route publish message
-            removeRoute(filterPath)
+            smqd.removeRoute(filterPath)
             result = true
           }
           else if (updated.size != list.size) {
@@ -166,19 +164,3 @@ trait HashMapRegistry extends StrictLogging {
     }
   }
 }
-
-final class LocalModeRegistry(system: ActorSystem) extends AbstractRegistry(system) with HashMapRegistry {
-  protected val registry: mutable.HashMap[FilterPath, List[Registration]] = mutable.HashMap[FilterPath, List[Registration]]()
-  override def addRoute(filterPath: FilterPath): Unit = Unit
-  override def removeRoute(filterPath: FilterPath): Unit = Unit
-}
-
-final class ClusterModeRegistry(system: ActorSystem) extends AbstractRegistry(system) with ActorIdentifying with HashMapRegistry {
-  protected val registry: mutable.HashMap[FilterPath, List[Registration]] = mutable.HashMap[FilterPath, List[Registration]]()
-
-  private lazy val ddManager: ActorRef = identifyActor(manager(ReplicationActor.actorName))(system)
-
-  override def addRoute(filterPath: FilterPath): Unit = ddManager ! ReplicationActor.AddRoute(filterPath)
-  override def removeRoute(filterPath: FilterPath): Unit = ddManager ! ReplicationActor.RemoveRoute(filterPath)
-}
-

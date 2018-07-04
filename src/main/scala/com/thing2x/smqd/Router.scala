@@ -14,21 +14,28 @@
 
 package com.thing2x.smqd
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Props}
+import akka.cluster.Cluster
+import akka.cluster.ddata.Replicator._
+import akka.cluster.ddata.{DistributedData, ORMultiMap, ORMultiMapKey}
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.session.SessionActor.OutboundPublish
 import com.typesafe.scalalogging.StrictLogging
+
+import scala.concurrent.duration._
 
 /**
   * 2018. 6. 15. - Created by Kwon, Yeong Eon
   */
 trait Router {
-  def set(routes: Map[FilterPath, Set[SmqdRoute]]): Unit
   def snapshot: Map[FilterPath, Set[SmqdRoute]]
 
   def filter(topicPath: TopicPath): Seq[SmqdRoute]
   def routes(topicPath: TopicPath): Seq[ActorRef]
   def routes(rm: RoutableMessage): Unit = this.routes(rm.topicPath).foreach( _ ! rm)
+
+  private[smqd] def addRoute(filterPath: FilterPath): Unit
+  private[smqd] def removeRoute(filterPath: FilterPath): Unit
 }
 
 case class RoutableMessage(topicPath: TopicPath, msg: Any, isRetain: Boolean = false, isLocal: Boolean = true) extends Serializable {
@@ -56,6 +63,16 @@ class ClusterModeRouter extends Router with StrictLogging {
       }.mkString("\nRoutes\n      ", "\n      ", ""))
       */
   }
+
+  private var replicator: RoutesReplicator = _
+  private[smqd] def setReplicator(repl: RoutesReplicator): Unit =
+    this.replicator = repl
+
+  private[smqd] def addRoute(filterPath: FilterPath): Unit =
+    this.replicator.addRoute(filterPath)
+
+  private[smqd] def removeRoute(filterPath: FilterPath): Unit =
+    this.replicator.removeRoute(filterPath)
 
   def snapshot: Map[FilterPath, Set[SmqdRoute]] = routes
 
@@ -92,6 +109,53 @@ class ClusterModeRouter extends Router with StrictLogging {
   }
 }
 
+
+object RoutesReplicator {
+  val actorName = "routes_replicator"
+}
+
+class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry) extends Actor with StrictLogging {
+  private implicit val node: Cluster = Cluster(context.system)
+  private val replicator = DistributedData(context.system).replicator
+  private val FiltersKey = ORMultiMapKey[FilterPath, SmqdRoute]("smqd.filters")
+
+  private val writeConsistency = WriteMajority(1.second)
+  private val readConsistency = ReadMajority(1.second)
+
+  private val localRouter = context.actorOf(Props(classOf[ClusterAwareLocalRouter], registry), "node-router")
+
+  override def preStart(): Unit = {
+    replicator ! Subscribe(FiltersKey, self)
+  }
+
+  override def postStop(): Unit = {
+    replicator ! Unsubscribe(FiltersKey, self)
+  }
+
+  override def receive: Receive = {
+    case Ready =>
+      context.become(receive0)
+      router.setReplicator(this)
+      sender ! ReadyAck
+  }
+
+  def receive0: Receive = {
+    case c @ Changed(FiltersKey) =>
+      val data = c.get(FiltersKey)
+      router.set(data.entries)
+  }
+
+  private[smqd] def addRoute(filter: FilterPath): Unit = {
+    replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(filter, SmqdRoute(filter, localRouter)))
+  }
+
+  private[smqd] def removeRoute(filter: FilterPath): Unit = {
+    replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.removeBinding(filter, SmqdRoute(filter, localRouter)))
+  }
+}
+
+
+
 trait SendingOutboundPublish {
   def sendOutboundPubish(reg: Registration, rm: RoutableMessage): Unit = {
     if (reg.sessionId.isDefined) { // session associated subscriber, which means this is not a internal actor (callback)
@@ -103,23 +167,12 @@ trait SendingOutboundPublish {
   }
 }
 
-object ClusterAwareLocalRouter {
-  val actorName: String = "node-router"
-}
-
 class ClusterAwareLocalRouter(registry: Registry) extends Actor with SendingOutboundPublish with StrictLogging {
 
   private val random: scala.util.Random = new scala.util.Random(System.currentTimeMillis())
 
   override def receive: Receive = {
-    case Ready =>
-      context.become(receive0)
-      sender ! ReadyAck
-  }
-
-  def receive0: Receive = {
     case rm: RoutableMessage =>
-
       // local messaging
       registry.filter(rm.topicPath).groupBy(_.filterPath.prefix).foreach { case (prefix, regList) =>
         prefix match {
@@ -156,13 +209,15 @@ class ClusterAwareLocalRouter(registry: Registry) extends Actor with SendingOutb
 
 class LocalModeRouter(registry: Registry) extends Router with SendingOutboundPublish with StrictLogging {
 
-  override def set(routes: Map[FilterPath, Set[SmqdRoute]]): Unit = ???
-
   override def snapshot: Map[FilterPath, Set[SmqdRoute]] = ???
 
   override def filter(topicPath: TopicPath): Seq[SmqdRoute] = ???
 
   override def routes(topicPath: TopicPath): Seq[ActorRef] = ???
+
+  override private[smqd] def addRoute(filterPath: FilterPath): Unit = ???
+
+  override private[smqd] def removeRoute(filterPath: FilterPath): Unit = ???
 
   override def routes(rm: RoutableMessage): Unit = {
     registry.filter(rm.topicPath).foreach{ reg => sendOutboundPubish(reg, rm) }

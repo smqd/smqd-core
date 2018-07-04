@@ -28,7 +28,6 @@ import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationMana
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
-import io.netty.buffer.ByteBuf
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
@@ -71,11 +70,11 @@ class Smqd(val config: Config,
   def uptimeString: String = super.uptimeString
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
 
-  private val registry: Registry          = if (isClusterMode) new ClusterModeRegistry(system)  else new LocalModeRegistry(system)
-  private val router: Router              = if (isClusterMode) new ClusterModeRouter()          else new LocalModeRouter(registry)
-  private val retainer: Retainer          = if (isClusterMode) new ClusterModeRetainer(system)  else new LocalModeRetainer()
-  private val sessionStore: SessionStore  = new SessionStore(sessionStoreDelegate)
-  private lazy val requestor: Requestor   = new Requestor(this)
+  private val registry       = new HashMapRegistry(this)
+  private val router         = if (isClusterMode) new ClusterModeRouter()  else new LocalModeRouter(registry)
+  private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
+  private val sessionStore   = new SessionStore(sessionStoreDelegate)
+  private val requestor      = new Requestor()
 
   private var chiefActor: ActorRef = _
   private var services: Seq[Service] = Nil
@@ -88,7 +87,7 @@ class Smqd(val config: Config,
 
     //// actors
     try {
-      chiefActor = system.actorOf(Props(classOf[ChiefActor], this, registry, router, retainer, sessionStore), ChiefActor.actorName)
+      chiefActor = system.actorOf(Props(classOf[ChiefActor], this, requestor, registry, router, retainer, sessionStore), ChiefActor.actorName)
 
       implicit val readyTimeout: Timeout = 3 second
       val future = chiefActor ? ChiefActor.Ready
@@ -102,6 +101,8 @@ class Smqd(val config: Config,
         logger.error("ActorSystem failed", ex)
         System.exit(1)
     }
+
+    //// core facilities and actor system are ready.
 
     //// start services
     try {
@@ -256,6 +257,9 @@ class Smqd(val config: Config,
 
   def snapshotRoutes: Map[FilterPath, Set[SmqdRoute]] =
     router.snapshot
+
+  private[smqd] def addRoute(filterPath: FilterPath): Unit = if (isClusterMode) router.addRoute(filterPath)
+  private[smqd] def removeRoute(filterPath: FilterPath): Unit = if (isClusterMode) router.removeRoute(filterPath)
 
   def request[T](topicPath: TopicPath, msg: Any)(implicit ec: ExecutionContext, timeout: Timeout): Future[T] =
     requestor.request(topicPath, msg)
