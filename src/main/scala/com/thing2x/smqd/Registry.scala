@@ -88,9 +88,7 @@ trait RegistryDelegate {
 }
 
 
-final class HashMapRegistry(smqd: Smqd) extends AbstractRegistry(smqd)  {
-
-  private val debugDump = true
+final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegistry(smqd)  {
 
   protected val registry: mutable.HashMap[FilterPath, List[Registration]] = mutable.HashMap[FilterPath, List[Registration]]()
 

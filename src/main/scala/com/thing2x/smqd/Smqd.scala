@@ -70,7 +70,7 @@ class Smqd(val config: Config,
   def uptimeString: String = super.uptimeString
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
 
-  private val registry       = new HashMapRegistry(this)
+  private val registry       = new HashMapRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter()  else new LocalModeRouter(registry)
   private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
   private val sessionStore   = new SessionStore(sessionStoreDelegate)
