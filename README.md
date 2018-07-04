@@ -215,6 +215,67 @@ f.onComplete {
 }
 ```
 
+## Cluster
+
+### non-cluster mode
+
+smqd runs non-cluster mode by default. It is configured by akka's provider.
+If the provider is set as 'local', other settings of cluster (`smqd.cluster.*`) are ignored
+
+```
+akka.actor.provider = local
+```
+
+### cluster mode
+
+To start smqd in cluster mode, akka provider should be `cluster`
+
+```
+akka.actor.provider = cluster
+```
+
+And akka cluster provider requires seed-nodes information for bootstrapping.
+smqd supports multiple ways discovering seed-nodes addresses to akka.
+
+#### static
+
+The static discovery method is the default of akka cluster. Please refer the seed-nodes fundamental from
+[akka documents](https://doc.akka.io/docs/akka/current/cluster-usage.html#joining-to-seed-nodes).
+The only differencie from original akka cluster is using `smqd.static.seeds` instead of `akka.cluster.seed-nodes`.
+The other considerations should be same as the akka document says
+
+> Since smqd manages the cluster configuration and bootstrapping procedure by itself,
+Do not use `akka.cluster.seed-nodes` in configuration.
+
+```
+smqd {
+  cluster {
+      discovery = static
+      static {
+        seeds = ["192.168.1.101:2551", "192.168.1.102:2551", "192.168.1.103:2551"]
+      }
+  }
+}
+```
+
+#### etcd
+
+You can use etcd as a storage of dynamic seed-node information. In this discovery mode,
+you don't need to manage the addresses of nodes in the cluster
+
+```
+smqd {
+  cluster {
+      discovery = etcd
+      etcd {
+        server = "http://192.168.1.105:2379"
+        prefix = /smqd/cluster/seeds
+        node_ttl = 1m
+      }
+  }
+}
+```
+
 ## Customize behaviors
 
 #### Client Authentication
