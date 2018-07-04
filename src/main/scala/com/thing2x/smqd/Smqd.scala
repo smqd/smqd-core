@@ -253,11 +253,15 @@ class Smqd(val config: Config,
   def unsubscribe(actor: ActorRef, filterPath: Option[FilterPath] = None): Boolean =
     filterPath match { case Some(filter) => registry.unsubscribe(filter, actor) case _ => registry.unsubscribeAll(actor) }
 
-  def publish(topicPath: TopicPath, msg: Any, isRetain: Boolean = false): Unit =
-    router.routes(RoutableMessage(topicPath, msg, isRetain))
+  def publish(topicPath: TopicPath, message: Any, isRetain: Boolean = false): Unit =
+    router.routes(RoutableMessage(topicPath, message, isRetain))
 
   def publish(rm: RoutableMessage): Unit =
     router.routes(rm)
+
+  /** Java API */
+  def publish(topicPath: TopicPath, message: java.lang.Object): Unit =
+    router.routes(RoutableMessage(topicPath, message))
 
   def snapshotRoutes: Map[FilterPath, Set[SmqdRoute]] =
     router.snapshot
@@ -265,7 +269,7 @@ class Smqd(val config: Config,
   private[smqd] def addRoute(filterPath: FilterPath): Unit = if (isClusterMode) router.addRoute(filterPath)
   private[smqd] def removeRoute(filterPath: FilterPath): Unit = if (isClusterMode) router.removeRoute(filterPath)
 
-  def request[T](topicPath: TopicPath, msg: Any)(implicit ec: ExecutionContext, timeout: Timeout): Future[T] =
+  def request[T](topicPath: TopicPath, expect: Class[T], msg: Any)(implicit ec: ExecutionContext, timeout: Timeout): Future[T] =
     requestor.request(topicPath, msg)
 
   def retain(topicPath: TopicPath, msg: Array[Byte]): Unit =

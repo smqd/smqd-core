@@ -45,8 +45,14 @@ class Requestor extends StrictLogging {
   }
 }
 
-case class RequestMessage[T](topicPath: TopicPath, msg: Any, promise: Promise[T], timeout: Timeout)
-case class ResponsibleMessage(replyTo: TopicPath, msg: Any)
+case class RequestMessage[T](topicPath: TopicPath, message: Any, promise: Promise[T], timeout: Timeout)
+case class ResponsibleMessage(replyTo: TopicPath, message: Any) {
+  /** Java API **/
+  def getReplyTo: TopicPath = replyTo
+
+  /** Java API **/
+  def getMessage: Any = message
+}
 
 object RequestManagerActor {
   val actorName = "requestors"

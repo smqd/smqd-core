@@ -205,7 +205,7 @@ smqd.publish("my/topic", "Hello Message")
 implicit val timeout: Timeout = 1 second
 implicit val ec: ExecutionContext = system.dispatcher
 
-val f: Future[String] = smqd.request[String]("request/func", "Hello")
+val f: Future[String] = smqd.request[String]("request/func", classOf[String], "Hello")
 
 f.onComplete {
     case Success(str) =>

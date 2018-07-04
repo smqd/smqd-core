@@ -137,7 +137,7 @@ val subscribeActor = system.actorOf(Props(classOf[PublishTest.SubsribeActor], te
 
     "success case" in {
 
-      val f1 = smqd.request[String]("request/func", "Hello")
+      val f1 = smqd.request("request/func", classOf[String], "Hello")
       Await.result(f1, timeout.duration)
       f1.onComplete {
         case Success(str) =>
@@ -150,7 +150,7 @@ val subscribeActor = system.actorOf(Props(classOf[PublishTest.SubsribeActor], te
 
     "failure case" in {
       intercept[Throwable] {
-        val f2 = smqd.request[String]("request/func", "FailMe")
+        val f2 = smqd.request("request/func", classOf[String], "FailMe")
         Await.result(f2, timeout.duration)
         //Assertions.assertThrows()
         f2.onComplete {
@@ -165,7 +165,7 @@ val subscribeActor = system.actorOf(Props(classOf[PublishTest.SubsribeActor], te
 
     "timeout case" in {
       intercept[Throwable] {
-        val f3 = smqd.request[String]("request/func", msg = "Timeout")
+        val f3 = smqd.request("request/func", classOf[String], msg = "Timeout")
         Await.result(f3, 3 seconds)
         f3.onComplete {
           case Success(_) =>

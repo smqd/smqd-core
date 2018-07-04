@@ -31,7 +31,7 @@ object RegistryCallbackManagerActor {
   case class CreateCallbackPF(partial: PartialFunction[(TopicPath, Any), Unit])
 }
 
-class RegistryCallbackManagerActor extends Actor with StrictLogging {
+class RegistryCallbackManagerActor(smqd: Smqd) extends Actor with StrictLogging {
   override def receive: Receive = {
     case Ready =>
       context.become(receive0)
@@ -40,10 +40,10 @@ class RegistryCallbackManagerActor extends Actor with StrictLogging {
 
   def receive0: Receive = {
     case CreateCallback(cb) =>
-      val child = context.actorOf(Props(classOf[RegistryCallbackActor], cb))
+      val child = context.actorOf(Props(classOf[RegistryCallbackActor], smqd, cb))
       sender ! child
     case CreateCallbackPF(cb) =>
-      val child = context.actorOf(Props(classOf[RegistryCallbackPFActor], cb))
+      val child = context.actorOf(Props(classOf[RegistryCallbackPFActor], smqd, cb))
       sender ! child
   }
 }
@@ -52,7 +52,7 @@ class RegistryCallbackManagerActor extends Actor with StrictLogging {
   * Actor works for callback function that subscribes a topic
   * @param callback callback function
   */
-class RegistryCallbackActor(callback: (TopicPath, Any) => Unit) extends Actor with StrictLogging {
+class RegistryCallbackActor(smqd: Smqd, callback: (TopicPath, Any) => Unit) extends Actor with StrictLogging {
   override def receive: Receive = {
     case (topicPath: TopicPath, msg) =>
       try {
@@ -60,7 +60,12 @@ class RegistryCallbackActor(callback: (TopicPath, Any) => Unit) extends Actor wi
       }
       catch{
         case e: Throwable =>
-          logger.warn(s"Callback '${topicPath.toString}' throws an error", e)
+          msg match {
+            // in case of request-response model, reply the exception to the requestor
+            // so that request manager can make the promise to complete with the failure
+            case ResponsibleMessage(replyTo, _) => smqd.publish(replyTo, e)
+            case _ => logger.warn(s"Callback '${topicPath.toString}' throws an error", e)
+          }
       }
   }
 }
@@ -69,7 +74,7 @@ class RegistryCallbackActor(callback: (TopicPath, Any) => Unit) extends Actor wi
   * Actor works for partial function callback that subscribes a topic
   * @param callback callback partial function
   */
-class RegistryCallbackPFActor(callback: PartialFunction[(TopicPath, Any), Unit]) extends Actor with StrictLogging {
+class RegistryCallbackPFActor(smqd: Smqd, callback: PartialFunction[(TopicPath, Any), Unit]) extends Actor with StrictLogging {
   override def receive: Receive = {
     case (topicPath: TopicPath, msg) =>
       try {
@@ -77,7 +82,12 @@ class RegistryCallbackPFActor(callback: PartialFunction[(TopicPath, Any), Unit])
       }
       catch{
         case e: Throwable =>
-          logger.warn(s"Callback '${topicPath.toString}' throws an error", e)
+          msg match {
+            // in case of request-response model, reply the exception to the requestor
+            // so that request manager can make the promise to complete with the failure
+            case ResponsibleMessage(replyTo, _) => smqd.publish(replyTo, e)
+            case _ => logger.warn(s"Callback '${topicPath.toString}' throws an error", e)
+          }
       }
   }
 }
