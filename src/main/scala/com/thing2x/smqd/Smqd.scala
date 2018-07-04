@@ -245,6 +245,10 @@ class Smqd(val config: Config,
   def subscribe(filterPath: FilterPath)(callback: PartialFunction[(TopicPath, Any), Unit]): ActorRef =
     registry.subscribe(filterPath)(callback)
 
+  /** Java API */
+  def subscribe(filterPath: FilterPath, receivable: MessageReceivable): ActorRef =
+    registry.subscribe(filterPath){ case (topic, msg) => receivable.onMessage(topic, msg) }
+
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean = unsubscribe(actor, Some(filterPath))
   def unsubscribe(actor: ActorRef, filterPath: Option[FilterPath] = None): Boolean =
     filterPath match { case Some(filter) => registry.unsubscribe(filter, actor) case _ => registry.unsubscribeAll(actor) }
