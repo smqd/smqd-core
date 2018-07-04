@@ -21,7 +21,6 @@ import akka.cluster.ddata.{DistributedData, LWWMap, LWWMapKey}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.thing2x.smqd.ChiefActor.ReadyAck
-import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd._
 import com.thing2x.smqd.session.SessionActor._
 import com.thing2x.smqd.session.SessionManagerActor._

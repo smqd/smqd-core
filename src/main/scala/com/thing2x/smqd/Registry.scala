@@ -39,6 +39,14 @@ trait Registry {
 
 case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, sessionId: Option[ClientId]) {
   override def toString = s"${filterPath.toString} ($qos) => ${actor.path.toString}"
+
+  override def equals(obj: scala.Any): Boolean = {
+    obj match {
+      case other: Registration =>
+        actor == other.actor
+      case _ => false
+    }
+  }
 }
 
 abstract class AbstractRegistry(smqd: Smqd) extends Registry with ActorIdentifying with StrictLogging {
@@ -90,16 +98,16 @@ trait RegistryDelegate {
 
 final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegistry(smqd)  {
 
-  protected val registry: mutable.HashMap[FilterPath, List[Registration]] = mutable.HashMap[FilterPath, List[Registration]]()
+  protected val registry: mutable.HashMap[FilterPath, Set[Registration]] = mutable.HashMap[FilterPath, Set[Registration]]()
 
   def subscribe0(reg: Registration): QoS = {
     //logger.debug("subscribe0 {}{}", reg.actor.path, if (reg.filterPath == null) "" else ": "+reg.filterPath.toString)
     synchronized {
       registry.get(reg.filterPath) match {
         case Some(list) =>
-          registry.put(reg.filterPath, reg :: list)
+          registry.put(reg.filterPath, list + reg)
         case None =>
-          registry.put(reg.filterPath, List(reg))
+          registry.put(reg.filterPath, Set(reg))
           // a fresh new filter registration, so it requires local-node be in routes for cluster-wise delivery
           smqd.addRoute(reg.filterPath)
       }

@@ -42,11 +42,11 @@ case class RoutableMessage(topicPath: TopicPath, msg: Any, isRetain: Boolean = f
   val isRemote: Boolean = !isLocal
 }
 
-case class SmqdRoute(filterPath: FilterPath, actor: ActorRef) {
+case class SmqdRoute(filterPath: FilterPath, actor: ActorRef, nodeName: String) {
   override def toString: String = s"${filterPath.toString} ${actor.path.toString}"
 }
 
-class ClusterModeRouter extends Router with StrictLogging {
+class ClusterModeRouter(verbose: Boolean) extends Router with StrictLogging {
 
   private var routes: Map[FilterPath, Set[SmqdRoute]] = Map.empty
   private val random: scala.util.Random = new scala.util.Random(System.currentTimeMillis())
@@ -54,14 +54,13 @@ class ClusterModeRouter extends Router with StrictLogging {
   def set(routes: Map[FilterPath, Set[SmqdRoute]]): Unit = {
     this.routes = routes
 
-    /*
-    logger.trace(
-      routes.map{ case (f, s) =>
-        s"$f -> ${ s.map( r =>
-          r.actor.path.toStringWithAddress(r.actor.path.address)).mkString("\n            ", "\n            ", "")
-        }"
-      }.mkString("\nRoutes\n      ", "\n      ", ""))
-      */
+    if (verbose) {
+      logger.trace(
+        routes.map{ case (f, s) =>
+          s"$f -> ${ s.map(_.nodeName).mkString(", ")
+          }"
+        }.toSeq.sortWith(_ < _).mkString("\nRoutes\n      ", "\n      ", ""))
+    }
   }
 
   private var replicator: RoutesReplicator = _
@@ -146,11 +145,11 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
   }
 
   private[smqd] def addRoute(filter: FilterPath): Unit = {
-    replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(filter, SmqdRoute(filter, localRouter)))
+    replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
   }
 
   private[smqd] def removeRoute(filter: FilterPath): Unit = {
-    replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.removeBinding(filter, SmqdRoute(filter, localRouter)))
+    replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.removeBinding(filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
   }
 }
 
