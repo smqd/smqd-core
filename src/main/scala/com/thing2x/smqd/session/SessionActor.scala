@@ -290,7 +290,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
             if (topic == "$SYS/protocols" || topic.startsWith("$SYS/protocols/")) {
               ctx match {
                 case mqttCtx: MqttSessionContext =>
-                  logger.info(s"[${mqttCtx.clientId.toString} echo cancelling for protocol notification")
+                  logger.info(s"[${ctx.clientId}] echo cancelling for protocol notification")
                   mqttCtx.cancelProtocolNotification()
                 case _ =>
               }

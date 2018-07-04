@@ -90,6 +90,8 @@ trait RegistryDelegate {
 
 final class HashMapRegistry(smqd: Smqd) extends AbstractRegistry(smqd)  {
 
+  private val debugDump = true
+
   protected val registry: mutable.HashMap[FilterPath, List[Registration]] = mutable.HashMap[FilterPath, List[Registration]]()
 
   def subscribe0(reg: Registration): QoS = {
@@ -103,7 +105,8 @@ final class HashMapRegistry(smqd: Smqd) extends AbstractRegistry(smqd)  {
           // a fresh new filter registration, so it requires local-node be in routes for cluster-wise delivery
           smqd.addRoute(reg.filterPath)
       }
-      // logger.debug(dump)
+      if (debugDump)
+        logger.debug(dump)
       reg.qos
     }
   }
@@ -144,7 +147,8 @@ final class HashMapRegistry(smqd: Smqd) extends AbstractRegistry(smqd)  {
         }
       }
     }
-    // logger.debug(dump)
+    if (debugDump)
+      logger.debug(dump)
     result
   }
 

@@ -193,6 +193,17 @@ case class FilterPath(tokens: Seq[TName], prefix: FilterPathPrefix = NoPrefix, g
     tokens.map(_.name).mkString(prefixStr, "/", "")
   }
 
+  def debug: String = {
+    val prefixStr = prefix match {
+      case Local => "[$local]"
+      case Queue => "[$queue]"
+      case Share => "[$share (" + group.get + ")]"
+      case NoPrefix => "-"
+    }
+
+    tokens.map(_.name).mkString(prefixStr, ", ", "")
+  }
+
   def toByteArray: Array[Byte] = {
     this.toString.getBytes("utf-8")
   }
