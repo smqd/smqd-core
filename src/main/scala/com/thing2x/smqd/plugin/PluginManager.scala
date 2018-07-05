@@ -51,20 +51,24 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
   }
 
   private def repositoryDefinition(conf: Config): PluginRepositoryDefinition = {
-    val name = conf.getString("name")
+    val name = conf.getString("package-name")
     val location = new URI(conf.getString("location"))
     val provider = conf.getString("provider")
     PluginRepositoryDefinition(name, location, provider, installable = true)
   }
 
   private def findManifest(uriPath: String): Config = {
-    val ref = ConfigFactory.parseResources("smqd-plugins.manifest")
+    val ref = ConfigFactory.parseResources(getClass.getClassLoader, "smqd-plugins.manifest")
     if (uriPath == null || uriPath == "") {
       logger.info("No plugin manifest is defined")
       return ref
     }
+
     try {
-      val uri = new URI(uriPath)
+      // try first as a file
+      val file = new File(uriPath)
+      val uri = if (file.exists && file.canRead) file.toURI else new URI(uriPath)
+      // try to find from uri
       val in = uri.toURL.openStream()
 
       if (in == null){
@@ -104,15 +108,17 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
   def pluginDefinitions(pluginName: String): Seq[PluginDefinition] = pluginDefs.flatMap(pd => pd.plugins).filter(p => p.name == pluginName)
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqServicePlugin].isAssignableFrom(pd.clazz))
-  def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqBridgePlugin].isAssignableFrom(pd.clazz))
+  def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqBridgeDriverPlugin].isAssignableFrom(pd.clazz))
 
   private def findPluginLoader(url: URL): PluginPackageLoader =
     new PluginPackageLoader(url, getClass.getClassLoader)
   private def findPluginLoader(file: File): PluginPackageLoader =
     new PluginPackageLoader(file.toURI.toURL, getClass.getClassLoader)
 
-  private def findPluginFiles(rootDir: File): Seq[File] =
-    rootDir.listFiles(file =>  file.canRead && ((file.getName.endsWith(".jar") && file.isFile) || file.isDirectory))
+  private def findPluginFiles(rootDir: File): Seq[File] = {
+    new File(getClass.getProtectionDomain.getCodeSource.getLocation.getPath) +:
+      rootDir.listFiles(file =>  file.canRead && ((file.getName.endsWith(".jar") && file.isFile) || file.isDirectory))
+  }
 
   private def findRootDir(rootDir: String): Option[File] = {
     val file = new File(rootDir)

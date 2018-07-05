@@ -14,7 +14,7 @@
 
 package com.thing2x.smqd.plugin
 
-import com.thing2x.smqd.{LifeCycle, Service, Smqd}
+import com.thing2x.smqd.{AbstractBridgeDriver, LifeCycle, Service, Smqd}
 import com.typesafe.config.Config
 
 /**
@@ -28,7 +28,7 @@ abstract class SmqServicePlugin(name: String, smqd: Smqd, config: Config) extend
 
 }
 
-abstract class SmqBridgePlugin(val name: String, smqd: Smqd, config: Config) extends  SmqPlugin {
+abstract class SmqBridgeDriverPlugin(name: String, smqd: Smqd, config: Config) extends AbstractBridgeDriver(name, smqd, config) with SmqPlugin {
 
 }
 

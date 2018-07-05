@@ -23,19 +23,36 @@ import com.typesafe.config.Config
   * 2018. 7. 5. - Created by Kwon, Yeong Eon
   */
 
-case class PluginPackageDefinition(name: String, vendor: String, description: String, plugins: Seq[PluginDefinition], repository: PluginRepositoryDefinition)
+case class PluginPackageDefinition(name: String, vendor: String, description: String, plugins: Seq[PluginDefinition], repository: PluginRepositoryDefinition) {
+  override def equals(other: Any): Boolean = {
+    if (!other.isInstanceOf[PluginPackageDefinition]) return false
+    val r = other.asInstanceOf[PluginPackageDefinition]
+
+    this.name == r.name
+  }
+}
 
 case class PluginDefinition(name: String, clazz: Class[SmqPlugin], version: String, defaultConfig: Config, multiplicable: Boolean) {
 
-  def createServiceInstance(instanceName: String, smqd: Smqd, config: Config): SmqServicePlugin =
+  def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config]): SmqServicePlugin =
     createInstance(instanceName, smqd, config, classOf[SmqServicePlugin])
 
-  def createInstance[T <: SmqPlugin](instanceName: String, smqd: Smqd, config: Config, pluginType: Class[T]): T = {
+  def createBridgeDriverInstance(instanceName: String, smqd: Smqd, config: Option[Config]): SmqBridgeDriverPlugin =
+    createInstance(instanceName, smqd, config, classOf[SmqBridgeDriverPlugin])
+
+  def createInstance[T <: SmqPlugin](instanceName: String, smqd: Smqd, config: Option[Config], pluginType: Class[T]): T = {
     val clazz = this.clazz.asInstanceOf[Class[T]]
     val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-    val mergedConf = config.withFallback(defaultConfig)
+    val mergedConf = if (config.isDefined) config.get.withFallback(defaultConfig) else defaultConfig
     val instance = cons.newInstance(instanceName, smqd, mergedConf)
     instance
+  }
+
+  override def equals(other: Any): Boolean = {
+    if (!other.isInstanceOf[PluginDefinition]) return false
+    val r = other.asInstanceOf[PluginDefinition]
+
+    this.name == r.name
   }
 }
 
