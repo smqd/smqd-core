@@ -24,6 +24,7 @@ import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.Smqd._
 import com.thing2x.smqd.fault.FaultNotificationManager
+import com.thing2x.smqd.plugin.PluginManager
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
@@ -70,6 +71,7 @@ class Smqd(val config: Config,
   def uptimeString: String = super.uptimeString
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
 
+  private val pluginManager  = new PluginManager(this, config.getString("smqd.plugin.dir"), config.getString("smqd.plugin.manifest"))
   private val registry       = new HashMapRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)
   private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
@@ -103,6 +105,11 @@ class Smqd(val config: Config,
     }
 
     //// core facilities and actor system are ready.
+    //// then loading plugins
+    val pdefs = pluginManager.packageDefinitions
+    pdefs.foreach{ pd =>
+      logger.info(s"Plugin ${pd.name} available from ${pd.repository.name}")
+    }
 
     //// start services
     try {
