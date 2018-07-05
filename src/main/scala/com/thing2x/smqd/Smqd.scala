@@ -112,21 +112,19 @@ class Smqd(val config: Config,
           val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
           val info = pkg.plugins.map( _.name).mkString(", ")
           val size = pkg.plugins.size
-          logger.info(s"Plugin Repo '${repo.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
+          logger.info(s"Plugin package '${repo.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
         case None =>
-          logger.info(s"Plugin Repo '${repo.name}' is not installed")
+          logger.info(s"Plugin package '${repo.name}' is not installed")
       }
     }
 
     //// start services
     try {
       services = serviceDefs.map { case (cname, sconf) =>
-        val inst = pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service])
-        inst
-      }.toSeq
-      services.foreach{svc =>
+        val svc = pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service])
         svc.start()
-      }
+        svc
+      }.toSeq
     }
     catch {
       case ex: Throwable =>
@@ -137,9 +135,7 @@ class Smqd(val config: Config,
     //// bridge drivers
     try {
       bridgeDrivers = bridgeDriverDefs.map { case (dname, dconf) =>
-        logger.info(s"BridgeDriver '$dname' loading...")
         val driver = pluginManager.createInstaceFromClassOrPlugin(this, dname, dconf, classOf[BridgeDriver])
-        logger.info(s"BridgeDriver '$dname' loaded")
         driver.start()
         dname -> driver
       }

@@ -31,8 +31,8 @@ trait Bridge extends LifeCycle with StrictLogging {
   def driver: BridgeDriver
   def index: Long
 
-  override def toString: String = new StringBuilder("Bridge(")
-    .append(driver.name).append(") ")
+  override def toString: String = new StringBuilder("Bridge '")
+    .append(driver.name).append("' ")
     .append("[").append(index).append("] ")
     .append(filterPath.toString)
     .toString
@@ -45,7 +45,7 @@ abstract class AbstractBridge(val driver: BridgeDriver, val index: Long, val fil
 
   override def start(): Unit = {
     subr = Some(driver.smqd.subscribe(filterPath, bridge _))
-    logger.info(s"Bridge(${filterPath.toString}) started.")
+    logger.info(s"Bridge '${filterPath.toString}' started.")
   }
 
   override def stop(): Unit = {
@@ -54,7 +54,7 @@ abstract class AbstractBridge(val driver: BridgeDriver, val index: Long, val fil
         driver.smqd.unsubscribe(filterPath, actor)
       case _ =>
     }
-    logger.info(s"Bridge(${filterPath.toString}) stopped.")
+    logger.info(s"Bridge '${filterPath.toString}' stopped.")
   }
 
   def bridge(topic: TopicPath, msg: Any): Unit
@@ -115,8 +115,8 @@ abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Option
 
   protected def createBridge(filterPath: FilterPath, config: Config, index: Long = indexes.getAndIncrement()): Bridge
 
-  override def toString: String = new StringBuilder("BridgeDriver(")
-    .append(name).append(") ")
+  override def toString: String = new StringBuilder("BridgeDriver '")
+    .append(name).append("' ")
     .append(" has ").append(bridgeSet.size).append(" bridge(s)")
     .toString
 }
@@ -127,17 +127,17 @@ abstract class AbstractBridgeDriver(name: String, smqd: Smqd, config: Option[Con
   val isClosed: Boolean = _isClosed
 
   override def start(): Unit = {
-    logger.info(s"BridgeDriver($name) starting...")
+    logger.info(s"BridgeDriver '$name' starting...")
     connect()
-    logger.info(s"BridgeDriver($name) started.")
+    logger.info(s"BridgeDriver '$name' started.")
   }
 
   override def stop(): Unit = {
-    logger.info(s"BridgeDriver($name) stopping...")
+    logger.info(s"BridgeDrive '$name' stopping...")
     _isClosed = true
     removeAllBridges()
     disconnect()
-    logger.info(s"BridgeDriver($name) stopped.")
+    logger.info(s"BridgeDriver '$name' stopped.")
   }
 
   protected def connect(): Unit
