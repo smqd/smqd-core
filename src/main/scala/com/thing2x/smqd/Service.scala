@@ -14,12 +14,13 @@
 
 package com.thing2x.smqd
 
+import com.thing2x.smqd.plugin.SmqPlugin
 import com.typesafe.config.Config
 
 /**
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
   */
-abstract class Service(val name: String, smqd: Smqd, val config: Config) extends LifeCycle {
+abstract class Service(val name: String, smqd: Smqd, val config: Option[Config]) extends LifeCycle with SmqPlugin {
 
   def start(): Unit = {
 

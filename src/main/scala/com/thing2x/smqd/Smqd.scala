@@ -121,25 +121,8 @@ class Smqd(val config: Config,
     //// start services
     try {
       services = serviceDefs.map { case (cname, sconf) =>
-          logger.info(s"Service '$cname' loading...")
-          sconf.getOptionString("entry.class") match {
-            case Some(className) =>
-              val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Service]]
-              val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-              val inst = cons.newInstance(cname, this, sconf.getConfig("config"))
-              logger.info(s"Service '$cname' loaded")
-              inst
-            case None =>
-              val plugin = sconf.getString("entry.plugin")
-              val pdef = pluginManager.pluginDefinitions(plugin)
-              if (pdef.isEmpty)
-                throw new IllegalStateException(s"Undefined plugin: $plugin")
-              else {
-                val inst = pdef.head.createServiceInstance(cname, this, sconf.getOptionConfig("config"))
-                logger.info(s"Service '$cname' loaded")
-                inst
-              }
-          }
+        val inst = pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service])
+        inst
       }.toSeq
       services.foreach{svc =>
         svc.start()
@@ -155,24 +138,8 @@ class Smqd(val config: Config,
     try {
       bridgeDrivers = bridgeDriverDefs.map { case (dname, dconf) =>
         logger.info(s"BridgeDriver '$dname' loading...")
-        val driver = dconf.getOptionString("class") match {
-          case Some(className) =>
-            val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[BridgeDriver]]
-            val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-            val inst = cons.newInstance(dname, this, dconf)
-            logger.info(s"BridgeDriver '$dname' loaded")
-            inst
-          case None =>
-            val plugin = dconf.getString("plugin")
-            val pdef = pluginManager.pluginDefinitions(plugin)
-            if (pdef.isEmpty)
-              throw new IllegalStateException(s"Undefined plugin: $plugin")
-            else {
-              val inst = pdef.head.createBridgeDriverInstance(dname, this, dconf.getOptionConfig("config"))
-              logger.info(s"BridgeDriver '$dname' loaded")
-              inst
-            }
-        }
+        val driver = pluginManager.createInstaceFromClassOrPlugin(this, dname, dconf, classOf[BridgeDriver])
+        logger.info(s"BridgeDriver '$dname' loaded")
         driver.start()
         dname -> driver
       }

@@ -34,8 +34,8 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
   //////////////////////////////////////////////////
   // repository definitions
 
-  private val STATIC_PKG = "smqd.static"
-  private val CORE_PKG = "smqd.core"
+  private val STATIC_PKG = "smqd-static"
+  private val CORE_PKG = "smqd-core"
 
   private val repositoryDefs =
     PluginRepositoryDefinition(CORE_PKG, new URI("https://github.com/smqd"), "n/a", installable = false) +:       // repo def for core plugins (internal)
@@ -177,4 +177,34 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
       }
     }
   }
+
+  ////////////////////////////////////////////////////////
+  // create instance
+  def createInstaceFromClassOrPlugin[T <: SmqPlugin](smqd: Smqd, dname: String, dconf: Config, classType: Class[T]): T ={
+    val category: String = classType match {
+      case c if c.isAssignableFrom(classOf[Service]) => "Service"
+      case c if c.isAssignableFrom(classOf[BridgeDriver]) => "BridgeDriver"
+      case _ => "Unknown type"
+    }
+    logger.info(s"$category '$dname' loading...")
+    val instance = dconf.getOptionString("entry.class") match {
+      case Some(className) =>
+        val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[T]]
+        val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Option[Config]])
+        cons.newInstance(dname, smqd, dconf.getOptionConfig("config"))
+      case None =>
+        val plugin = dconf.getString("entry.plugin")
+        val pdef = pluginDefinitions(plugin)
+        if (pdef.isEmpty) {
+
+          throw new IllegalStateException(s"Undefined plugin: $plugin")
+        }
+        else {
+          pdef.head.createInstance(dname, smqd, dconf.getOptionConfig("config"), classType)
+        }
+    }
+    logger.info(s"$category '$dname' loaded")
+    instance
+  }
+
 }

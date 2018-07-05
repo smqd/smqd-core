@@ -20,15 +20,11 @@ import com.typesafe.config.Config
 /**
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
-sealed trait SmqPlugin extends LifeCycle {
+trait SmqPlugin {
   def name: String
 }
 
-abstract class SmqServicePlugin(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with SmqPlugin {
+abstract class SmqServicePlugin(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, Option(config))
 
-}
-
-abstract class SmqBridgeDriverPlugin(name: String, smqd: Smqd, config: Config) extends AbstractBridgeDriver(name, smqd, config) with SmqPlugin {
-
-}
+abstract class SmqBridgeDriverPlugin(name: String, smqd: Smqd, config: Config) extends AbstractBridgeDriver(name, smqd, Option(config))
 

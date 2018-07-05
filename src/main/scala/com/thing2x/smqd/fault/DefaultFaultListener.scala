@@ -21,10 +21,10 @@ import com.thing2x.smqd.{FilterPath, Service, Smqd, TopicPath}
 /**
   * 2018. 6. 19. - Created by Kwon, Yeong Eon
   */
-class DefaultFaultListener(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
+class DefaultFaultListener(name: String, smqd: Smqd, config: Option[Config]) extends Service(name, smqd, config) with StrictLogging {
 
   override def start(): Unit = {
-    val topic = config.getString("subscribe.topic")
+    val topic = config.get.getString("subscribe.topic")
     smqd.subscribe(FilterPath(topic)) {
       case (topicPath, msg) => onFault(topicPath, msg)
     }

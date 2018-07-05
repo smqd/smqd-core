@@ -24,7 +24,7 @@ import scala.io.AnsiColor
 /**
   * 2018. 5. 31. - Created by Kwon, Yeong Eon
   */
-class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
+class DefaultProtocolListener(name: String, smqd: Smqd, config: Option[Config]) extends Service(name, smqd, config) with StrictLogging {
 
   import AnsiColor._
   private val colors = Seq(
@@ -39,13 +39,14 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
   private var subr: Option[ActorRef] = None
 
   override def start(): Unit = {
-    val topic = config.getString("subscribe.topic")
+    val conf = config.get
+    val topic = conf.getString("subscribe.topic")
     val s = smqd.subscribe(FilterPath(topic)) {
       case (topicPath, msg) => notified(topicPath, msg)
     }
     subr = Some(s)
 
-    val coloring = config.getBoolean("coloring")
+    val coloring = conf.getBoolean("coloring")
     colored = if(coloring) colored_do else colored_no
   }
 

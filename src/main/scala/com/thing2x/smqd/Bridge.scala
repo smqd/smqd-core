@@ -17,6 +17,7 @@ package com.thing2x.smqd
 import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.ActorRef
+import com.thing2x.smqd.plugin.SmqPlugin
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
@@ -59,7 +60,7 @@ abstract class AbstractBridge(val driver: BridgeDriver, val index: Long, val fil
   def bridge(topic: TopicPath, msg: Any): Unit
 }
 
-abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Config) extends LifeCycle {
+abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Option[Config]) extends LifeCycle with SmqPlugin {
   private val indexes: AtomicLong = new AtomicLong()
 
   private implicit def ordering: Ordering[Bridge] = (x, y) => x.index.compare(y.index)
@@ -120,7 +121,7 @@ abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Config
     .toString
 }
 
-abstract class AbstractBridgeDriver(name: String, smqd: Smqd, config: Config) extends BridgeDriver(name, smqd, config) with StrictLogging {
+abstract class AbstractBridgeDriver(name: String, smqd: Smqd, config: Option[Config]) extends BridgeDriver(name, smqd, config) with StrictLogging {
 
   private var _isClosed: Boolean = false
   val isClosed: Boolean = _isClosed
