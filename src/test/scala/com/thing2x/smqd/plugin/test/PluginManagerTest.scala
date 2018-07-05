@@ -1,3 +1,17 @@
+// Copyright 2018 UANGEL
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.thing2x.smqd.plugin.test
 
 import com.thing2x.smqd.plugin.PluginManager
@@ -10,10 +24,26 @@ import scala.sys.process._
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
 class PluginManagerTest extends FlatSpec with StrictLogging {
+
+  var mgr = new PluginManager("target/scala-2.12/", s"")
+
+  "PluginManager" should "initialize - empty" in {
+    val repos = mgr.repositoryDefinitions
+    repos.foreach { repo =>
+      val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "not installable"
+      logger.info(s"Repo '${repo.name}' is $inst")
+
+      val pkgs = repo.packageDefinition
+      pkgs.foreach { pkg =>
+        logger.info(s"     plugins: ${pkg.plugins.map(p => p.name).mkString(", ")}")
+      }
+    }
+  }
+
   private val pwd = "pwd".!!.trim
   logger.debug(s"PWD: $pwd")
 
-  val mgr = new PluginManager(null, "target/scala-2.12/", s"file://$pwd/src/test/resources/smqd-plugins-manifest-custom.conf")
+  mgr = new PluginManager( "target/scala-2.12/", s"file://$pwd/src/test/resources/smqd-plugins-manifest-custom.conf")
 
   "PluginManager" should "initialize" in {
     val repos = mgr.repositoryDefinitions
@@ -27,6 +57,7 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
       }
     }
   }
+
 
   it should "filter a package by name" in {
 
@@ -66,38 +97,30 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
   it should "filter a package by type" in {
 
     val spl = mgr.servicePluginDefinitions
-    assert(spl.size == 1)
+    assert(spl.nonEmpty)
     assert(spl.head.name == "Take one plugin")
 
     val bpl = mgr.bridgePluginDefinitions
-    assert(bpl.size == 1)
+    assert(bpl.nonEmpty)
     assert(bpl.head.name == "Take two plugin")
   }
 
   it should "produce service plugin - anon" in {
     val spl = mgr.servicePluginDefinitions
 
-    val svc = mgr.createPlugin("one", spl.head)
-    svc.start()
-
-    svc.stop()
+    assert(spl.head.clazz == classOf[TakeOnePlugin])
   }
 
   it should "produce service plugin - named" in {
     val pds = mgr.pluginDefinitions("Take one plugin")
     assert(pds.size == 1)
-    val svc = mgr.createPlugin("one", pds.head)
-    svc.start()
-    svc.stop()
+    assert(pds.head.clazz == classOf[TakeOnePlugin])
   }
 
   it should "produce bridge plugin" in {
     val spl = mgr.bridgePluginDefinitions
 
-    val svc = mgr.createPlugin("two", spl.head)
-    svc.start()
-
-    svc.stop()
+    assert(spl.head.clazz == classOf[TakeTwoPlugin])
   }
 
 }

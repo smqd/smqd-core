@@ -24,7 +24,7 @@ import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.Smqd._
 import com.thing2x.smqd.fault.FaultNotificationManager
-import com.thing2x.smqd.plugin.PluginManager
+import com.thing2x.smqd.plugin.{PluginManager, SmqServicePlugin}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
@@ -71,7 +71,7 @@ class Smqd(val config: Config,
   def uptimeString: String = super.uptimeString
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
 
-  private val pluginManager  = new PluginManager(this, config.getString("smqd.plugin.dir"), config.getString("smqd.plugin.manifest"))
+  private val pluginManager  = new PluginManager(config.getString("smqd.plugin.dir"), config.getString("smqd.plugin.manifest"))
   private val registry       = new HashMapRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)
   private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
@@ -106,19 +106,35 @@ class Smqd(val config: Config,
 
     //// core facilities and actor system are ready.
     //// then loading plugins
-    val pdefs = pluginManager.packageDefinitions
-    pdefs.foreach{ pd =>
-      logger.info(s"Plugin ${pd.name} available from ${pd.repository.name}")
+    pluginManager.repositoryDefinitions.foreach { repo =>
+      repo.packageDefinition match {
+        case Some(pkg) =>
+          val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
+          val info = pkg.plugins.map( _.name).mkString(", ")
+          val size = pkg.plugins.size
+          logger.info(s"Plugin Repo '${repo.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
+        case None =>
+          logger.info(s"Plugin Repo '${repo.name}' is not installed")
+      }
     }
 
     //// start services
     try {
       services = serviceDefs.map {
         case (cname, sconf) =>
-          val className = sconf.getString("entry.class")
-          val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Service]]
-          val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-          cons.newInstance(cname, this, sconf)
+          sconf.getOptionString("entry.class") match {
+            case Some(className) =>
+              val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Service]]
+              val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
+              cons.newInstance(cname, this, sconf.getConfig("config"))
+            case None =>
+              val plugin = sconf.getString("entry.plugin")
+              val pdef = pluginManager.pluginDefinitions(plugin)
+              if (pdef.isEmpty)
+                throw new IllegalStateException(s"Undefined plugin: $plugin")
+              else
+                pdef.head.createServiceInstance(cname, this, sconf.getConfig("config"))
+          }
       }.toSeq
       services.foreach{svc =>
         svc.start()

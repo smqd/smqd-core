@@ -44,7 +44,7 @@ class IdentiiferFormatTest extends FlatSpec {
   }
 
   private val config = ConfigFactory.load("smqd-ref.conf")
-  private val format = config.getString("smqd.core-mqtt.client.identifier.format").r
+  private val format = config.getString("smqd.registry.client.identifier.format").r
 
   private def valid(id: String): Boolean = {
     id match {

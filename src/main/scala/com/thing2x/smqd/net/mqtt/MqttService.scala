@@ -14,6 +14,8 @@
 
 package com.thing2x.smqd.net.mqtt
 
+import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.plugin.SmqServicePlugin
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
@@ -21,14 +23,13 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.{Channel, ChannelHandler, ChannelOption, EventLoopGroup}
 import io.netty.util.ResourceLeakDetector
-import com.thing2x.smqd.{Service, Smqd}
 
 import scala.util.matching.Regex
 
 /**
   * 2018. 5. 29. - Created by Kwon, Yeong Eon
   */
-class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
+class MqttService(name: String, smqd: Smqd, config: Config) extends SmqServicePlugin(name, smqd, config) with StrictLogging {
 
   private var channels: List[Channel] = Nil
   private var groups: List[EventLoopGroup] = Nil
@@ -45,7 +46,7 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name
   private val defaultKeepAliveTime: Int = math.min(config.getDuration("keepalive.time").toMillis/1000, 65536).toInt
   private val messageMaxSize: Int = config.getBytes("message.max.size").toInt
 
-  private val clientIdentifierFormat: Regex = config.getString("client.identifier.format").r
+  private val clientIdentifierFormat: Regex = smqd.config.getString("smqd.registry.client.identifier.format").r
 
   private val metrics = new MqttMetrics(name)
 

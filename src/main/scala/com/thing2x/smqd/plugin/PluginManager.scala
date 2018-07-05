@@ -26,10 +26,10 @@ import scala.collection.JavaConverters._
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
 object PluginManager {
-  def apply(smqd: Smqd, pluginDirPath: String, pluginManifestUri: String) = new PluginManager(smqd, pluginDirPath, pluginManifestUri)
+  def apply(pluginDirPath: String, pluginManifestUri: String) = new PluginManager(pluginDirPath, pluginManifestUri)
 }
 
-class PluginManager(smqd: Smqd, pluginDirPath: String, pluginManifestUri: String) extends StrictLogging {
+class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends StrictLogging {
 
   //////////////////////////////////////////////////
   // repository definitions
@@ -38,7 +38,7 @@ class PluginManager(smqd: Smqd, pluginDirPath: String, pluginManifestUri: String
   private val CORE_PKG = "smqd.core"
 
   private val repositoryDefs =
-    PluginRepositoryDefinition(CORE_PKG, new URI("https://github.com/smqd"), "n/a", installable = false) +:  // repo def for core plugins (internal)
+    PluginRepositoryDefinition(CORE_PKG, new URI("https://github.com/smqd"), "n/a", installable = false) +:       // repo def for core plugins (internal)
       PluginRepositoryDefinition(STATIC_PKG, new URI("https://github.com/smqd"), "n/a", installable = false) +:   // repo def for manually installed
       findRepositoryDefinitions(findManifest(pluginManifestUri))
 
@@ -54,11 +54,15 @@ class PluginManager(smqd: Smqd, pluginDirPath: String, pluginManifestUri: String
     val name = conf.getString("name")
     val location = new URI(conf.getString("location"))
     val provider = conf.getString("provider")
-    PluginRepositoryDefinition(name, location, provider, true)
+    PluginRepositoryDefinition(name, location, provider, installable = true)
   }
 
   private def findManifest(uriPath: String): Config = {
-    val ref = ConfigFactory.load("smqd-plugins.manifest")
+    val ref = ConfigFactory.parseResources("smqd-plugins.manifest")
+    if (uriPath == null || uriPath == "") {
+      logger.info("No plugin manifest is defined")
+      return ref
+    }
     try {
       val uri = new URI(uriPath)
       val in = uri.toURL.openStream()
@@ -79,10 +83,17 @@ class PluginManager(smqd: Smqd, pluginDirPath: String, pluginManifestUri: String
 
   //////////////////////////////////////////////////
   // plugin definitions
-  private val pluginDefs = findRootDir(pluginDirPath)  // plugin root directory
-    .map(f => findPluginFiles(f)).toSeq.flatten      // plugin files in the root directories
-    .map(findPluginLoader)                           // plugin loaders
-    .flatMap(_.definition)                            // to plugin definitions
+  private val pluginDefs = findRootDir(pluginDirPath) match {
+    case Some(rootDir) =>            // plugin root directory
+      findPluginFiles(rootDir)       // plugin files in the root directories
+        .map(findPluginLoader)       // plugin loaders
+        .flatMap(_.definition)       // to plugin definitions
+    case None =>
+      findPluginLoader(getClass.getProtectionDomain.getCodeSource.getLocation).definition match {
+        case Some(d) => Seq(d)
+        case None => Nil
+      }
+  }
 
   /** all package definitions */
   def packageDefinitions: Seq[PluginPackageDefinition] = pluginDefs
@@ -95,6 +106,8 @@ class PluginManager(smqd: Smqd, pluginDirPath: String, pluginManifestUri: String
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqServicePlugin].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqBridgePlugin].isAssignableFrom(pd.clazz))
 
+  private def findPluginLoader(url: URL): PluginPackageLoader =
+    new PluginPackageLoader(url, getClass.getClassLoader)
   private def findPluginLoader(file: File): PluginPackageLoader =
     new PluginPackageLoader(file.toURI.toURL, getClass.getClassLoader)
 
@@ -158,14 +171,4 @@ class PluginManager(smqd: Smqd, pluginDirPath: String, pluginManifestUri: String
       }
     }
   }
-
-  //////////////////////////////////////////////////
-  // plugin instances
-
-  def createPlugin(name: String, pd: PluginDefinition): SmqPlugin = {
-    val cons = pd.clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-    cons.newInstance(name, smqd, pd.config)
-  }
-
-
 }

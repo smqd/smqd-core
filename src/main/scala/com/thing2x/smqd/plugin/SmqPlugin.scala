@@ -14,8 +14,6 @@
 
 package com.thing2x.smqd.plugin
 
-import java.net.URI
-
 import com.thing2x.smqd.{LifeCycle, Service, Smqd}
 import com.typesafe.config.Config
 
