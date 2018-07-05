@@ -72,27 +72,27 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
     assert(rp.location.toString == "https://fake.com/smqd-fake_2.12.0.1.0.jar")
     assert(rp.provider == "www.smqd-test.com")
 
-    val coreopt = mgr.repositoryDefinition("smqd.core")
+    val coreopt = mgr.repositoryDefinition("smqd-core")
     assert(coreopt.isDefined)
     val core = coreopt.get
-    assert(core.name == "smqd.core")
+    assert(core.name == "smqd-core")
     assert(core.installed)
 
     val pdefopt = core.packageDefinition
     assert(pdefopt.isDefined)
     val pdef = pdefopt.get
-    assert(pdef.name == "smqd.core")
-    assert(pdef.plugins.exists(p => p.name == "com.thing2x.core-mqtt"))
-    assert(pdef.plugins.exists(p => p.name == "com.thing2x.core-http"))
+    assert(pdef.name == "smqd-core")
+    assert(pdef.plugins.exists(p => p.name == "thing2x-core-mqtt"))
+    assert(pdef.plugins.exists(p => p.name == "thing2x-core-http"))
   }
 
   it should "filter a package by type" in {
 
     val spl = mgr.servicePluginDefinitions
     assert(spl.nonEmpty)
-    assert(spl.exists(_.name == "com.thing2x.core-mqtt"))
+    assert(spl.exists(_.name == "thing2x-core-mqtt"))
     assert(spl.exists(_.clazz == classOf[MqttService]))
-    assert(spl.exists(_.name == "com.thing2x.core-http"))
+    assert(spl.exists(_.name == "thing2x-core-http"))
     assert(spl.exists(_.clazz == classOf[HttpService]))
   }
 
