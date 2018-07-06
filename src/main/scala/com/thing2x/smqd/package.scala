@@ -120,4 +120,24 @@ package object smqd extends DefaultJsonProtocol {
       "topic" -> JsString(rt.filterPath.toString),
       "node" -> JsString(rt.actor.path.toString))
   }
+
+  implicit object RegistrationFormat extends RootJsonFormat[com.thing2x.smqd.Registration] {
+    override def read(json: JsValue): Registration = ???
+    override def write(rt: Registration): JsValue = {
+      if (rt.clientId.isDefined) {
+        val channelId = rt.clientId.get.channelId
+        JsObject(
+          "topic" -> JsString(rt.filterPath.toString),
+          "qos" -> JsNumber(rt.qos.id),
+          "clientId" -> JsString(rt.clientId.get.id),
+          "channelId" -> JsString(channelId.getOrElse("n/a")))
+      }
+      else {
+        JsObject(
+          "topic" -> JsString(rt.filterPath.toString),
+          "qos" -> JsNumber(rt.qos.id),
+          "actor" -> JsString(rt.actor.path.toString))
+      }
+    }
+  }
 }

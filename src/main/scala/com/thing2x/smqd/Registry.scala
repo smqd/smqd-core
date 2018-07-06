@@ -35,9 +35,11 @@ trait Registry {
 
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef
   def subscribe(filterPath: FilterPath)(callback: PartialFunction[(TopicPath, Any), Unit]): ActorRef
+
+  def snapshot: Set[Registration]
 }
 
-case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, sessionId: Option[ClientId]) {
+case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, clientId: Option[ClientId]) extends Ordered[Registration] {
   override def toString = s"${filterPath.toString} ($qos) => ${actor.path.toString}"
 
   override def equals(obj: scala.Any): Boolean = {
@@ -47,12 +49,27 @@ case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, sessi
       case _ => false
     }
   }
+
+  override def compare(that: Registration): Int = {
+    if (this.clientId.isDefined && that.clientId.isDefined) {
+      this.clientId.get.id.compareToIgnoreCase(that.clientId.get.id)
+    }
+    else if (this.clientId.isDefined && that.clientId.isEmpty) {
+      -1
+    }
+    else if (this.clientId.isEmpty && that.clientId.isDefined) {
+      1
+    }
+    else {
+      this.actor.path.toString.compareToIgnoreCase(that.actor.path.toString)
+    }
+  }
 }
 
 abstract class AbstractRegistry(smqd: Smqd) extends Registry with ActorIdentifying with StrictLogging {
 
-  def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): QoS = {
-    subscribe0(Registration(filterPath, qos, actor, sessionId))
+  def subscribe(filterPath: FilterPath, actor: ActorRef, clientId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): QoS = {
+    subscribe0(Registration(filterPath, qos, actor, clientId))
   }
 
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean = {
@@ -172,5 +189,9 @@ final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegi
         list
       }.toList
     }
+  }
+
+  def snapshot: Set[Registration] = {
+    registry.values.flatten.toSet
   }
 }

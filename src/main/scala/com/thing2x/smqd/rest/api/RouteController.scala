@@ -26,10 +26,10 @@ import spray.json._
 /**
   * 2018. 6. 21. - Created by Kwon, Yeong Eon
   */
-class RoutesController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging {
+class RouteController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging {
   override def routes: Route = routes0
 
-  def routes0: Route = {
+  private def routes0: Route = {
     ignoreTrailingSlash {
       get {
         path(Remaining) { topicStr =>
@@ -43,7 +43,7 @@ class RoutesController(name: String, smqd: Smqd, config: Config) extends RestCon
           else {
             val json = result.map{ case (topicName, rs) => JsObject(
               "topic" -> JsString(topicName.toString),
-              "node" -> rs.map(r => r.actor.path.address.hostPort).toJson
+              "nodes" -> rs.map(r => r.actor.path.address.hostPort).toJson
             )}.toJson
             complete(StatusCodes.OK, restSuccess(0, json))
           }
@@ -57,7 +57,7 @@ class RoutesController(name: String, smqd: Smqd, config: Config) extends RestCon
 
             val result = smqd.snapshotRoutes
             val totalNum = result.size
-            val totalPage = (totalNum + pageSize + 1)/pageSize
+            val totalPage = (totalNum + pageSize - 1)/pageSize
 
             currPage = math.max(math.min(currPage, totalPage), 1)
             pageSize = math.max(math.min(pageSize, 100), 1)
@@ -74,7 +74,7 @@ class RoutesController(name: String, smqd: Smqd, config: Config) extends RestCon
               "total_page" -> JsNumber(totalPage),
               "objects" -> sliced.map{case (topic, rs) => JsObject(
                 "topic" -> JsString(topic.toString),
-                "node" -> rs.map(r => r.actor.path.address.hostPort).toJson
+                "nodes" -> rs.map(r => r.nodeName).toJson
               )}.toJson
             )
 

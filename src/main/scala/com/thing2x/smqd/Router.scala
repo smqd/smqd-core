@@ -157,7 +157,7 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
 
 trait SendingOutboundPublish {
   def sendOutboundPubish(reg: Registration, rm: RoutableMessage): Unit = {
-    if (reg.sessionId.isDefined) { // session associated subscriber, which means this is not a internal actor (callback)
+    if (reg.clientId.isDefined) { // session associated subscriber, which means this is not a internal actor (callback)
       reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, rm.msg)
     }
     else { // no session, this subscriber is internal actor (callback)

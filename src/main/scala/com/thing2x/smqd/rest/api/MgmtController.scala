@@ -28,9 +28,9 @@ import spray.json._
   */
 class MgmtController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging {
 
-  val routes: Route = version ~ nodes
+  val routes: Route = version ~ nodes ~ plugins
 
-  def version: Route = {
+  private def version: Route = {
     path("version") {
       get {
         parameters('fmt.?) {
@@ -50,7 +50,7 @@ class MgmtController(name: String, smqd: Smqd, config: Config) extends RestContr
     }
   }
 
-  def nodes: Route = {
+  private def nodes: Route = {
     ignoreTrailingSlash {
       path("nodes") {
         get { getNodes(None)  }
@@ -79,5 +79,20 @@ class MgmtController(name: String, smqd: Smqd, config: Config) extends RestContr
         } yield resonse
         complete(StatusCodes.OK, jsval)
     }
+  }
+
+  private def plugins: Route = {
+    ignoreTrailingSlash {
+      path("plugins") {
+        get { getPlugins(None)  }
+      } ~
+      path("plugins" / Remaining.?) { pluginName =>
+        get { getPlugins(pluginName) }
+      }
+    }
+  }
+
+  private def getPlugins(pluginName: Option[String]): Route = {
+    complete(StatusCodes.OK, restError(1, "not implemented"))
   }
 }

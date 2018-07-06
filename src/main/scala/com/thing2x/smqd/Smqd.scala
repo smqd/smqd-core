@@ -209,6 +209,9 @@ class Smqd(val config: Config,
   private lazy val protocolManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+ProtocolNotificationManager.actorName)(system)
   def notifyProtocol(proto: ProtocolNotification): Unit = protocolManager ! proto
 
+  def snapshotRegistrations: Set[Registration] =
+    registry.snapshot
+
   def subscribe(filterPath: FilterPath, actor: ActorRef): Unit =
     registry.subscribe(filterPath, actor)
 
