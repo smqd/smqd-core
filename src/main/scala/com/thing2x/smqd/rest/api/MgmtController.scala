@@ -63,6 +63,7 @@ class MgmtController(name: String, smqd: Smqd, config: Config) extends RestContr
 
   private def getNodes(nodeName: Option[String]): Route = {
     import smqd.Implicit._
+    implicit val apiInfoFormat: RootJsonFormat[EndpointInfo] = jsonFormat2(EndpointInfo)
     implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat7(NodeInfo)
     nodeName match {
       case Some(node) =>

@@ -82,8 +82,6 @@ class Smqd(val config: Config,
   private var services: Seq[Service] = Nil
   private var bridgeDrivers: Map[String, BridgeDriver] = Map.empty
 
-  private var chief: ChiefActor = _
-
   override def start(): Unit = {
 
     //// start Metric Registries
@@ -193,10 +191,15 @@ class Smqd(val config: Config,
     }
   }
 
+  private var chief: ChiefActor = _
   private[smqd] def setChiefActor(chief: ChiefActor): Unit = this.chief = chief
 
+  private var apiEndpoint0: Option[EndpointInfo] = None
+  private[smqd] def setApiEndpoint(endpoint: EndpointInfo): Unit = this.apiEndpoint0 = Option(endpoint)
+  def apiEndpoint: Option[EndpointInfo] = apiEndpoint0
+
   def nodes: Future[Seq[NodeInfo]] = chief.nodeInfo
-  def node(nodeName: String): Future[NodeInfo] = chief.nodeInfo(nodeName: String)
+  def node(nodeName: String): Future[Option[NodeInfo]] = chief.nodeInfo(nodeName: String)
 
   def service(name: String): Option[Service] = services.find(s => s.name == name)
 

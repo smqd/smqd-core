@@ -117,12 +117,11 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
       logger.info("received actor props: {}", props.toString)
 
     case NodeInfoReq =>
-      // todo actual api listener host port
       val node = smqd.cluster match {
         case Some(cl) => // cluster mode
           val leaderAddress = cl.state.leader
           val m = cl.selfMember
-          NodeInfo(smqd.nodeName, "todo:some_api_address",
+          NodeInfo(smqd.nodeName, smqd.apiEndpoint,
             if (m.address.hasGlobalScope) m.address.hostPort else smqd.nodeHostPort,
             m.status.toString,
             m.roles.map(_.toString),
@@ -132,19 +131,19 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
               case _ => false
             })
         case None => // non-cluster mode
-          NodeInfo(smqd.nodeName, "todo: Some_api_address", smqd.nodeHostPort,  "Up", Set.empty, "<non-cluster>", isLeader = true)
+          NodeInfo(smqd.nodeName, smqd.apiEndpoint, smqd.nodeHostPort,  "Up", Set.empty, "<non-cluster>", isLeader = true)
       }
       sender ! node
   }
 
+  import smqd.Implicit._
+
   def nodeInfo: Future[Seq[NodeInfo]] = {
-    import smqd.Implicit._
     val actorSelections = smqd.cluster match {
-      case Some(cl) => // cluster mode
+      case Some(cl) => // cluster mode ask all nodes
         cl.state.members.map{ m =>
           context.system.actorSelection(m.address.toString+"/user/"+actorName)
         }.toSeq
-
       case None => // non-cluster mode
         Seq(context.system.actorSelection("/user/"+actorName))
     }
@@ -154,11 +153,13 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
       (selection ? NodeInfoReq).asInstanceOf[Future[NodeInfo]]
     }
 
-
     Future.sequence(annsAsk)
   }
 
-  def nodeInfo(nodeName: String): Future[NodeInfo] = Future {
-    NodeInfo(smqd.nodeName, "todo: Some_api_address", smqd.nodeHostPort,  "Up", Set.empty, "<non-cluster>", isLeader = true)
+  def nodeInfo(nodeName: String): Future[Option[NodeInfo]] = {
+    for {
+      infos <- this.nodeInfo
+      ninfo = infos.find(n => n.nodeName == nodeName)
+    } yield ninfo
   }
 }

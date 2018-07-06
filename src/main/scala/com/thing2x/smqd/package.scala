@@ -98,14 +98,16 @@ package object smqd extends DefaultJsonProtocol {
   /**
     *
     * @param nodeName
-    * @param apiAddress
+    * @param api
     * @param address node's address that has format as "system@ipaddress:port"
     * @param status  membership status
     * @param roles   list of roles
     * @param dataCenter data center name
     * @param isLeader true if the node is leader of the cluster
     */
-  case class NodeInfo(nodeName: String, apiAddress: String, address: String, status: String, roles: Set[String], dataCenter: String, isLeader: Boolean)
+  case class NodeInfo(nodeName: String, api: Option[EndpointInfo], address: String, status: String, roles: Set[String], dataCenter: String, isLeader: Boolean)
+
+  case class EndpointInfo(address: Option[String], secureAddress: Option[String])
 
   implicit object MetricCounterFormat extends RootJsonFormat[Counter] {
     override def write(c: Counter): JsValue = JsObject("count" -> JsNumber(c.getCount))

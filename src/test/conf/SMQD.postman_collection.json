@@ -1,0 +1,270 @@
+{
+	"info": {
+		"_postman_id": "6793eff6-3fb6-417a-984f-dda50dfb8fb5",
+		"name": "SMQD",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "management",
+			"description": "",
+			"item": [
+				{
+					"name": "version",
+					"description": "",
+					"item": [
+						{
+							"name": "GET version",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/version",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"version"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET version simple",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/version?fmt=version",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"version"
+									],
+									"query": [
+										{
+											"key": "fmt",
+											"value": "version"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET version commit",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/version?fmt=commit",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"version"
+									],
+									"query": [
+										{
+											"key": "fmt",
+											"value": "commit"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"_postman_isSubFolder": true
+				},
+				{
+					"name": "nodes",
+					"description": "",
+					"item": [
+						{
+							"name": "GET nodes",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "b9c3d7a1-7143-4adf-bbd2-30df13b36127",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											""
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/nodes",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"nodes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET node",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "67f765f2-43bb-46f7-9077-cdfd6bacb709",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"datacenter\", function () {",
+											"    var jsonData = pm.response.json();",
+											"",
+											"    var dataCenter = jsonData.result.dataCenter",
+											"    pm.expect(dataCenter).to.eql(\"default\")",
+											"});",
+											""
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/nodes/test-01",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"nodes",
+										"test-01"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"_postman_isSubFolder": true
+				}
+			]
+		},
+		{
+			"name": "routes",
+			"description": "",
+			"item": [
+				{
+					"name": "GET routes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/routes?curr_page=1&page_size=20",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"routes"
+							],
+							"query": [
+								{
+									"key": "curr_page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET route  $SYS/faults",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/routes/$SYS/faults",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"routes",
+								"$SYS",
+								"faults"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "metrics",
+			"description": "",
+			"item": [
+				{
+					"name": "GET metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/metrics",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"metrics"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

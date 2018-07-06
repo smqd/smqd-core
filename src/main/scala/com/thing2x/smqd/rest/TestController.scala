@@ -14,16 +14,12 @@
 
 package com.thing2x.smqd.rest
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{ContentTypes, MediaTypes, StatusCodes}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Sink, StreamConverters}
+import com.thing2x.smqd.Smqd
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
-import com.thing2x.smqd.Smqd
 
-import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 /**

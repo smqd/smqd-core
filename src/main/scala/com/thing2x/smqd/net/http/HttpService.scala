@@ -38,19 +38,35 @@ import scala.util.{Failure, Success}
   */
 class HttpService(name: String, smqd: Smqd, config: Config) extends SmqServicePlugin(name, smqd, config) with StrictLogging {
 
+  private val smqdApi: Boolean = config.getOptionBoolean("-.smqd.api").getOrElse(false)
+  private val smqdPrefix: String = config.getOptionString("-.smqd.prefix").getOrElse("")
   val localEnabled: Boolean = config.getOptionBoolean("local.enabled").getOrElse(true)
-  val localBindAddress: String = config.getOptionString("local.address").getOrElse("0.0.0.0")
-  val localBindPort: Int = config.getOptionInt("local.port").getOrElse(80)
+  val localAddress: String = config.getOptionString("local.address").getOrElse("127.0.0.1")
+  val localPort: Int = config.getOptionInt("local.port").getOrElse(80)
+  val localBindAddress: String = config.getOptionString("local.bind.address").getOrElse(localAddress)
+  val localBindPort: Int = config.getOptionInt("local.bind.port").getOrElse(localPort)
 
   val localSecureEnabled: Boolean = config.getOptionBoolean("local.secure.enabled").getOrElse(false)
-  val localSecureBindAddress: String = config.getOptionString("local.secure.address").getOrElse("0.0.0.0")
-  val localSecureBindPort: Int = config.getOptionInt("local.secure.port").getOrElse(443)
+  val localSecureAddress: String = config.getOptionString("local.secure.address").getOrElse("127.0.0.1")
+  val localSecurePort: Int = config.getOptionInt("local.secure.port").getOrElse(443)
+  val localSecureBindAddress: String = config.getOptionString("local.secure.address").getOrElse(localSecureAddress)
+  val localSecureBindPort: Int = config.getOptionInt("local.secure.port").getOrElse(localSecurePort)
 
   private var bindingFuture: Future[ServerBinding] = _
   private var finalRoutes: Route = _
 
+  private var localEndpoint: Option[String] = None
+  private var secureEndpoint: Option[String] = None
+  def endpoint: EndpointInfo = EndpointInfo(localEndpoint, secureEndpoint)
+
   override def start(): Unit = {
     logger.info(s"Http Service [$name] Starting...")
+    logger.debug(s"Http Service [$name] local enabled : $localEnabled")
+    logger.debug(s"Http Service [$name] local address : $localAddress:$localPort")
+    logger.debug(s"Http Service [$name] local bind    : $localBindAddress:$localBindPort")
+    logger.debug(s"Http Service [$name] secure enabled: $localSecureEnabled")
+    logger.debug(s"Http Service [$name] secure address: $localSecureAddress:$localSecurePort")
+    logger.debug(s"Http Service [$name] secure bind   : $localSecureBindAddress:$localSecureBindPort")
 
     import smqd.Implicit._
 
@@ -74,6 +90,11 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends SmqServicePl
 
     val handler = Route.asyncHandler(finalRoutes)
 
+    def trimSlash(p: String): String = rtrimSlash(ltrimSlash(p))
+
+    def ltrimSlash(p: String): String = if (p.startsWith("/")) p.substring(1) else p
+    def rtrimSlash(p: String): String = if (p.endsWith("/")) p.substring(0, p.length - 1) else p
+
     if (localEnabled) {
       val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(system), logAdapter)
       bindingFuture = serverSource.to(Sink.foreach{ connection =>
@@ -82,6 +103,8 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends SmqServicePl
 
       bindingFuture.onComplete {
         case Success(b) =>
+          localEndpoint = Some(s"http://$localAddress:$localPort/${trimSlash(smqdPrefix)}")
+          if (smqdApi) smqd.setApiEndpoint(EndpointInfo(localEndpoint, secureEndpoint))
           logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
         case Failure(e) =>
           logger.error(s"Http Service [$name] Failed", e)
@@ -101,6 +124,8 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends SmqServicePl
 
             bindingFuture.onComplete {
               case Success(b) =>
+                secureEndpoint = Some(s"https://$localSecureAddress:$localSecurePort/${trimSlash(smqdPrefix)}")
+                if (smqdApi) smqd.setApiEndpoint(EndpointInfo(localEndpoint, secureEndpoint))
                 logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
               case Failure(e) =>
                 logger.error(s"Http Service [$name] Failed", e)
