@@ -20,12 +20,11 @@ import akka.pattern.after
 import akka.stream.OverflowStrategy
 import akka.util.Timeout
 import com.codahale.metrics.Counter
-import com.thing2x.smqd.Smqd.NodeInfo
 import com.typesafe.config.Config
 import spray.json._
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
 
 /**
@@ -96,7 +95,17 @@ package object smqd extends DefaultJsonProtocol {
     }
   }
 
-  implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat5(NodeInfo)
+  /**
+    *
+    * @param nodeName
+    * @param apiAddress
+    * @param address node's address that has format as "system@ipaddress:port"
+    * @param status  membership status
+    * @param roles   list of roles
+    * @param dataCenter data center name
+    * @param isLeader true if the node is leader of the cluster
+    */
+  case class NodeInfo(nodeName: String, apiAddress: String, address: String, status: String, roles: Set[String], dataCenter: String, isLeader: Boolean)
 
   implicit object MetricCounterFormat extends RootJsonFormat[Counter] {
     override def write(c: Counter): JsValue = JsObject("count" -> JsNumber(c.getCount))

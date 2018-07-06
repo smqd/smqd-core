@@ -82,6 +82,8 @@ class Smqd(val config: Config,
   private var services: Seq[Service] = Nil
   private var bridgeDrivers: Map[String, BridgeDriver] = Map.empty
 
+  private var chief: ChiefActor = _
+
   override def start(): Unit = {
 
     //// start Metric Registries
@@ -191,45 +193,10 @@ class Smqd(val config: Config,
     }
   }
 
-  def nodes: Set[NodeInfo] = {
-    def memberName(addr: Address): String = {
-      if (addr.hasGlobalScope) {
-        addr.hostPort
-      }
-      else {
-        logger.debug(">> {}", system.settings.setup)
-        this.nodeHostPort
-      }
-    }
+  private[smqd] def setChiefActor(chief: ChiefActor): Unit = this.chief = chief
 
-    cluster match {
-      case Some(cl) => // cluster mode
-        val leaderAddress = cl.state.leader
-        cl.state.members.map{ m =>
-          NodeInfo(
-            memberName(m.address),
-            m.status.toString,
-            m.roles.map(_.toString),
-            m.dataCenter,
-            leaderAddress match {
-              case Some(addr) =>
-                m.address == addr
-              case _ =>
-                false
-            })
-        }
-      case None => // non-cluster mode
-        Set(
-          NodeInfo(
-            nodeHostPort,
-            "Up",
-            Set.empty,
-            "<non-cluster>",
-            isLeader = true
-          )
-        )
-    }
-  }
+  def nodes: Future[Seq[NodeInfo]] = chief.nodeInfo
+  def node(nodeName: String): Future[NodeInfo] = chief.nodeInfo(nodeName: String)
 
   def service(name: String): Option[Service] = services.find(s => s.name == name)
 
@@ -317,13 +284,4 @@ object Smqd {
     }
   }
 
-  /**
-    *
-    * @param address node's address that has format as "system@ipaddress:port"
-    * @param status  membership status
-    * @param roles   list of roles
-    * @param dataCenter data center name
-    * @param isLeader true if the node is leader of the cluster
-    */
-  case class NodeInfo(address: String, status: String, roles: Set[String], dataCenter: String, isLeader: Boolean)
 }

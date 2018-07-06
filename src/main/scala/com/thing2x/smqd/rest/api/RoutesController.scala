@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd.rest
+package com.thing2x.smqd.rest.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
+import com.thing2x.smqd.rest.RestController
+import com.thing2x.smqd.{Smqd, TopicPath}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
-import com.thing2x.smqd.{Smqd, TopicPath}
 
 /**
   * 2018. 6. 21. - Created by Kwon, Yeong Eon
@@ -32,7 +33,7 @@ class RoutesController(name: String, smqd: Smqd, config: Config) extends RestCon
     ignoreTrailingSlash {
       get {
         path(Remaining) { topicStr =>
-          // GET api/v2/routes/{topic}
+          // GET api/v1/routes/{topic}
           val topicPath = TopicPath(topicStr)
           val result = smqd.snapshotRoutes.filter( _._1.matchFor(topicPath) )
 

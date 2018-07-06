@@ -17,10 +17,11 @@ package com.thing2x.smqd.rest
 import akka.http.scaladsl.server.Route
 import com.typesafe.config.Config
 import com.thing2x.smqd.Smqd
+import spray.json.DefaultJsonProtocol
 
 /**
   * 2018. 6. 20. - Created by Kwon, Yeong Eon
   */
-abstract class RestController(name: String, smqd: Smqd, config: Config) extends RestResult {
+abstract class RestController(name: String, smqd: Smqd, config: Config) extends RestResult with DefaultJsonProtocol {
   def routes: Route
 }

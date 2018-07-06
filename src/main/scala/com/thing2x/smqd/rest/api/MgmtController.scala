@@ -12,22 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd.rest
+package com.thing2x.smqd.rest.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
+import com.thing2x.smqd._
+import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
-import com.thing2x.smqd._
 
 /**
   * 2018. 6. 20. - Created by Kwon, Yeong Eon
   */
 class MgmtController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging {
 
-  val routes: Route = version ~ nodes ~ node
+  val routes: Route = version ~ nodes
 
   def version: Route = {
     path("version") {
@@ -52,31 +53,30 @@ class MgmtController(name: String, smqd: Smqd, config: Config) extends RestContr
   def nodes: Route = {
     ignoreTrailingSlash {
       path("nodes") {
-        get {
-          complete(StatusCodes.OK, restSuccess(0, smqd.nodes.toJson))
-        }
+        get { getNodes(None)  }
+      } ~
+      path("nodes" / Remaining.?) { nodeName =>
+        get { getNodes(nodeName) }
       }
     }
   }
 
-  def node: Route = {
-    ignoreTrailingSlash {
-      path("nodes" / Remaining.?) { nodeName =>
-        get {
-          nodeName match {
-            case Some(addr) =>
-              val found = smqd.nodes.filter(_.address == addr)
-              if (found.size == 1)
-                complete(StatusCodes.OK, restSuccess(0, found.head.toJson))
-              else if (found.isEmpty)
-                complete(StatusCodes.NotFound, restError(404, s"node not found: $addr"))
-              else
-                complete(StatusCodes.PreconditionFailed, restError(412, s"multiple nodes found: $addr"))
-            case None =>
-              complete(StatusCodes.Gone, restError(410, s"no node address is specified"))
-          }
-        }
-      }
+  private def getNodes(nodeName: Option[String]): Route = {
+    import smqd.Implicit._
+    implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat7(NodeInfo)
+    nodeName match {
+      case Some(node) =>
+        val jsval = for {
+          result <- smqd.node(node)
+          resonse = restSuccess(0, result.toJson)
+        } yield resonse
+        complete(StatusCodes.OK, jsval)
+      case None =>
+        val jsval = for {
+          result <- smqd.nodes
+          resonse = restSuccess(0, result.toJson)
+        } yield resonse
+        complete(StatusCodes.OK, jsval)
     }
   }
 }

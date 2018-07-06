@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd.rest
+package com.thing2x.smqd.rest.api
 
 import akka.http.scaladsl.server.{Directives, Route}
+import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
-import com.thing2x.smqd.Smqd
 
 /**
   * 2018. 6. 20. - Created by Kwon, Yeong Eon

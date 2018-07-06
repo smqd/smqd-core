@@ -24,9 +24,9 @@ import com.thing2x.smqd.protocol.ProtocolNotificationManager
 import com.thing2x.smqd.session.{ClusterModeSessionManagerActor, LocalModeSessionManagerActor, SessionManagerActor}
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 /**
@@ -37,6 +37,8 @@ object ChiefActor {
 
   case object Ready
   case object ReadyAck
+
+  case object NodeInfoReq
 }
 
 import com.thing2x.smqd.ChiefActor._
@@ -94,6 +96,8 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
   override def receive: Receive = {
     case Ready =>
       context.become(receive0)
+      smqd.setChiefActor(this)
+      // smqd.subscribe("$SYS/chief/committee/#", self) // may need in the future
       sender ! ReadyAck
   }
 
@@ -111,5 +115,50 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
       logger.info("Member event: {}", evt)
     case props: Props =>
       logger.info("received actor props: {}", props.toString)
+
+    case NodeInfoReq =>
+      // todo actual api listener host port
+      val node = smqd.cluster match {
+        case Some(cl) => // cluster mode
+          val leaderAddress = cl.state.leader
+          val m = cl.selfMember
+          NodeInfo(smqd.nodeName, "todo:some_api_address",
+            if (m.address.hasGlobalScope) m.address.hostPort else smqd.nodeHostPort,
+            m.status.toString,
+            m.roles.map(_.toString),
+            m.dataCenter,
+            leaderAddress match {
+              case Some(addr) => m.address == addr
+              case _ => false
+            })
+        case None => // non-cluster mode
+          NodeInfo(smqd.nodeName, "todo: Some_api_address", smqd.nodeHostPort,  "Up", Set.empty, "<non-cluster>", isLeader = true)
+      }
+      sender ! node
+  }
+
+  def nodeInfo: Future[Seq[NodeInfo]] = {
+    import smqd.Implicit._
+    val actorSelections = smqd.cluster match {
+      case Some(cl) => // cluster mode
+        cl.state.members.map{ m =>
+          context.system.actorSelection(m.address.toString+"/user/"+actorName)
+        }.toSeq
+
+      case None => // non-cluster mode
+        Seq(context.system.actorSelection("/user/"+actorName))
+    }
+
+    val annsAsk = actorSelections.map{ selection =>
+      implicit val timeout: Timeout = 3.second
+      (selection ? NodeInfoReq).asInstanceOf[Future[NodeInfo]]
+    }
+
+
+    Future.sequence(annsAsk)
+  }
+
+  def nodeInfo(nodeName: String): Future[NodeInfo] = Future {
+    NodeInfo(smqd.nodeName, "todo: Some_api_address", smqd.nodeHostPort,  "Up", Set.empty, "<non-cluster>", isLeader = true)
   }
 }
