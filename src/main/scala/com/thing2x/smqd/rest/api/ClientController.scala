@@ -20,10 +20,7 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
 
   private def clients: Route = {
     ignoreTrailingSlash {
-      parameters('curr_page.as[Int].?, 'page_size.as[Int].?) { (pCurrPage, pPageSize) =>
-        val currPage = pCurrPage.getOrElse(1)
-        val pageSize = pPageSize.getOrElse(20)
-
+      parameters('curr_page.as[Int].?, 'page_size.as[Int].?) { (currPage, pageSize) =>
         path(Remaining) { clientId =>
           get { getClients(Some(clientId), currPage, pageSize) }
         } ~
@@ -34,7 +31,7 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
     }
   }
 
-  private def getClients(clientId: Option[String], pCurrPage: Int, pPageSize: Int): Route = {
+  private def getClients(clientId: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
     val result = {
       val rt = smqd.snapshotRegistrations
 
@@ -45,25 +42,9 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
         case None =>
           SortedSet[Registration]() ++ rt
       }
-      val totalNum = filtered.size
-      val totalPage = (totalNum + pPageSize - 1)/pPageSize
-      val currPage = math.max(math.min(pCurrPage, totalPage), 1)
-      val pageSize = math.max(math.min(pPageSize, 100), 1)
 
-      val from = (currPage - 1) * pageSize
-      val until = from + pageSize
-
-      val sliced = filtered.slice(from, until).toSeq
-
-      JsObject(
-        "current_page" -> JsNumber(currPage),
-        "page_size" -> JsNumber(pageSize),
-        "total_num" -> JsNumber(totalNum),
-        "total_page" -> JsNumber(totalPage),
-        "objects" -> sliced.toJson
-      )
+      pagenate(filtered, currPage, pageSize)
     }
-
 
     complete(StatusCodes.OK, restSuccess(0, result))
   }

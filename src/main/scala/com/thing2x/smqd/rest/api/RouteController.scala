@@ -18,7 +18,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.rest.RestController
-import com.thing2x.smqd.{Smqd, TopicPath}
+import com.thing2x.smqd.{FilterPath, Smqd, SmqdRoute, TopicPath}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
@@ -49,36 +49,22 @@ class RouteController(name: String, smqd: Smqd, config: Config) extends RestCont
           }
         } ~
         pathEnd {
-          parameters('curr_page.as[Int].?, 'page_size.as[Int].?) { (pCurrPage, pPageSize) =>
+          parameters('curr_page.as[Int].?, 'page_size.as[Int].?) { (currPage, pageSize) =>
             // GET api/v1/routes?curr_page={page_no}&page_size={page_size}
 
-            var currPage = pCurrPage.getOrElse(1)
-            var pageSize = pPageSize.getOrElse(20)
+            implicit object RouteFormat extends RootJsonFormat[(FilterPath, Set[SmqdRoute])] {
+              def read(json: JsValue): (FilterPath, Set[SmqdRoute]) = ???
+              def write(r: (FilterPath, Set[SmqdRoute])): JsValue = {
+                val topic = r._1; val routeSet = r._2
+                JsObject (
+                  "topic" -> JsString(topic.toString),
+                  "nodes" -> routeSet.map(elm => elm.nodeName).toJson
+                )
+              }
+            }
 
             val result = smqd.snapshotRoutes
-            val totalNum = result.size
-            val totalPage = (totalNum + pageSize - 1)/pageSize
-
-            currPage = math.max(math.min(currPage, totalPage), 1)
-            pageSize = math.max(math.min(pageSize, 100), 1)
-
-            val from = (currPage - 1) * pageSize
-            val until = from + pageSize
-
-            val sliced = result.slice(from, until)
-
-            val json = JsObject(
-              "current_page" -> JsNumber(currPage),
-              "page_size" -> JsNumber(pageSize),
-              "total_num" -> JsNumber(totalNum),
-              "total_page" -> JsNumber(totalPage),
-              "objects" -> sliced.map{case (topic, rs) => JsObject(
-                "topic" -> JsString(topic.toString),
-                "nodes" -> rs.map(r => r.nodeName).toJson
-              )}.toJson
-            )
-
-            complete(StatusCodes.OK, restSuccess(0, json))
+            complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
           }
         }
       }

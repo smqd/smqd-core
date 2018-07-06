@@ -14,14 +14,38 @@
 
 package com.thing2x.smqd.rest
 
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Route
 import com.typesafe.config.Config
 import com.thing2x.smqd.Smqd
-import spray.json.DefaultJsonProtocol
+import spray.json._
 
 /**
   * 2018. 6. 20. - Created by Kwon, Yeong Eon
   */
 abstract class RestController(name: String, smqd: Smqd, config: Config) extends RestResult with DefaultJsonProtocol {
   def routes: Route
+
+  def pagenate[T](objects: Iterable[T], currPageOpt: Option[Int], pageSizeOpt: Option[Int])(implicit jsonWriter: JsonWriter[Iterable[T]]): JsValue = {
+    var currPage = currPageOpt.getOrElse(1)
+    var pageSize = pageSizeOpt.getOrElse(20)
+
+    val totalNum = objects.size
+    val totalPage = (totalNum + pageSize - 1)/pageSize
+
+    currPage = math.max(math.min(currPage, totalPage), 1)
+    pageSize = math.max(math.min(pageSize, 100), 1)
+
+    val from = (currPage - 1) * pageSize
+    val until = from + pageSize
+    val sliced = objects.slice(from, until)
+
+    JsObject(
+      "current_page" -> JsNumber(currPage),
+      "page_size" -> JsNumber(pageSize),
+      "total_num" -> JsNumber(totalNum),
+      "total_page" -> JsNumber(totalPage),
+      "objects" -> jsonWriter.write(sliced)
+    )
+  }
 }
