@@ -161,7 +161,7 @@ class Smqd(val config: Config,
     }
 
     //// SMQD started
-    logger.info(s"SMQ (ver. $version) Ready.")
+    logger.info(s"SMQD ($version) is Ready.")
   }
 
   override def stop(): Unit = {

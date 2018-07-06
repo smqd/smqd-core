@@ -58,7 +58,10 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
   }
 
   private def findManifest(uriPath: String): Config = {
+    // load reference manifest
     val ref = ConfigFactory.parseResources(getClass.getClassLoader, "smqd-plugins.manifest")
+
+    // is custom uri set?
     if (uriPath == null || uriPath == "") {
       logger.info("No plugin manifest is defined")
       return ref
