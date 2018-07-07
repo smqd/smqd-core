@@ -12,13 +12,13 @@ before_cache:
 - find $HOME/.sbt -name "*.lock" -print -delete
 before_install:
 - |
-  if [[ $TRAVIS_PULL_REQUEST == false && $TRAVIS_BRANCH == "develop" ]]; then
+  if [[ $TRAVIS_PULL_REQUEST == false ]]; then
     openssl aes-256-cbc -K $encrypted_0ae33bd734a9_key -iv $encrypted_0ae33bd734a9_iv -in travis/secrets.tar.enc -out travis/local.secrets.tar -d;
     tar xv -C travis -f travis/local.secrets.tar;
   fi
 after_success:
 - |
-  if [[ $TRAVIS_PULL_REQUEST == false && $TRAVIS_BRANCH == "develop" ]]; then
+  if [[ $TRAVIS_PULL_REQUEST == false ]]; then
     sbt ++$TRAVIS_SCALA_VERSION publishSigned;
   fi
 env:
