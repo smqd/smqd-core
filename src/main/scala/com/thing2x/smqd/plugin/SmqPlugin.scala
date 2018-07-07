@@ -24,10 +24,8 @@ trait SmqPlugin extends LifeCycle {
   def name: String
   def status: InstanceStatus
 
-  def preStarting(): Unit
-  def postStarted(): Unit
-  def preStopping(): Unit
-  def postStopped(): Unit
+  def execStart(): Unit
+  def execStop(): Unit
 }
 
 abstract class PluginLifeCycle extends SmqPlugin {
@@ -49,5 +47,17 @@ abstract class PluginLifeCycle extends SmqPlugin {
 
   def postStopped(): Unit = {
     _status = InstanceStatus.STOPPED
+  }
+
+  def execStart(): Unit = {
+    preStarting()
+    start()
+    postStarted()
+  }
+
+  def execStop(): Unit = {
+    preStopping()
+    stop()
+    postStopped()
   }
 }

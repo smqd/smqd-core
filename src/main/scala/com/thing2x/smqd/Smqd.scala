@@ -21,6 +21,7 @@ import akka.pattern.ask
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
+import com.sun.xml.internal.ws.api.server.ServiceDefinition
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.plugin.{BridgeDriver, PluginManager, Service}
@@ -120,9 +121,7 @@ class Smqd(val config: Config,
     try {
       serviceDefs.map { case (cname, sconf) =>
         val svc = pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service])
-        svc.preStarting()
-        svc.start()
-        svc.postStarted()
+        svc.execStart()
         svc
       }.toSeq
     }
@@ -136,9 +135,7 @@ class Smqd(val config: Config,
     try {
       bridgeDrivers = bridgeDriverDefs.map { case (dname, dconf) =>
         val driver = pluginManager.createInstaceFromClassOrPlugin(this, dname, dconf, classOf[BridgeDriver])
-        driver.preStarting()
-        driver.start()
-        driver.postStarted()
+        driver.execStart()
         dname -> driver
       }
 
@@ -171,9 +168,7 @@ class Smqd(val config: Config,
 
       bridgeDrivers.foreach { case (_, drv) =>
         try {
-          drv.preStopping()
-          drv.stop()
-          drv.postStopped()
+          drv.execStop()
         }
         catch {
           case ex: Throwable =>
@@ -183,9 +178,7 @@ class Smqd(val config: Config,
 
       pluginManager.servicePluginDefinitions.reverse.flatMap(_.instances).foreach { p =>
         try {
-          p.instance.asInstanceOf[Service].preStopping()
-          p.instance.stop()
-          p.instance.asInstanceOf[Service].postStopped()
+          p.instance.asInstanceOf[Service].execStop()
         }
         catch {
           case ex: Throwable =>

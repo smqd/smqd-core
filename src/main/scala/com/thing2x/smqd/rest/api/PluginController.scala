@@ -18,12 +18,14 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.plugin.PluginInstance.{ExecFailure, ExecSuccess, ExecUnknownCommand, ExecInvalidStatus}
 import com.thing2x.smqd.plugin._
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.immutable.SortedSet
+import scala.util.{Failure, Success}
 
 
 /**
@@ -31,21 +33,35 @@ import scala.collection.immutable.SortedSet
   */
 class PluginController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging {
 
-  override def routes: Route = plugins
+  override def routes: Route = packages ~ plugins
 
-  private def plugins: Route = {
+  private def packages: Route = {
     ignoreTrailingSlash {
       get {
         parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
           path("packages" / Segment.?) { packageName =>
             getPackages(packageName, searchName, currPage, pageSize)
-          } ~
+          }
+        }
+      }
+    }
+  }
+
+  private def plugins: Route = {
+    ignoreTrailingSlash {
+      get {
+        parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
           path("plugins" / Segment / "instances" / Segment.?) { (pluginName, instanceName) =>
             getPluginInstances(pluginName, instanceName, searchName, currPage, pageSize)
           } ~
           path("plugins" / Segment.?) { pluginName =>
             getPlugins(pluginName, searchName, currPage, pageSize)
           }
+        }
+      } ~
+      put {
+        path("plugins" / Segment / "instances" / Segment / Segment) { (pluginName, instanceName, cmd) =>
+          putPlugin(pluginName, instanceName, cmd)
         }
       }
     }
@@ -75,6 +91,32 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
             val result = SortedSet[PluginPackageDefinition]() ++ pm.packageDefinitions
             complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
         }
+    }
+  }
+
+  private def putPlugin(pluginName: String, instanceName: String, command: String): Route = {
+    val pm = smqd.pluginManager
+    val instanceOpt = pm.instance(pluginName, instanceName)
+    instanceOpt match {
+      case Some(instance) =>
+        import smqd.Implicit._
+        val result = instance.exec(command.toLowerCase) map {
+          case ExecSuccess(_) =>
+            restSuccess(0, PluginInstanceFormat.write(instance))
+          case ExecFailure(message, Some(cause)) =>
+            restError(StatusCodes.InternalServerError.intValue, s"Command failed - $message, ${cause.getMessage}")
+          case ExecFailure(message, None) =>
+            restError(StatusCodes.InternalServerError.intValue, message)
+          case ExecInvalidStatus(message) =>
+            restError(StatusCodes.NotImplemented.intValue, message)
+          case ExecUnknownCommand(cmd) =>
+            restError(StatusCodes.BadRequest.intValue, s"Not implemented command - $cmd")
+          case x =>
+            restError(StatusCodes.InternalServerError.intValue, s"Unknown response from plugin: $x")
+        }
+        complete(StatusCodes.OK, result)
+      case None =>
+        complete(StatusCodes.NotFound, restError(404, s"Plugin instance not found - $pluginName, $instanceName"))
     }
   }
 

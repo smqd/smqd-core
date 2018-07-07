@@ -17,7 +17,10 @@ package com.thing2x.smqd.plugin
 import java.net.URI
 
 import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.plugin.PluginInstance._
 import com.typesafe.config.Config
+
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * 2018. 7. 5. - Created by Kwon, Yeong Eon
@@ -73,6 +76,12 @@ class PluginDefinition(val name: String, val clazz: Class[SmqPlugin], val packag
 
 object PluginInstance {
   def apply[T <: SmqPlugin](instance: T, pluginDef: PluginDefinition) = new PluginInstance(instance, pluginDef)
+
+  sealed trait ExecResult
+  case class ExecSuccess(message: String) extends ExecResult
+  case class ExecFailure(message: String, cause: Option[Throwable]) extends ExecResult
+  case class ExecInvalidStatus(message: String) extends ExecResult
+  case class ExecUnknownCommand(cmd: String) extends ExecResult
 }
 
 class PluginInstance[+T <: SmqPlugin](val instance: T, val pluginDef: PluginDefinition) {
@@ -83,6 +92,34 @@ class PluginInstance[+T <: SmqPlugin](val instance: T, val pluginDef: PluginDefi
 
   /** packageName / pluginName / instanceName */
   val path: String = s"${pluginDef.packageName}/${pluginDef.name}/$name"
+
+  def exec(cmd: String)(implicit ec: ExecutionContext): Future[ExecResult] = Future {
+    try {
+      cmd match {
+        case "start" =>
+          instance.status match {
+            case InstanceStatus.UNKNOWN | InstanceStatus.STOPPED =>
+              instance.execStart()
+              ExecSuccess(s"Instance '$name' is ${instance.status}")
+            case status =>
+              ExecInvalidStatus(s"Instance '$name' is $status")
+          }
+        case "stop" =>
+          instance.status match {
+            case InstanceStatus.UNKNOWN | InstanceStatus.RUNNING =>
+              instance.execStop()
+              ExecSuccess(s"Instance '$name' is ${instance.status}")
+            case status =>
+              ExecInvalidStatus(s"Instance '$name' is $status")
+          }
+        case _ =>
+          ExecUnknownCommand(cmd)
+      }
+    }
+    catch {
+      case ex: Throwable => ExecFailure(s"Fail to $cmd instance '$name", Some(ex))
+    }
+  }
 }
 
 object PluginRepositoryDefinition {
