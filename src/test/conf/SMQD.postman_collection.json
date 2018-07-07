@@ -189,6 +189,89 @@
 					"description": "",
 					"item": [
 						{
+							"name": "GET packages",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET packages smqd-core",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-core",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages",
+										"smqd-core"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "GET plugins",
 							"event": [
 								{
@@ -230,7 +313,7 @@
 							"response": []
 						},
 						{
-							"name": "GET plugin thing2x-core-mqtt",
+							"name": "GET plugins fault-logger",
 							"event": [
 								{
 									"listen": "test",
@@ -256,7 +339,7 @@
 								"header": [],
 								"body": {},
 								"url": {
-									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-mqtt",
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-fault-logger",
 									"protocol": "http",
 									"host": [
 										"{{smqd_hostport}}"
@@ -265,7 +348,190 @@
 										"{{smqd_api}}",
 										"management",
 										"plugins",
-										"thing2x-core-mqtt"
+										"thing2x-core-fault-logger"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET plugins query=logger",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins?query=logger",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins"
+									],
+									"query": [
+										{
+											"key": "query",
+											"value": "logger"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET plugins instances",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-mqtt/instances",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-mqtt",
+										"instances"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET plugins instance",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-mqtt/instances/core-mqtt",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-mqtt",
+										"instances",
+										"core-mqtt"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET plugins instance query=mqtt",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-mqtt/instances?query=mqtt",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-mqtt",
+										"instances"
+									],
+									"query": [
+										{
+											"key": "query",
+											"value": "mqtt"
+										}
 									]
 								}
 							},
@@ -335,32 +601,6 @@
 			]
 		},
 		{
-			"name": "metrics",
-			"description": "",
-			"item": [
-				{
-					"name": "GET metrics",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"body": {},
-						"url": {
-							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/metrics",
-							"protocol": "http",
-							"host": [
-								"{{smqd_hostport}}"
-							],
-							"path": [
-								"{{smqd_api}}",
-								"metrics"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
 			"name": "clients",
 			"description": "",
 			"item": [
@@ -384,7 +624,58 @@
 					},
 					"response": [
 						{
-							"id": "abb33781-e355-41e8-bbba-8303b8d481bc",
+							"id": "9aeabda7-5c0c-40d1-bebd-d1c8732a15d9",
+							"name": "GET clients",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"clients"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "582",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 06 Jul 2018 12:50:46 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Server",
+									"value": "akka-http/10.1.3",
+									"name": "Server",
+									"description": "A name for the server"
+								}
+							],
+							"cookie": [],
+							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
+						},
+						{
+							"id": "c2faabf7-eb2a-4769-8673-06e33b9cc148",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -443,7 +734,7 @@
 						"header": [],
 						"body": {},
 						"url": {
-							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients?page_size=2&curr_page=1",
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients?page_size=3&curr_page=2",
 							"protocol": "http",
 							"host": [
 								"{{smqd_hostport}}"
@@ -455,18 +746,18 @@
 							"query": [
 								{
 									"key": "page_size",
-									"value": "2"
+									"value": "3"
 								},
 								{
 									"key": "curr_page",
-									"value": "1"
+									"value": "2"
 								}
 							]
 						}
 					},
 					"response": [
 						{
-							"id": "2f6ad38c-4d05-4c33-b4e1-7d55770ceffa",
+							"id": "b8fcd430-34e0-4663-85ce-f4dc6ce617ae",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -519,7 +810,7 @@
 					]
 				},
 				{
-					"name": "GET clients clientA",
+					"name": "GET clients client",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -539,7 +830,7 @@
 					},
 					"response": [
 						{
-							"id": "10f252f1-ef2b-4c36-9786-f2ab99e8c2d7",
+							"id": "2e360987-7a3b-4528-b02f-d59eb45c1bb7",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -590,6 +881,32 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						}
 					]
+				}
+			]
+		},
+		{
+			"name": "metrics",
+			"description": "",
+			"item": [
+				{
+					"name": "GET metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/metrics",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"metrics"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		}
