@@ -21,7 +21,16 @@ import com.typesafe.config.Config
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
 trait SmqPlugin {
+  object Status extends Enumeration {
+    type Status = Value
+    val STOPPED: Status = Value("stopped")
+    val STOPPING: Status = Value("stopping")
+    val STARTING: Status = Value("starting")
+    val RUNNING: Status = Value("running")
+    val UNKNOWN: Status = Value("unknown")
+  }
   def name: String
+  def status: Status.Status
 }
 
 abstract class SmqServicePlugin(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, Option(config))

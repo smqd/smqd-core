@@ -29,4 +29,6 @@ abstract class Service(val name: String, smqd: Smqd, val config: Option[Config])
   def stop(): Unit = {
 
   }
+
+  override def status: Status.Status = Status.UNKNOWN
 }

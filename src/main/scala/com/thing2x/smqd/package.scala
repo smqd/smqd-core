@@ -20,7 +20,7 @@ import akka.pattern.after
 import akka.stream.OverflowStrategy
 import akka.util.Timeout
 import com.codahale.metrics.Counter
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigRenderOptions}
 import spray.json._
 
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
@@ -108,6 +108,14 @@ package object smqd extends DefaultJsonProtocol {
   case class NodeInfo(nodeName: String, api: Option[EndpointInfo], address: String, status: String, roles: Set[String], dataCenter: String, isLeader: Boolean)
 
   case class EndpointInfo(address: Option[String], secureAddress: Option[String])
+
+  implicit object ConfigFormat extends RootJsonFormat[Config] {
+    override def read(json: JsValue): Config = ???
+    override def write(obj: Config): JsValue = {
+      val str = obj.root().render(ConfigRenderOptions.concise)
+      JsonParser(str)
+    }
+  }
 
   implicit object MetricCounterFormat extends RootJsonFormat[Counter] {
     override def write(c: Counter): JsValue = JsObject("count" -> JsNumber(c.getCount))

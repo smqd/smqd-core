@@ -38,6 +38,9 @@ import scala.util.{Failure, Success}
   */
 class HttpService(name: String, smqd: Smqd, config: Config) extends SmqServicePlugin(name, smqd, config) with StrictLogging {
 
+  private var _status: Status.Status = Status.UNKNOWN
+  override def status: Status.Status = _status
+
   private val smqdApi: Boolean = config.getOptionBoolean("-.smqd.api").getOrElse(false)
   private val smqdPrefix: String = config.getOptionString("-.smqd.prefix").getOrElse("")
   val localEnabled: Boolean = config.getOptionBoolean("local.enabled").getOrElse(true)
@@ -60,6 +63,8 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends SmqServicePl
   def endpoint: EndpointInfo = EndpointInfo(localEndpoint, secureEndpoint)
 
   override def start(): Unit = {
+    _status = Status.STARTING
+
     logger.info(s"Http Service [$name] Starting...")
     logger.debug(s"Http Service [$name] local enabled : $localEnabled")
     logger.debug(s"Http Service [$name] local address : $localAddress:$localPort")
@@ -135,14 +140,18 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends SmqServicePl
         }
       case _ =>
     }
+
+    _status = Status.RUNNING
   }
 
   override def stop(): Unit = {
+    _status = Status.STOPPING
     logger.info(s"Http Service [$name] Stopping...")
 
     import smqd.Implicit._
     bindingFuture.flatMap(_.unbind()) // trigger unbinding from the port
     logger.info(s"Http Service [$name] Stopped.")
+    _status = Status.STOPPED
   }
 
   def routes: Route = finalRoutes

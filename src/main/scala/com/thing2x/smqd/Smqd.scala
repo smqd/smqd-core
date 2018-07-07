@@ -22,9 +22,8 @@ import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
-import com.thing2x.smqd.Smqd._
 import com.thing2x.smqd.fault.FaultNotificationManager
-import com.thing2x.smqd.plugin.{PluginManager, SmqServicePlugin}
+import com.thing2x.smqd.plugin.PluginManager
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
@@ -70,8 +69,8 @@ class Smqd(val config: Config,
   def uptime: Duration = super.uptime
   def uptimeString: String = super.uptimeString
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
+  val pluginManager  = PluginManager(config.getConfig("smqd.plugin"), version)
 
-  private val pluginManager  = new PluginManager(config.getString("smqd.plugin.dir"), config.getString("smqd.plugin.manifest"))
   private val registry       = new HashMapRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)
   private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()

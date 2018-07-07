@@ -23,16 +23,26 @@ import com.typesafe.config.Config
   * 2018. 7. 5. - Created by Kwon, Yeong Eon
   */
 
-case class PluginPackageDefinition(name: String, vendor: String, description: String, plugins: Seq[PluginDefinition], repository: PluginRepositoryDefinition) {
+case class PluginPackageDefinition(name: String, vendor: String, description: String,
+                                   plugins: Seq[PluginDefinition],
+                                   repository: PluginRepositoryDefinition)
+  extends Ordered[PluginPackageDefinition] {
+
   override def equals(other: Any): Boolean = {
     if (!other.isInstanceOf[PluginPackageDefinition]) return false
     val r = other.asInstanceOf[PluginPackageDefinition]
 
     this.name == r.name
   }
+
+  override def compare(that: PluginPackageDefinition): Int = this.name.compare(that.name)
 }
 
-case class PluginDefinition(name: String, clazz: Class[SmqPlugin], version: String, defaultConfig: Config, multiplicable: Boolean) {
+case class PluginDefinition(name: String, clazz: Class[SmqPlugin], version: String, defaultConfig: Config, multiInstantiable: Boolean) {
+
+  private var instances0: Seq[PluginInstance[SmqPlugin]] = Nil
+
+  def instances: Seq[PluginInstance[SmqPlugin]] = instances0
 
   def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config]): SmqServicePlugin =
     createInstance(instanceName, smqd, config, classOf[SmqServicePlugin])
@@ -45,6 +55,8 @@ case class PluginDefinition(name: String, clazz: Class[SmqPlugin], version: Stri
     val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
     val mergedConf = if (config.isDefined) config.get.withFallback(defaultConfig) else defaultConfig
     val instance = cons.newInstance(instanceName, smqd, mergedConf)
+    val pluginInstance = PluginInstance(instance, this)
+    this.instances0 = instances0 :+ pluginInstance
     instance
   }
 
@@ -54,6 +66,11 @@ case class PluginDefinition(name: String, clazz: Class[SmqPlugin], version: Stri
 
     this.name == r.name
   }
+}
+
+case class PluginInstance[+T <: SmqPlugin](instance: T, pluginDef: PluginDefinition) {
+  val name: String = instance.name
+  def status: String = instance.status.toString
 }
 
 case class PluginRepositoryDefinition(name: String, location: URI, provider: String, installable: Boolean) {

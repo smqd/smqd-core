@@ -31,6 +31,9 @@ import scala.util.matching.Regex
   */
 class MqttService(name: String, smqd: Smqd, config: Config) extends SmqServicePlugin(name, smqd, config) with StrictLogging {
 
+  private var _status: Status.Status = Status.UNKNOWN
+  override def status: Status.Status = _status
+
   private var channels: List[Channel] = Nil
   private var groups: List[EventLoopGroup] = Nil
 
@@ -51,6 +54,7 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends SmqServicePl
   private val metrics = new MqttMetrics(name)
 
   override def start(): Unit = {
+    _status = Status.STARTING
     logger.info(s"Mqtt Service [$name] Starting...")
 
     val masterGroupThreadCount = config.getInt("thread.master.count")
@@ -96,9 +100,11 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends SmqServicePl
     }
 
     logger.info(s"Mqtt Service [$name] Started.")
+    _status = Status.RUNNING
   }
 
   override def stop(): Unit = {
+    _status = Status.STOPPING
     logger.info(s"Mqtt Service [$name] Stopping...")
     try {
       channels.foreach(closeChannel)
@@ -106,6 +112,7 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends SmqServicePl
       groups.foreach(_.shutdownGracefully())
     }
     logger.info(s"Mqtt Service [$name] Stopped.")
+    _status = Status.STOPPED
   }
 
   private def openChannel(masterGroup: EventLoopGroup, workerGroup: EventLoopGroup, localAddress: String, localPort: Int, h: ChannelHandler): Channel = {

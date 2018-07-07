@@ -26,19 +26,27 @@ import scala.collection.JavaConverters._
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
 object PluginManager {
-  def apply(pluginDirPath: String, pluginManifestUri: String) = new PluginManager(pluginDirPath, pluginManifestUri)
+  val STATIC_PKG = "smqd-static"
+  val CORE_PKG = "smqd-core"
+
+  def apply(config: Config, coreVersion: String): PluginManager =
+    new PluginManager(config.getString("dir"), config.getOptionString("manifest"), coreVersion)
+
+  def apply(pluginDirPath: String, pluginManifestUri: String, coreVersion: String) =
+    new PluginManager(pluginDirPath, Some(pluginManifestUri), coreVersion)
+
+  def apply(pluginDirPath: String, pluginManifestUri: Option[String] = None, coreVersion: String = "") =
+    new PluginManager(pluginDirPath, pluginManifestUri, coreVersion)
 }
 
-class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends StrictLogging {
+import PluginManager._
+
+class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], coreVersion: String) extends StrictLogging {
 
   //////////////////////////////////////////////////
   // repository definitions
-
-  private val STATIC_PKG = "smqd-static"
-  private val CORE_PKG = "smqd-core"
-
   private val repositoryDefs =
-    PluginRepositoryDefinition(CORE_PKG, new URI("https://github.com/smqd"), "n/a", installable = false) +:       // repo def for core plugins (internal)
+    PluginRepositoryDefinition(CORE_PKG, new URI("https://github.com/smqd"), "thing2x.com", installable = false) +:       // repo def for core plugins (internal)
       PluginRepositoryDefinition(STATIC_PKG, new URI("https://github.com/smqd"), "n/a", installable = false) +:   // repo def for manually installed
       findRepositoryDefinitions(findManifest(pluginManifestUri))
 
@@ -57,18 +65,20 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
     PluginRepositoryDefinition(name, location, provider, installable = true)
   }
 
-  private def findManifest(uriPath: String): Config = {
+  private def findManifest(uriPathOpt: Option[String]): Config = {
     // load reference manifest
     val ref = ConfigFactory.parseResources(getClass.getClassLoader, "smqd-plugins.manifest")
 
     // is custom uri set?
-    if (uriPath == null || uriPath == "") {
-      logger.info("No plugin manifest is defined")
-      return ref
+    val uriPath = uriPathOpt match {
+      case Some(p) => p
+      case None =>
+        logger.info("No plugin manifest is defined")
+        return ref
     }
 
     try {
-      // try first as a file
+      // try first as a file, incase of relative path
       val file = new File(uriPath)
       val uri = if (file.exists && file.canRead) file.toURI else new URI(uriPath)
       // try to find from uri
@@ -83,14 +93,14 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
       }
     } catch {
       case ex: Throwable =>
-        logger.warn(s"Invalid plugin manifest location: $uriPath", ex)
+        logger.warn(s"Invalid plugin manifest location: '$uriPath' {}", ex.getMessage)
         ref
     }
   }
 
   //////////////////////////////////////////////////
   // plugin definitions
-  private val pluginDefs = findRootDir(pluginDirPath) match {
+  private val packageDefs = findRootDir(pluginDirPath) match {
     case Some(rootDir) =>            // plugin root directory
       findPluginFiles(rootDir)       // plugin files in the root directories
         .map(findPluginLoader)       // plugin loaders
@@ -103,12 +113,12 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
   }
 
   /** all package definitions */
-  def packageDefinitions: Seq[PluginPackageDefinition] = pluginDefs
+  def packageDefinitions: Seq[PluginPackageDefinition] = packageDefs
   /** all plugin definitions */
-  def pluginDefinitions: Seq[PluginDefinition] = pluginDefs.flatMap(pd => pd.plugins)
+  def pluginDefinitions: Seq[PluginDefinition] = packageDefs.flatMap(pd => pd.plugins)
   /** find plugin definitions by package name*/
-  def pluginDefinitionsInPackage(packageName: String): Seq[PluginDefinition] = pluginDefs.filter(pd => pd.name == packageName).flatMap(p => p.plugins)
-  def pluginDefinitions(pluginName: String): Seq[PluginDefinition] = pluginDefs.flatMap(pd => pd.plugins).filter(p => p.name == pluginName)
+  def pluginDefinitionsInPackage(packageName: String): Seq[PluginDefinition] = packageDefs.filter(pd => pd.name == packageName).flatMap(p => p.plugins)
+  def pluginDefinitions(pluginName: String): Seq[PluginDefinition] = packageDefs.flatMap(pd => pd.plugins).filter(p => p.name == pluginName)
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqServicePlugin].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqBridgeDriverPlugin].isAssignableFrom(pd.clazz))
@@ -153,18 +163,20 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: String) extends St
 
         val packageName = config.getString("package.name")
         val packageVendor = config.getOptionString("package.vendor").getOrElse("")
-        val packageDescription = config.getOptionString("package.descrioption").getOrElse("")
+        val packageDescription = config.getOptionString("package.description").getOrElse("")
         val repo = repositoryDefinition(packageName).getOrElse(repositoryDefinition(STATIC_PKG).get)
+
+        val defaultVersion = if (packageName.equals(CORE_PKG)) coreVersion else ""
 
         val plugins = config.getConfigList("package.plugins").asScala.map{ c =>
           val pluginName = c.getString("name")
           val className = c.getString("class")
-          val multiplicable = c.getOptionBoolean("multiplicable").getOrElse(false)
-          val version = c.getOptionString("version").getOrElse("")
+          val multiInst = c.getOptionBoolean("multi-instantiable").getOrElse(false)
+          val version = c.getOptionString("version").getOrElse(defaultVersion)
           val conf = c.getOptionConfig("default-config").getOrElse(emptyConfig)
           val clazz = classLoader.loadClass(className).asInstanceOf[Class[SmqPlugin]]
 
-          PluginDefinition(pluginName, clazz, version, conf, multiplicable)
+          PluginDefinition(pluginName, clazz, version, conf, multiInst)
         }
 
         logger.trace(s"Plugin candidate '$packageName' in ${url.getPath}")

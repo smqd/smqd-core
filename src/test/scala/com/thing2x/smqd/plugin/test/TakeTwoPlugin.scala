@@ -24,12 +24,19 @@ import com.typesafe.scalalogging.StrictLogging
   */
 class TakeTwoPlugin(name: String, smqd: Smqd, config: Config) extends SmqBridgeDriverPlugin(name, smqd, config) with StrictLogging{
 
+  private var _status: Status.Status = Status.UNKNOWN
+  override def status: Status.Status = _status
+
   override def start(): Unit = {
+    _status = Status.STARTING
     logger.info("Start take two plugin")
+    _status = Status.RUNNING
   }
 
   override def stop(): Unit = {
+    _status = Status.STOPPING
     logger.info("Stop take two plugin")
+    _status = Status.STOPPED
   }
 
   override protected def connect(): Unit = ???

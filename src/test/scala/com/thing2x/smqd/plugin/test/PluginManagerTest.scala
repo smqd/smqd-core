@@ -28,7 +28,7 @@ import scala.sys.process._
 class PluginManagerTest extends FlatSpec with StrictLogging {
 
   "PluginManager" should "initialize - empty" in {
-    var mgr = new PluginManager("", s"")
+    var mgr = PluginManager("")
     val repos = mgr.repositoryDefinitions
     repos.foreach { repo =>
       val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "not installable"
@@ -45,7 +45,7 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
   private val codebase = getClass.getProtectionDomain.getCodeSource.getLocation.getPath
   logger.debug(s"PWD: $pwd, codebase: $codebase")
 
-  val mgr = new PluginManager( codebase, s"file://$pwd/src/test/resources/smqd-plugins-manifest-custom.conf")
+  val mgr = PluginManager( codebase, s"file://$pwd/src/test/resources/smqd-plugins-manifest-custom.conf", "")
 
   "PluginManager" should "initialize" in {
     val repos = mgr.repositoryDefinitions

@@ -26,6 +26,9 @@ import scala.io.AnsiColor
   */
 class DefaultProtocolListener(name: String, smqd: Smqd, config: Option[Config]) extends Service(name, smqd, config) with StrictLogging {
 
+  private var _status: Status.Status = Status.UNKNOWN
+  override def status: Status.Status = _status
+
   import AnsiColor._
   private val colors = Seq(
     RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN
@@ -39,6 +42,7 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Option[Config]) 
   private var subr: Option[ActorRef] = None
 
   override def start(): Unit = {
+    _status = Status.STARTING
     val conf = config.get
     val topic = conf.getString("subscribe.topic")
     val s = smqd.subscribe(FilterPath(topic)) {
@@ -48,13 +52,16 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Option[Config]) 
 
     val coloring = conf.getBoolean("coloring")
     colored = if(coloring) colored_do else colored_no
+    _status = Status.RUNNING
   }
 
   override def stop(): Unit = {
+    _status = Status.STOPPING
     subr match {
       case Some(s) => smqd.unsubscribe(s)
       case _ =>
     }
+    _status = Status.STOPPED
   }
 
   def notified(topicPath: TopicPath, msg: Any): Unit = {
