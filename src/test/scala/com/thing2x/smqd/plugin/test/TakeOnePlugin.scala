@@ -15,7 +15,7 @@
 package com.thing2x.smqd.plugin.test
 
 import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.plugin.Service
+import com.thing2x.smqd.plugin.{InstanceStatus, Service}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
@@ -32,5 +32,5 @@ class TakeOnePlugin(name: String, smqd: Smqd, config: Config) extends Service(na
     logger.info("Stop take one plugin")
   }
 
-  override def status: Status.Status = Status.UNKNOWN
+  override def status: InstanceStatus = InstanceStatus.UNKNOWN
 }

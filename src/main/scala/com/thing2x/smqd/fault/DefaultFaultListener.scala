@@ -14,31 +14,24 @@
 
 package com.thing2x.smqd.fault
 
-import com.thing2x.smqd.plugin.Service
+import com.thing2x.smqd.plugin.{InstanceStatus, Service}
+import com.thing2x.smqd.{FilterPath, Smqd, TopicPath}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
-import com.thing2x.smqd.{FilterPath, Smqd, TopicPath}
 
 /**
   * 2018. 6. 19. - Created by Kwon, Yeong Eon
   */
 class DefaultFaultListener(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
 
-  private var _status: Status.Status = Status.UNKNOWN
-  override def status: Status.Status = _status
-
   override def start(): Unit = {
-    _status = Status.STARTING
     val topic = config.getString("subscribe.topic")
     smqd.subscribe(FilterPath(topic)) {
       case (topicPath, msg) => onFault(topicPath, msg)
     }
-    _status = Status.RUNNING
   }
 
   override def stop(): Unit = {
-    _status = Status.STOPPING
-    _status = Status.STOPPED
   }
 
   def onFault(topic: TopicPath, msg: Any): Unit = {

@@ -23,7 +23,7 @@ import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.{ConnectionContext, Http, server}
 import akka.stream.scaladsl.Sink
 import com.thing2x.smqd._
-import com.thing2x.smqd.plugin.Service
+import com.thing2x.smqd.plugin.{InstanceStatus, Service}
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
@@ -37,9 +37,6 @@ import scala.util.{Failure, Success}
   * 2018. 6. 19. - Created by Kwon, Yeong Eon
   */
 class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
-
-  private var _status: Status.Status = Status.UNKNOWN
-  override def status: Status.Status = _status
 
   private val smqdApi: Boolean = config.getOptionBoolean("-.smqd.api").getOrElse(false)
   private val smqdPrefix: String = config.getOptionString("-.smqd.prefix").getOrElse("")
@@ -63,8 +60,6 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
   def endpoint: EndpointInfo = EndpointInfo(localEndpoint, secureEndpoint)
 
   override def start(): Unit = {
-    _status = Status.STARTING
-
     logger.info(s"Http Service [$name] Starting...")
     logger.debug(s"Http Service [$name] local enabled : $localEnabled")
     logger.debug(s"Http Service [$name] local address : $localAddress:$localPort")
@@ -140,18 +135,14 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
         }
       case _ =>
     }
-
-    _status = Status.RUNNING
   }
 
   override def stop(): Unit = {
-    _status = Status.STOPPING
     logger.info(s"Http Service [$name] Stopping...")
 
     import smqd.Implicit._
     bindingFuture.flatMap(_.unbind()) // trigger unbinding from the port
     logger.info(s"Http Service [$name] Stopped.")
-    _status = Status.STOPPED
   }
 
   def routes: Route = finalRoutes

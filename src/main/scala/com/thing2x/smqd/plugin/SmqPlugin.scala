@@ -21,19 +21,31 @@ import com.typesafe.config.Config
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
 trait SmqPlugin extends LifeCycle {
-  object Status extends Enumeration {
-    type Status = Value
-    val STOPPED: Status = Value("stopped")
-    val STOPPING: Status = Value("stopping")
-    val STARTING: Status = Value("starting")
-    val RUNNING: Status = Value("running")
-    val UNKNOWN: Status = Value("unknown")
-  }
   def name: String
-  def status: Status.Status
+  def status: InstanceStatus
 }
 
-abstract class Service(val name: String, smqd: Smqd, config: Config) extends SmqPlugin
+abstract class Service(val name: String, smqd: Smqd, config: Config) extends SmqPlugin {
+  private var _status = InstanceStatus.STOPPED
+
+  def status: InstanceStatus = _status
+
+  def preStarting(): Unit = {
+    _status = InstanceStatus.STARTING
+  }
+
+  def postStarted(): Unit = {
+    _status = InstanceStatus.RUNNING
+  }
+
+  def preStopping(): Unit = {
+    _status = InstanceStatus.STOPPED
+  }
+
+  def postStopped(): Unit = {
+    _status = InstanceStatus.STOPPED
+  }
+}
 
 
 abstract class SmqBridgeDriverPlugin(name: String, smqd: Smqd, config: Config) extends AbstractBridgeDriver(name, smqd, Option(config))

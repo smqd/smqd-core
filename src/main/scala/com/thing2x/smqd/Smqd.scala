@@ -120,7 +120,9 @@ class Smqd(val config: Config,
     try {
       serviceDefs.map { case (cname, sconf) =>
         val svc = pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service])
+        svc.preStarting()
         svc.start()
+        svc.postStarted()
         svc
       }.toSeq
     }
@@ -134,7 +136,9 @@ class Smqd(val config: Config,
     try {
       bridgeDrivers = bridgeDriverDefs.map { case (dname, dconf) =>
         val driver = pluginManager.createInstaceFromClassOrPlugin(this, dname, dconf, classOf[BridgeDriver])
+        driver.preStarting()
         driver.start()
+        driver.postStarted()
         dname -> driver
       }
 
@@ -166,13 +170,22 @@ class Smqd(val config: Config,
     synchronized {
 
       bridgeDrivers.foreach { case (_, drv) =>
-        drv.stop()
+        try {
+          drv.preStopping()
+          drv.stop()
+          drv.postStopped()
+        }
+        catch {
+          case ex: Throwable =>
+            logger.error("Stopping failed", ex)
+        }
       }
 
-      pluginManager.pluginDefinitions.reverse.flatMap(_.instances).foreach { p =>
-
+      pluginManager.servicePluginDefinitions.reverse.flatMap(_.instances).foreach { p =>
         try {
+          p.instance.asInstanceOf[Service].preStopping()
           p.instance.stop()
+          p.instance.asInstanceOf[Service].postStopped()
         }
         catch {
           case ex: Throwable =>

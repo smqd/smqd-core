@@ -18,7 +18,7 @@ import akka.actor.ActorRef
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd._
-import com.thing2x.smqd.plugin.Service
+import com.thing2x.smqd.plugin.{InstanceStatus, Service}
 
 import scala.io.AnsiColor
 
@@ -26,9 +26,6 @@ import scala.io.AnsiColor
   * 2018. 5. 31. - Created by Kwon, Yeong Eon
   */
 class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
-
-  private var _status: Status.Status = Status.UNKNOWN
-  override def status: Status.Status = _status
 
   import AnsiColor._
   private val colors = Seq(
@@ -43,7 +40,6 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
   private var subr: Option[ActorRef] = None
 
   override def start(): Unit = {
-    _status = Status.STARTING
     val topic = config.getString("subscribe.topic")
     val s = smqd.subscribe(FilterPath(topic)) {
       case (topicPath, msg) => notified(topicPath, msg)
@@ -52,16 +48,13 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
 
     val coloring = config.getBoolean("coloring")
     colored = if(coloring) colored_do else colored_no
-    _status = Status.RUNNING
   }
 
   override def stop(): Unit = {
-    _status = Status.STOPPING
     subr match {
       case Some(s) => smqd.unsubscribe(s)
       case _ =>
     }
-    _status = Status.STOPPED
   }
 
   def notified(topicPath: TopicPath, msg: Any): Unit = {

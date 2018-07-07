@@ -17,7 +17,7 @@ package com.thing2x.smqd
 import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.ActorRef
-import com.thing2x.smqd.plugin.SmqPlugin
+import com.thing2x.smqd.plugin.{InstanceStatus, SmqPlugin}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
@@ -119,6 +119,26 @@ abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Option
     .append(name).append("' ")
     .append(" has ").append(bridgeSet.size).append(" bridge(s)")
     .toString
+
+  private var _status = InstanceStatus.STOPPED
+
+  def status: InstanceStatus = _status
+
+  def preStarting(): Unit = {
+    _status = InstanceStatus.STARTING
+  }
+
+  def postStarted(): Unit = {
+    _status = InstanceStatus.RUNNING
+  }
+
+  def preStopping(): Unit = {
+    _status = InstanceStatus.STOPPED
+  }
+
+  def postStopped(): Unit = {
+    _status = InstanceStatus.STOPPED
+  }
 }
 
 abstract class AbstractBridgeDriver(name: String, smqd: Smqd, config: Option[Config]) extends BridgeDriver(name, smqd, config) with StrictLogging {

@@ -15,7 +15,7 @@
 package com.thing2x.smqd.net.mqtt
 
 import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.plugin.Service
+import com.thing2x.smqd.plugin.{InstanceStatus, Service}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
@@ -30,9 +30,6 @@ import scala.util.matching.Regex
   * 2018. 5. 29. - Created by Kwon, Yeong Eon
   */
 class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
-
-  private var _status: Status.Status = Status.UNKNOWN
-  override def status: Status.Status = _status
 
   private var channels: List[Channel] = Nil
   private var groups: List[EventLoopGroup] = Nil
@@ -54,7 +51,6 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name
   private val metrics = new MqttMetrics(name)
 
   override def start(): Unit = {
-    _status = Status.STARTING
     logger.info(s"Mqtt Service [$name] Starting...")
 
     val masterGroupThreadCount = config.getInt("thread.master.count")
@@ -100,11 +96,9 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name
     }
 
     logger.info(s"Mqtt Service [$name] Started.")
-    _status = Status.RUNNING
   }
 
   override def stop(): Unit = {
-    _status = Status.STOPPING
     logger.info(s"Mqtt Service [$name] Stopping...")
     try {
       channels.foreach(closeChannel)
@@ -112,7 +106,6 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name
       groups.foreach(_.shutdownGracefully())
     }
     logger.info(s"Mqtt Service [$name] Stopped.")
-    _status = Status.STOPPED
   }
 
   private def openChannel(masterGroup: EventLoopGroup, workerGroup: EventLoopGroup, localAddress: String, localPort: Int, h: ChannelHandler): Channel = {
