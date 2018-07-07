@@ -114,11 +114,22 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
 
   /** all package definitions */
   def packageDefinitions: Seq[PluginPackageDefinition] = packageDefs
+
   /** all plugin definitions */
   def pluginDefinitions: Seq[PluginDefinition] = packageDefs.flatMap(pd => pd.plugins)
-  /** find plugin definitions by package name*/
-  def pluginDefinitionsInPackage(packageName: String): Seq[PluginDefinition] = packageDefs.filter(pd => pd.name == packageName).flatMap(p => p.plugins)
-  def pluginDefinitions(pluginName: String): Seq[PluginDefinition] = packageDefs.flatMap(pd => pd.plugins).filter(p => p.name == pluginName)
+  /** find plugin definitions by package name */
+  def pluginDefinitionsInPackage(packageName: String): Seq[PluginDefinition] = packageDefs.filter(_.name == packageName).flatMap(p => p.plugins)
+  /** find plugin definitions that has name contains searchName */
+  def pluginDefinitions(searchName: String): Seq[PluginDefinition] = packageDefs.flatMap(_.plugins).filter(_.name.contains(searchName))
+  /** find plugin definition that has name exactly matached */
+  def pluginDefinition(pluginName: String): Option[PluginDefinition] = packageDefs.flatMap(_.plugins).find(_.name == pluginName)
+
+  /** find all plugin instances of the plugin */
+  def instances(pluginName: String): Seq[PluginInstance[SmqPlugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances)
+  /** find all plugin instances of the plugin that has name contains searchName */
+  def instances(pluginName: String, searchName: String): Seq[PluginInstance[SmqPlugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).filter(_.name.contains(searchName))
+  /** find the plugin instance by plugin name and instance name */
+  def instance(pluginName: String, instanceName: String): Option[PluginInstance[SmqPlugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).find(_.name == instanceName)
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqBridgeDriverPlugin].isAssignableFrom(pd.clazz))
@@ -176,7 +187,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
           val conf = c.getOptionConfig("default-config").getOrElse(emptyConfig)
           val clazz = classLoader.loadClass(className).asInstanceOf[Class[SmqPlugin]]
 
-          PluginDefinition(pluginName, clazz, version, conf, multiInst)
+          PluginDefinition(pluginName, clazz, packageName, version, conf, multiInst)
         }
 
         logger.trace(s"Plugin candidate '$packageName' in ${url.getPath}")

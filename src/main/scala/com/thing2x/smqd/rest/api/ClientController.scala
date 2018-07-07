@@ -34,7 +34,7 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
   private def clients: Route = {
     ignoreTrailingSlash {
       parameters('curr_page.as[Int].?, 'page_size.as[Int].?) { (currPage, pageSize) =>
-        path(Remaining) { clientId =>
+        path(Segment) { clientId =>
           get { getClients(Some(clientId), currPage, pageSize) }
         } ~
         pathEnd {

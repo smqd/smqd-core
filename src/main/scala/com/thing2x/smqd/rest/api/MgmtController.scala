@@ -55,7 +55,7 @@ class MgmtController(name: String, smqd: Smqd, config: Config) extends RestContr
       path("nodes") {
         get { getNodes(None)  }
       } ~
-      path("nodes" / Remaining.?) { nodeName =>
+      path("nodes" / Segment.?) { nodeName =>
         get { getNodes(nodeName) }
       }
     }

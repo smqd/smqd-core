@@ -38,7 +38,8 @@ case class PluginPackageDefinition(name: String, vendor: String, description: St
   override def compare(that: PluginPackageDefinition): Int = this.name.compare(that.name)
 }
 
-case class PluginDefinition(name: String, clazz: Class[SmqPlugin], version: String, defaultConfig: Config, multiInstantiable: Boolean) {
+case class PluginDefinition(name: String, clazz: Class[SmqPlugin], packageName: String, version: String, defaultConfig: Config, multiInstantiable: Boolean)
+  extends Ordered[PluginDefinition]{
 
   private var instances0: Seq[PluginInstance[SmqPlugin]] = Nil
 
@@ -66,6 +67,8 @@ case class PluginDefinition(name: String, clazz: Class[SmqPlugin], version: Stri
 
     this.name == r.name
   }
+
+  override def compare(that: PluginDefinition): Int = this.name.compare(that.name)
 }
 
 case class PluginInstance[+T <: SmqPlugin](instance: T, pluginDef: PluginDefinition) {

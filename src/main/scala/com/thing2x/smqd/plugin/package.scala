@@ -10,13 +10,21 @@ import scala.collection.JavaConverters._
   */
 package object plugin extends DefaultJsonProtocol {
 
+  implicit object PluginInstanceOrdering extends Ordering[PluginInstance[SmqPlugin]] {
+    override def compare(x: PluginInstance[SmqPlugin], y: PluginInstance[SmqPlugin]): Int = {
+      x.name.compare(y.name)
+    }
+  }
+
   implicit object PluginInstanceFormat extends RootJsonFormat[PluginInstance[SmqPlugin]] {
     override def read(json: JsValue): PluginInstance[SmqPlugin] = ???
 
     override def write(obj: PluginInstance[SmqPlugin]): JsValue = {
       JsObject(
         "name" -> JsString(obj.name),
-        "status" -> JsString(obj.status)
+        "status" -> JsString(obj.status),
+        "plugin" -> JsString(obj.pluginDef.name),
+        "package" -> JsString(obj.pluginDef.packageName)
       )
     }
   }
@@ -48,6 +56,7 @@ package object plugin extends DefaultJsonProtocol {
         "name" -> JsString(obj.name),
         "class" ->  JsString(obj.clazz.getCanonicalName),
         "class-archive" -> JsString(obj.clazz.getProtectionDomain.getCodeSource.getLocation.toString),
+        "package" -> JsString(obj.packageName),
         "version" -> JsString(obj.version),
         "type" -> JsString(ptype),
         "instantiability" -> JsString(multi),

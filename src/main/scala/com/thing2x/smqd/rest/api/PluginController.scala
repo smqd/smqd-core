@@ -35,36 +35,96 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
 
   private def plugins: Route = {
     ignoreTrailingSlash {
-      parameters('curr_page.as[Int].?, 'page_size.as[Int].?) { (currPage, pageSize) =>
-        path("plugins") {
-          get {
-            getPlugins(None, currPage, pageSize)
-          }
-        } ~
-        path("plugins" / Remaining.?) { pluginName =>
-          get {
-            getPlugins(pluginName, currPage, pageSize)
+      get {
+        parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
+          path("packages" / Segment.?) { packageName =>
+            getPackages(packageName, searchName, currPage, pageSize)
+          } ~
+          path("plugins" / Segment / "instances" / Segment.?) { (pluginName, instanceName) =>
+            getPluginInstances(pluginName, instanceName, searchName, currPage, pageSize)
+          } ~
+          path("plugins" / Segment.?) { pluginName =>
+            getPlugins(pluginName, searchName, currPage, pageSize)
           }
         }
       }
     }
   }
 
-  private def getPlugins(pluginName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
+  private def getPackages(packageName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
     val pm = smqd.pluginManager
-    val result = {
-      val rt = pm.packageDefinitions
-      val filtered = pluginName match {
-        case Some(pn) => SortedSet[PluginPackageDefinition]() ++
-          rt.filter(p => p.name.contains(pn))
-        case None =>
-          SortedSet[PluginPackageDefinition]() ++ rt
-      }
-
-      pagenate(filtered, currPage, pageSize)
+    packageName match {
+      case Some(pn) => // exact match
+        val rt = pm.packageDefinitions
+        rt.find(_.name == pn) match {
+          case Some(pkg) =>
+            complete(StatusCodes.OK, restSuccess(0, PluginPackageDefinitionFormat.write(pkg)))
+          case None =>
+            complete(StatusCodes.NotFound, restError(404, s"Package not found: $pn"))
+        }
+      case None => // search
+        searchName match {
+          case Some(search) => // query
+            val rt = pm.packageDefinitions
+            val result = SortedSet[PluginPackageDefinition]() ++ rt.filter(p => p.name.contains(search))
+            if (result.isEmpty)
+              complete(StatusCodes.NotFound, restError(404, s"Package not found, search $search"))
+            else
+              complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
+          case None => // all
+            val result = SortedSet[PluginPackageDefinition]() ++ pm.packageDefinitions
+            complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
+        }
     }
-
-    complete(StatusCodes.OK, restSuccess(0, result))
   }
 
+  private def getPlugins(pluginName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
+    val pm = smqd.pluginManager
+    pluginName match {
+      case Some(pname) => // exact match
+        pm.pluginDefinition(pname) match {
+          case Some(p) =>
+            complete(StatusCodes.OK, restSuccess(0, PluginDefinitionFormat.write(p)))
+          case None =>
+            complete(StatusCodes.NotFound, s"Plugin not found plugin: $pname")
+        }
+      case None => // search
+        searchName match {
+          case Some(search) => // query
+            val result = SortedSet[PluginDefinition]() ++ pm.pluginDefinitions(search)
+            if (result.isEmpty)
+              complete(StatusCodes.NotFound, restError(404, s"Plugin not found, search $search"))
+            else
+              complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
+          case None => // all
+            val result = SortedSet[PluginDefinition]() ++ pm.pluginDefinitions
+            complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
+        }
+    }
+  }
+
+  private def getPluginInstances(pluginName: String, instanceName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
+    val pm = smqd.pluginManager
+    instanceName match {
+      case Some(instName) => // exact match
+        pm.instance(pluginName, instName) match {
+          case Some(inst) =>
+            complete(StatusCodes.OK, restSuccess(0, PluginInstanceFormat.write(inst)))
+          case None =>
+            complete(StatusCodes.NotFound, s"Plugin instance not found plugin: $pluginName, instance: $instName")
+        }
+      case None => // search
+        searchName match {
+          case Some(search) => // query
+            val result = SortedSet[PluginInstance[SmqPlugin]]() ++ pm.instances(pluginName, search)
+            if (result.isEmpty)
+              complete(StatusCodes.NotFound, s"Plugin instance not found plugin: $pluginName, search $search")
+            else
+              complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
+          case None => // all
+            val result = SortedSet[PluginInstance[SmqPlugin]]() ++ pm.instances(pluginName)
+            complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
+        }
+    }
+  }
 }
