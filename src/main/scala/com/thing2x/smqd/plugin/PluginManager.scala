@@ -187,12 +187,12 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
           val conf = c.getOptionConfig("default-config").getOrElse(emptyConfig)
           val clazz = classLoader.loadClass(className).asInstanceOf[Class[SmqPlugin]]
 
-          PluginDefinition(pluginName, clazz, packageName, version, conf, multiInst)
+          new PluginDefinition(pluginName, clazz, packageName, version, conf, multiInst)
         }
 
         logger.trace(s"Plugin candidate '$packageName' in ${url.getPath}")
 
-        val pkg = PluginPackageDefinition(packageName, packageVendor, packageDescription, plugins, repo)
+        val pkg = new PluginPackageDefinition(packageName, packageVendor, packageDescription, plugins, repo)
         repo.setInstalledPackage(pkg)
         Some(pkg)
       }

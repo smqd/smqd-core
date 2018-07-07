@@ -23,9 +23,9 @@ import com.typesafe.config.Config
   * 2018. 7. 5. - Created by Kwon, Yeong Eon
   */
 
-case class PluginPackageDefinition(name: String, vendor: String, description: String,
-                                   plugins: Seq[PluginDefinition],
-                                   repository: PluginRepositoryDefinition)
+class PluginPackageDefinition(val name: String, val vendor: String, val description: String,
+                              val plugins: Seq[PluginDefinition],
+                              val repository: PluginRepositoryDefinition)
   extends Ordered[PluginPackageDefinition] {
 
   override def equals(other: Any): Boolean = {
@@ -38,7 +38,7 @@ case class PluginPackageDefinition(name: String, vendor: String, description: St
   override def compare(that: PluginPackageDefinition): Int = this.name.compare(that.name)
 }
 
-case class PluginDefinition(name: String, clazz: Class[SmqPlugin], packageName: String, version: String, defaultConfig: Config, multiInstantiable: Boolean)
+class PluginDefinition(val name: String, val clazz: Class[SmqPlugin], val packageName: String, val version: String, val defaultConfig: Config, val multiInstantiable: Boolean)
   extends Ordered[PluginDefinition]{
 
   private var instances0: Seq[PluginInstance[SmqPlugin]] = Nil
@@ -71,12 +71,26 @@ case class PluginDefinition(name: String, clazz: Class[SmqPlugin], packageName: 
   override def compare(that: PluginDefinition): Int = this.name.compare(that.name)
 }
 
-case class PluginInstance[+T <: SmqPlugin](instance: T, pluginDef: PluginDefinition) {
-  val name: String = instance.name
-  def status: String = instance.status.toString
+object PluginInstance {
+  def apply[T <: SmqPlugin](instance: T, pluginDef: PluginDefinition) = new PluginInstance(instance, pluginDef)
 }
 
-case class PluginRepositoryDefinition(name: String, location: URI, provider: String, installable: Boolean) {
+class PluginInstance[+T <: SmqPlugin](val instance: T, val pluginDef: PluginDefinition) {
+  val name: String = instance.name
+
+  /** UNKNOWN, STOPPED, STOPPING, STARTING, RUNNING */
+  def status: String = instance.status.toString
+
+  /** packageName / pluginName / instanceName */
+  val path: String = s"${pluginDef.packageName}/${pluginDef.name}/$name"
+}
+
+object PluginRepositoryDefinition {
+  def apply(name: String, location: URI, provider: String, installable: Boolean) =
+    new PluginRepositoryDefinition(name, location, provider, installable)
+}
+
+class PluginRepositoryDefinition(val name: String, val location: URI, val provider: String, val installable: Boolean) {
   private var installedPkg: Option[PluginPackageDefinition] = None
   def installed: Boolean = installedPkg.isDefined
   def packageDefinition: Option[PluginPackageDefinition] = installedPkg

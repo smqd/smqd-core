@@ -21,25 +21,5 @@ import com.typesafe.config.Config
   * 2018. 7. 7. - Created by Kwon, Yeong Eon
   */
 
-abstract class Service(val name: String, smqd: Smqd, config: Config) extends SmqPlugin {
-  private var _status = InstanceStatus.STOPPED
-
-  def status: InstanceStatus = _status
-
-  def preStarting(): Unit = {
-    _status = InstanceStatus.STARTING
-  }
-
-  def postStarted(): Unit = {
-    _status = InstanceStatus.RUNNING
-  }
-
-  def preStopping(): Unit = {
-    _status = InstanceStatus.STOPPED
-  }
-
-  def postStopped(): Unit = {
-    _status = InstanceStatus.STOPPED
-  }
-}
+abstract class Service(val name: String, smqd: Smqd, config: Config) extends PluginLifeCycle
 

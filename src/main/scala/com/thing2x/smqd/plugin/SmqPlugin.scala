@@ -23,5 +23,31 @@ import com.typesafe.config.Config
 trait SmqPlugin extends LifeCycle {
   def name: String
   def status: InstanceStatus
+
+  def preStarting(): Unit
+  def postStarted(): Unit
+  def preStopping(): Unit
+  def postStopped(): Unit
 }
 
+abstract class PluginLifeCycle extends SmqPlugin {
+  private var _status = InstanceStatus.STOPPED
+
+  def status: InstanceStatus = _status
+
+  def preStarting(): Unit = {
+    _status = InstanceStatus.STARTING
+  }
+
+  def postStarted(): Unit = {
+    _status = InstanceStatus.RUNNING
+  }
+
+  def preStopping(): Unit = {
+    _status = InstanceStatus.STOPPED
+  }
+
+  def postStopped(): Unit = {
+    _status = InstanceStatus.STOPPED
+  }
+}

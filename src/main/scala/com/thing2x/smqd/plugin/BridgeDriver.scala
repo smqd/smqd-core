@@ -26,7 +26,7 @@ import scala.collection.{SortedSet, mutable}
   * 2018. 7. 7. - Created by Kwon, Yeong Eon
   */
 
-abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Config) extends LifeCycle with SmqPlugin with StrictLogging {
+abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Config) extends PluginLifeCycle with StrictLogging {
   private val indexes: AtomicLong = new AtomicLong()
 
   protected val bridgeSet: mutable.SortedSet[Bridge] = mutable.SortedSet.empty
@@ -84,28 +84,6 @@ abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Config
     .append(name).append("' ")
     .append(" has ").append(bridgeSet.size).append(" bridge(s)")
     .toString
-
-  ///////////////////////////////////
-  // Status
-  private var _status = InstanceStatus.STOPPED
-
-  def status: InstanceStatus = _status
-
-  def preStarting(): Unit = {
-    _status = InstanceStatus.STARTING
-  }
-
-  def postStarted(): Unit = {
-    _status = InstanceStatus.RUNNING
-  }
-
-  def preStopping(): Unit = {
-    _status = InstanceStatus.STOPPED
-  }
-
-  def postStopped(): Unit = {
-    _status = InstanceStatus.STOPPED
-  }
 
   /////////////////////////////////
   // LifeCycle
