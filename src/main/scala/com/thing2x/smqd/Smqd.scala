@@ -23,7 +23,7 @@ import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.fault.FaultNotificationManager
-import com.thing2x.smqd.plugin.{PluginManager, SmqPlugin, Service}
+import com.thing2x.smqd.plugin.{BridgeDriver, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config

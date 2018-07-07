@@ -132,7 +132,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
   def instance(pluginName: String, instanceName: String): Option[PluginInstance[SmqPlugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).find(_.name == instanceName)
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
-  def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqBridgeDriverPlugin].isAssignableFrom(pd.clazz))
+  def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[BridgeDriver].isAssignableFrom(pd.clazz))
 
   private def findPluginLoader(url: URL): PluginPackageLoader =
     new PluginPackageLoader(url, getClass.getClassLoader)

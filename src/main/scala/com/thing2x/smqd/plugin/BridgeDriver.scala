@@ -12,58 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd
+package com.thing2x.smqd.plugin
 
 import java.util.concurrent.atomic.AtomicLong
 
-import akka.actor.ActorRef
-import com.thing2x.smqd.plugin.{InstanceStatus, SmqPlugin}
+import com.thing2x.smqd.{FilterPath, LifeCycle, Smqd}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.{SortedSet, mutable}
 
 /**
-  * 2018. 6. 22. - Created by Kwon, Yeong Eon
+  * 2018. 7. 7. - Created by Kwon, Yeong Eon
   */
-trait Bridge extends LifeCycle with StrictLogging {
-  def filterPath: FilterPath
-  def driver: BridgeDriver
-  def index: Long
 
-  override def toString: String = new StringBuilder("Bridge '")
-    .append(driver.name).append("' ")
-    .append("[").append(index).append("] ")
-    .append(filterPath.toString)
-    .toString
-}
-
-abstract class AbstractBridge(val driver: BridgeDriver, val index: Long, val filterPath: FilterPath)
-  extends Bridge with StrictLogging {
-
-  private var subr: Option[ActorRef] = None
-
-  override def start(): Unit = {
-    subr = Some(driver.smqd.subscribe(filterPath, bridge _))
-    logger.info(s"Bridge '${filterPath.toString}' started.")
-  }
-
-  override def stop(): Unit = {
-    subr match {
-      case Some(actor) =>
-        driver.smqd.unsubscribe(filterPath, actor)
-      case _ =>
-    }
-    logger.info(s"Bridge '${filterPath.toString}' stopped.")
-  }
-
-  def bridge(topic: TopicPath, msg: Any): Unit
-}
-
-abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Option[Config]) extends LifeCycle with SmqPlugin {
+abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Config) extends LifeCycle with SmqPlugin with StrictLogging {
   private val indexes: AtomicLong = new AtomicLong()
 
-  private implicit def ordering: Ordering[Bridge] = (x, y) => x.index.compare(y.index)
   protected val bridgeSet: mutable.SortedSet[Bridge] = mutable.SortedSet.empty
 
   def bridges: SortedSet[Bridge] = bridgeSet
@@ -120,6 +85,8 @@ abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Option
     .append(" has ").append(bridgeSet.size).append(" bridge(s)")
     .toString
 
+  ///////////////////////////////////
+  // Status
   private var _status = InstanceStatus.STOPPED
 
   def status: InstanceStatus = _status
@@ -139,10 +106,9 @@ abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Option
   def postStopped(): Unit = {
     _status = InstanceStatus.STOPPED
   }
-}
 
-abstract class AbstractBridgeDriver(name: String, smqd: Smqd, config: Option[Config]) extends BridgeDriver(name, smqd, config) with StrictLogging {
-
+  /////////////////////////////////
+  // LifeCycle
   private var _isClosed: Boolean = false
   val isClosed: Boolean = _isClosed
 
@@ -162,4 +128,5 @@ abstract class AbstractBridgeDriver(name: String, smqd: Smqd, config: Option[Con
 
   protected def connect(): Unit
   protected def disconnect(): Unit
+
 }

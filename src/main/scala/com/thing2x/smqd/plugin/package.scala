@@ -47,8 +47,8 @@ package object plugin extends DefaultJsonProtocol {
     override def read(json: JsValue): PluginDefinition = ???
     override def write(obj: PluginDefinition): JsValue = {
       val ptype =
-        if (classOf[Service].isAssignableFrom(obj.clazz)) "ServicePlugin"
-        else if (classOf[SmqBridgeDriverPlugin].isAssignableFrom(obj.clazz)) "BridgeDriverPlugin"
+        if (classOf[Service].isAssignableFrom(obj.clazz)) "Service"
+        else if (classOf[BridgeDriver].isAssignableFrom(obj.clazz)) "BridgeDriver"
         else "UnknownPlugin"
 
       val multi = if (obj.multiInstantiable) {

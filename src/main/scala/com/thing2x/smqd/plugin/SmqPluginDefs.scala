@@ -48,8 +48,8 @@ case class PluginDefinition(name: String, clazz: Class[SmqPlugin], packageName: 
   def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config]): Service =
     createInstance(instanceName, smqd, config, classOf[Service])
 
-  def createBridgeDriverInstance(instanceName: String, smqd: Smqd, config: Option[Config]): SmqBridgeDriverPlugin =
-    createInstance(instanceName, smqd, config, classOf[SmqBridgeDriverPlugin])
+  def createBridgeDriverInstance(instanceName: String, smqd: Smqd, config: Option[Config]): BridgeDriver =
+    createInstance(instanceName, smqd, config, classOf[BridgeDriver])
 
   def createInstance[T <: SmqPlugin](instanceName: String, smqd: Smqd, config: Option[Config], pluginType: Class[T]): T = {
     val clazz = this.clazz.asInstanceOf[Class[T]]
