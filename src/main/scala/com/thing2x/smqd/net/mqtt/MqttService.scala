@@ -15,7 +15,7 @@
 package com.thing2x.smqd.net.mqtt
 
 import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.plugin.SmqServicePlugin
+import com.thing2x.smqd.plugin.Service
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
@@ -29,7 +29,7 @@ import scala.util.matching.Regex
 /**
   * 2018. 5. 29. - Created by Kwon, Yeong Eon
   */
-class MqttService(name: String, smqd: Smqd, config: Config) extends SmqServicePlugin(name, smqd, config) with StrictLogging {
+class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
 
   private var _status: Status.Status = Status.UNKNOWN
   override def status: Status.Status = _status

@@ -23,7 +23,7 @@ import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.fault.FaultNotificationManager
-import com.thing2x.smqd.plugin.PluginManager
+import com.thing2x.smqd.plugin.{PluginManager, SmqPlugin, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
@@ -78,7 +78,6 @@ class Smqd(val config: Config,
   private val requestor      = new Requestor()
 
   private var chiefActor: ActorRef = _
-  private var services: Seq[Service] = Nil
   private var bridgeDrivers: Map[String, BridgeDriver] = Map.empty
 
   override def start(): Unit = {
@@ -119,7 +118,7 @@ class Smqd(val config: Config,
 
     //// start services
     try {
-      services = serviceDefs.map { case (cname, sconf) =>
+      serviceDefs.map { case (cname, sconf) =>
         val svc = pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service])
         svc.start()
         svc
@@ -170,9 +169,10 @@ class Smqd(val config: Config,
         drv.stop()
       }
 
-      services.reverse.foreach{ c =>
+      pluginManager.pluginDefinitions.reverse.flatMap(_.instances).foreach { p =>
+
         try {
-          c.stop()
+          p.instance.stop()
         }
         catch {
           case ex: Throwable =>
@@ -200,7 +200,7 @@ class Smqd(val config: Config,
   def nodes: Future[Seq[NodeInfo]] = chief.nodeInfo
   def node(nodeName: String): Future[Option[NodeInfo]] = chief.nodeInfo(nodeName: String)
 
-  def service(name: String): Option[Service] = services.find(s => s.name == name)
+  def service(name: String): Option[Service] = pluginManager.servicePluginDefinitions.flatMap(_.instances).find(pi => pi.instance.name == name).map(p => p.instance.asInstanceOf[Service])
 
   private lazy val faultManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+FaultNotificationManager.actorName)(system)
   def notifyFault(fault: SmqResult): Unit = faultManager ! fault

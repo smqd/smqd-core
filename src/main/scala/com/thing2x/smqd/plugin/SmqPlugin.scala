@@ -14,13 +14,13 @@
 
 package com.thing2x.smqd.plugin
 
-import com.thing2x.smqd.{AbstractBridgeDriver, LifeCycle, Service, Smqd}
+import com.thing2x.smqd.{AbstractBridgeDriver, LifeCycle, Smqd}
 import com.typesafe.config.Config
 
 /**
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
-trait SmqPlugin {
+trait SmqPlugin extends LifeCycle {
   object Status extends Enumeration {
     type Status = Value
     val STOPPED: Status = Value("stopped")
@@ -33,7 +33,8 @@ trait SmqPlugin {
   def status: Status.Status
 }
 
-abstract class SmqServicePlugin(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, Option(config))
+abstract class Service(val name: String, smqd: Smqd, config: Config) extends SmqPlugin
+
 
 abstract class SmqBridgeDriverPlugin(name: String, smqd: Smqd, config: Config) extends AbstractBridgeDriver(name, smqd, Option(config))
 

@@ -44,8 +44,8 @@ case class PluginDefinition(name: String, clazz: Class[SmqPlugin], version: Stri
 
   def instances: Seq[PluginInstance[SmqPlugin]] = instances0
 
-  def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config]): SmqServicePlugin =
-    createInstance(instanceName, smqd, config, classOf[SmqServicePlugin])
+  def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config]): Service =
+    createInstance(instanceName, smqd, config, classOf[Service])
 
   def createBridgeDriverInstance(instanceName: String, smqd: Smqd, config: Option[Config]): SmqBridgeDriverPlugin =
     createInstance(instanceName, smqd, config, classOf[SmqBridgeDriverPlugin])

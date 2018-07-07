@@ -23,7 +23,7 @@ import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.{ConnectionContext, Http, server}
 import akka.stream.scaladsl.Sink
 import com.thing2x.smqd._
-import com.thing2x.smqd.plugin.SmqServicePlugin
+import com.thing2x.smqd.plugin.Service
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
@@ -36,7 +36,7 @@ import scala.util.{Failure, Success}
 /**
   * 2018. 6. 19. - Created by Kwon, Yeong Eon
   */
-class HttpService(name: String, smqd: Smqd, config: Config) extends SmqServicePlugin(name, smqd, config) with StrictLogging {
+class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
 
   private var _status: Status.Status = Status.UNKNOWN
   override def status: Status.Status = _status

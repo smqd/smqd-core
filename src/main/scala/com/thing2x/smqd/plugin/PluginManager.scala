@@ -120,7 +120,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
   def pluginDefinitionsInPackage(packageName: String): Seq[PluginDefinition] = packageDefs.filter(pd => pd.name == packageName).flatMap(p => p.plugins)
   def pluginDefinitions(pluginName: String): Seq[PluginDefinition] = packageDefs.flatMap(pd => pd.plugins).filter(p => p.name == pluginName)
 
-  def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqServicePlugin].isAssignableFrom(pd.clazz))
+  def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[SmqBridgeDriverPlugin].isAssignableFrom(pd.clazz))
 
   private def findPluginLoader(url: URL): PluginPackageLoader =
@@ -205,13 +205,12 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
     val instance = dconf.getOptionString("entry.class") match {
       case Some(className) =>
         val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[T]]
-        val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Option[Config]])
-        cons.newInstance(dname, smqd, dconf.getOptionConfig("config"))
+        val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
+        cons.newInstance(dname, smqd, dconf.getConfig("config"))
       case None =>
         val plugin = dconf.getString("entry.plugin")
         val pdef = pluginDefinitions(plugin)
         if (pdef.isEmpty) {
-
           throw new IllegalStateException(s"Undefined plugin: $plugin")
         }
         else {
