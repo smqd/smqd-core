@@ -536,6 +536,140 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "GET plugin status protocol-logger",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-protocol-logger/instances/core-protocol",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-protocol-logger",
+										"instances",
+										"core-protocol"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT plugin stop protocol-logger",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-protocol-logger/instances/core-protocol/stop",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-protocol-logger",
+										"instances",
+										"core-protocol",
+										"stop"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT plugin start protocol-logger",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-protocol-logger/instances/core-protocol/start",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-protocol-logger",
+										"instances",
+										"core-protocol",
+										"start"
+									]
+								}
+							},
+							"response": []
 						}
 					],
 					"_postman_isSubFolder": true
@@ -624,7 +758,7 @@
 					},
 					"response": [
 						{
-							"id": "9aeabda7-5c0c-40d1-bebd-d1c8732a15d9",
+							"id": "baa969b9-6560-411b-bd89-5779d972b6ee",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -675,7 +809,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "c2faabf7-eb2a-4769-8673-06e33b9cc148",
+							"id": "bb1facc2-f95a-4e66-87b5-453b0b3a590c",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -757,7 +891,7 @@
 					},
 					"response": [
 						{
-							"id": "b8fcd430-34e0-4663-85ce-f4dc6ce617ae",
+							"id": "b1186339-93b4-48a7-8394-fcf2057b96de",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -830,7 +964,7 @@
 					},
 					"response": [
 						{
-							"id": "2e360987-7a3b-4528-b02f-d59eb45c1bb7",
+							"id": "46a642c4-e319-44a9-bb06-f9b15068fc5b",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
