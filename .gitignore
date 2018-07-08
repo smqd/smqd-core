@@ -25,6 +25,7 @@ Californium.properties
 package-lock.json
 .sbtopts
 src/main/resources/smqd-core-version.conf
+src/test/plugins/*
 
 # macOS
 .DS_Store
