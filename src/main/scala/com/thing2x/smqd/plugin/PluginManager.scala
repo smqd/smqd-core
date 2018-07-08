@@ -164,9 +164,10 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
     }
     else if (file.isFile && file.getPath.endsWith(".plugin")) {
       val meta = ConfigFactory.parseFile(file)
+      val pver = meta.getString("version")
       val jars = meta.getStringList("resolved").asScala
       val urls = jars.map(new File(rootDirectory.get, _)).map(_.toURI.toURL).toArray
-      new PluginPackageLoader(urls, getClass.getClassLoader)
+      new PluginPackageLoader(urls, getClass.getClassLoader, pver)
     }
     else { // if (file.isFile && file.getPath.endsWith(".jar")) {
       new PluginPackageLoader(Array(file.toURI.toURL), getClass.getClassLoader)
@@ -208,7 +209,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
     }
   }
 
-  private[plugin] class PluginPackageLoader(urls: Array[URL], parent: ClassLoader) {
+  private[plugin] class PluginPackageLoader(urls: Array[URL], parent: ClassLoader, packageDefaultVersion: String = "") {
     private val logger = PluginManager.this.logger
     private val resourceLoader = new URLClassLoader(urls, null)
     private val classLoader = new URLClassLoader(urls, parent)
@@ -229,7 +230,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
         val packageDescription = config.getOptionString("package.description").getOrElse("")
         val repo = repositoryDefinition(packageName).getOrElse(repositoryDefinition(STATIC_PKG).get)
 
-        val defaultVersion = if (packageName.equals(CORE_PKG)) coreVersion else ""
+        val defaultVersion = if (packageName.equals(CORE_PKG)) coreVersion else packageDefaultVersion
 
         val plugins = config.getConfigList("package.plugins").asScala.map{ c =>
           val pluginName = c.getString("name")
