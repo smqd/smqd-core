@@ -89,6 +89,7 @@ package object plugin extends DefaultJsonProtocol {
           "provider" -> JsString(obj.provider),
           "installable" -> JsBoolean(obj.installable),
           "installed" -> JsBoolean(obj.installed),
+          "description" -> JsString(obj.description),
           "location" -> JsString(obj.location.get.toString)
         )
       }
@@ -98,6 +99,7 @@ package object plugin extends DefaultJsonProtocol {
           "provider" -> JsString(obj.provider),
           "installable" -> JsBoolean(obj.installable),
           "installed" -> JsBoolean(obj.installed),
+          "description" -> JsString(obj.description),
           "group" -> JsString(obj.module.get._1),
           "artifact" -> JsString(obj.module.get._2),
           "version" -> JsString(obj.module.get._3)

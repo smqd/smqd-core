@@ -10,13 +10,13 @@ import scala.concurrent.{ExecutionContext, Future}
   * 2018. 7. 8. - Created by Kwon, Yeong Eon
   */
 object PluginRepositoryDefinition {
-  def apply(name: String, provider: String, location: URI, installable: Boolean) =
-    new PluginRepositoryDefinition(name, provider, Some(location), None, installable)
-  def apply(name: String, provider: String, group: String, artifact: String, version: String, installable: Boolean) =
-    new PluginRepositoryDefinition(name, provider, None, Some((group, artifact, version)), installable)
+  def apply(name: String, provider: String, location: URI, installable: Boolean, description: String) =
+    new PluginRepositoryDefinition(name, provider, Some(location), None, installable, description: String)
+  def apply(name: String, provider: String, group: String, artifact: String, version: String, installable: Boolean, description: String) =
+    new PluginRepositoryDefinition(name, provider, None, Some((group, artifact, version)), installable, description)
 }
 
-class PluginRepositoryDefinition(val name: String, val provider: String, val location: Option[URI], val module: Option[(String, String, String)], val installable: Boolean)
+class PluginRepositoryDefinition(val name: String, val provider: String, val location: Option[URI], val module: Option[(String, String, String)], val installable: Boolean, val description: String)
   extends Ordered[PluginRepositoryDefinition] with StrictLogging {
 
   private var installedPkg: Option[PluginPackageDefinition] = None

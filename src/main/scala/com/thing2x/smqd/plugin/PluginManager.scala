@@ -24,7 +24,6 @@ import com.typesafe.scalalogging.StrictLogging
 import sbt.librarymanagement.UnresolvedWarning
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 /**
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
@@ -57,9 +56,11 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
   //////////////////////////////////////////////////
   // repository definitions
   private val repositoryDefs =
-    PluginRepositoryDefinition(CORE_PKG, "thing2x.com", new URI("https://github.com/smqd"), installable = false) +: // repo def for core plugins (internal)
-      PluginRepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false) +:     // repo def for manually installed
-      findRepositoryDefinitions(findManifest(pluginManifestUri))
+  // repo def for core plugins (internal)
+  PluginRepositoryDefinition(CORE_PKG, "thing2x.com", new URI("https://github.com/smqd"), installable = false, "smqd core plugins") +:
+    // repo def for manually installed
+    PluginRepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false, "manually installed plugins") +:
+    findRepositoryDefinitions(findManifest(pluginManifestUri))
 
   def repositoryDefinitions: Seq[PluginRepositoryDefinition] = repositoryDefs
   def repositoryDefinition(name: String): Option[PluginRepositoryDefinition] = repositoryDefs.find(p => p.name == name)
@@ -72,16 +73,17 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
   private def repositoryDefinition(conf: Config): PluginRepositoryDefinition = {
     val name = conf.getString("package-name")
     val provider = conf.getString("provider")
+    val description = conf.getOptionString("description").getOrElse("n/a")
     logger.trace(s"Plugin manifest has package '$name'")
     if (conf.hasPath("location")) {
       val location = new URI(conf.getString("location"))
-      PluginRepositoryDefinition(name, provider, location, installable = true)
+      PluginRepositoryDefinition(name, provider, location, installable = true, description)
     }
     else {
       val group = conf.getString("group")
       val artifact = conf.getString("artifact")
       val version = conf.getString("version")
-      PluginRepositoryDefinition(name, provider, group, artifact, version, installable = true)
+      PluginRepositoryDefinition(name, provider, group, artifact, version, installable = true, description)
     }
   }
 

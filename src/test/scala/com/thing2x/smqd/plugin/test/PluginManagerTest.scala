@@ -45,7 +45,7 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
   private val codebase = getClass.getProtectionDomain.getCodeSource.getLocation.getPath
   logger.debug(s"PWD: $pwd, codebase: $codebase")
 
-  val mgr = PluginManager( codebase, s"file://$pwd/src/test/resources/smqd-plugins-manifest-custom.conf", "")
+  val mgr = PluginManager( codebase, s"file://$pwd/src/test/conf/smqd-plugins-manifest-custom.conf", "")
 
   "PluginManager" should "initialize" in {
     val repos = mgr.repositoryDefinitions
@@ -69,7 +69,8 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
     val rp = rpopt.get
 
     assert(rp.name == "Fake plugins")
-    assert(rp.location.toString == "https://fake.com/smqd-fake_2.12.0.1.0.jar")
+    assert(rp.location.isDefined)
+    assert(rp.location.get.toString == "https://fake.com/smqd-fake_2.12.0.1.0.jar")
     assert(rp.provider == "www.smqd-test.com")
 
     val coreopt = mgr.repositoryDefinition("smqd-core")
