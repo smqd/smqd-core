@@ -18,14 +18,13 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.plugin.PluginInstance.{ExecFailure, ExecSuccess, ExecUnknownCommand, ExecInvalidStatus}
 import com.thing2x.smqd.plugin._
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
+import spray.json.{JsString, JsValue}
 
 import scala.collection.immutable.SortedSet
-import scala.util.{Failure, Success}
 
 
 /**
@@ -42,6 +41,11 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
           path("packages" / Segment.?) { packageName =>
             getPackages(packageName, searchName, currPage, pageSize)
           }
+        }
+      } ~
+      put {
+        path("packages" / Segment / Segment) { (packageName, cmd) =>
+          putPackage(packageName, cmd)
         }
       }
     }
@@ -87,10 +91,43 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
               complete(StatusCodes.NotFound, restError(404, s"Package not found, search $search"))
             else
               complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
-          case None => // all
-            val result = SortedSet[PluginPackageDefinition]() ++ pm.packageDefinitions
+          case None => // all - retrieve repository definitions instead of package defs.
+            val result = SortedSet[PluginRepositoryDefinition]() ++ pm.repositoryDefinitions
             complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
         }
+    }
+  }
+
+  private def execResult(result: ExecResult): JsValue = {
+    result match {
+      case ExecSuccess(msg) =>
+        restSuccess(0, JsString(msg))
+      case ExecFailure(message, Some(cause)) =>
+        restError(StatusCodes.InternalServerError.intValue, s"Command failed - $message, ${cause.getMessage}")
+      case ExecFailure(message, None) =>
+        restError(StatusCodes.InternalServerError.intValue, message)
+      case ExecInvalidStatus(message) =>
+        restError(StatusCodes.NotImplemented.intValue, message)
+      case ExecUnknownCommand(cmd) =>
+        restError(StatusCodes.BadRequest.intValue, s"Not implemented command - $cmd")
+      case x =>
+        restError(StatusCodes.InternalServerError.intValue, s"Unknown response from plugin: $x")
+    }
+  }
+
+  private def putPackage(packageName: String, cmd: String): Route = {
+    val pm = smqd.pluginManager
+    pm.repositoryDefinition(packageName) match {
+      case Some(rdef) =>
+        import smqd.Implicit._
+        val params: Map[String, Any] =  if (pm.rootDirectory.isDefined) Map("plugin.dir" -> pm.rootDirectory.get) else Map.empty
+        val result = rdef.exec(cmd.toLowerCase, params) map {
+          case ExecSuccess(_) => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
+          case rt => execResult(rt)
+        }
+        complete(StatusCodes.OK, result)
+      case None =>
+        complete(StatusCodes.NotFound, s"Package not found :$packageName")
     }
   }
 
@@ -101,18 +138,8 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
       case Some(instance) =>
         import smqd.Implicit._
         val result = instance.exec(command.toLowerCase) map {
-          case ExecSuccess(_) =>
-            restSuccess(0, PluginInstanceFormat.write(instance))
-          case ExecFailure(message, Some(cause)) =>
-            restError(StatusCodes.InternalServerError.intValue, s"Command failed - $message, ${cause.getMessage}")
-          case ExecFailure(message, None) =>
-            restError(StatusCodes.InternalServerError.intValue, message)
-          case ExecInvalidStatus(message) =>
-            restError(StatusCodes.NotImplemented.intValue, message)
-          case ExecUnknownCommand(cmd) =>
-            restError(StatusCodes.BadRequest.intValue, s"Not implemented command - $cmd")
-          case x =>
-            restError(StatusCodes.InternalServerError.intValue, s"Unknown response from plugin: $x")
+          case ExecSuccess(_) => restSuccess(0, PluginInstanceFormat.write(instance))
+          case rt => execResult(rt)
         }
         complete(StatusCodes.OK, result)
       case None =>

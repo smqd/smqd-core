@@ -83,13 +83,26 @@ package object plugin extends DefaultJsonProtocol {
   implicit object PluginRepositoryDefinitionFormat extends RootJsonFormat[PluginRepositoryDefinition] {
     override def read(json: JsValue): PluginRepositoryDefinition = ???
     override def write(obj: PluginRepositoryDefinition): JsValue = {
-      JsObject (
-        "name" -> JsString(obj.name),
-        "location" -> JsString(obj.location.toString),
-        "provider" -> JsString(obj.provider),
-        "installable" -> JsBoolean(obj.installable),
-        "installed" -> JsBoolean(obj.installed)
-      )
+      if (obj.location.isDefined) {
+        JsObject (
+          "name" -> JsString(obj.name),
+          "provider" -> JsString(obj.provider),
+          "installable" -> JsBoolean(obj.installable),
+          "installed" -> JsBoolean(obj.installed),
+          "location" -> JsString(obj.location.get.toString)
+        )
+      }
+      else {
+        JsObject (
+          "name" -> JsString(obj.name),
+          "provider" -> JsString(obj.provider),
+          "installable" -> JsBoolean(obj.installable),
+          "installed" -> JsBoolean(obj.installed),
+          "group" -> JsString(obj.module.get._1),
+          "artifact" -> JsString(obj.module.get._2),
+          "version" -> JsString(obj.module.get._3)
+        )
+      }
     }
   }
 
@@ -107,4 +120,11 @@ package object plugin extends DefaultJsonProtocol {
       )
     }
   }
+
+
+  sealed trait ExecResult
+  case class ExecSuccess(message: String) extends ExecResult
+  case class ExecFailure(message: String, cause: Option[Throwable]) extends ExecResult
+  case class ExecInvalidStatus(message: String) extends ExecResult
+  case class ExecUnknownCommand(cmd: String) extends ExecResult
 }

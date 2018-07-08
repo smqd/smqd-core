@@ -46,8 +46,8 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
   //////////////////////////////////////////////////
   // repository definitions
   private val repositoryDefs =
-    PluginRepositoryDefinition(CORE_PKG, new URI("https://github.com/smqd"), "thing2x.com", installable = false) +:       // repo def for core plugins (internal)
-      PluginRepositoryDefinition(STATIC_PKG, new URI("https://github.com/smqd"), "n/a", installable = false) +:   // repo def for manually installed
+    PluginRepositoryDefinition(CORE_PKG, "thing2x.com", new URI("https://github.com/smqd"), installable = false) +: // repo def for core plugins (internal)
+      PluginRepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false) +:     // repo def for manually installed
       findRepositoryDefinitions(findManifest(pluginManifestUri))
 
   def repositoryDefinitions: Seq[PluginRepositoryDefinition] = repositoryDefs
@@ -60,9 +60,18 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
 
   private def repositoryDefinition(conf: Config): PluginRepositoryDefinition = {
     val name = conf.getString("package-name")
-    val location = new URI(conf.getString("location"))
     val provider = conf.getString("provider")
-    PluginRepositoryDefinition(name, location, provider, installable = true)
+    logger.trace(s"Plugin manifest has package '$name'")
+    if (conf.hasPath("location")) {
+      val location = new URI(conf.getString("location"))
+      PluginRepositoryDefinition(name, provider, location, installable = true)
+    }
+    else {
+      val group = conf.getString("group")
+      val artifact = conf.getString("artifact")
+      val version = conf.getString("version")
+      PluginRepositoryDefinition(name, provider, group, artifact, version, installable = true)
+    }
   }
 
   private def findManifest(uriPathOpt: Option[String]): Config = {
@@ -76,6 +85,8 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
         logger.info("No plugin manifest is defined")
         return ref
     }
+
+    logger.info(s"Plugin manifest is $uriPath")
 
     try {
       // try first as a file, incase of relative path
@@ -100,7 +111,9 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
 
   //////////////////////////////////////////////////
   // plugin definitions
-  private val packageDefs = findRootDir(pluginDirPath) match {
+  val rootDirectory: Option[File] = findRootDir(pluginDirPath)
+
+  private val packageDefs = rootDirectory match {
     case Some(rootDir) =>            // plugin root directory
       findPluginFiles(rootDir)       // plugin files in the root directories
         .map(findPluginLoader)       // plugin loaders
@@ -146,8 +159,8 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
 
   private def findRootDir(rootDir: String): Option[File] = {
     val file = new File(rootDir)
-    if (file.isDirectory && file.canRead) {
-      logger.info("Plugin directory is {}", rootDir)
+    if (file.isDirectory && file.canRead && file.canWrite) {
+      logger.info("Plugin directory is {}", file.getPath)
       Some(file)
     }
     else {
