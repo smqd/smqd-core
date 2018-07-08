@@ -158,13 +158,13 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
       case None => // search
         searchName match {
           case Some(search) => // query
-            val result = SortedSet[PluginInstance[SmqPlugin]]() ++ pm.instances(pluginName, search)
+            val result = SortedSet[PluginInstance[Plugin]]() ++ pm.instances(pluginName, search)
             if (result.isEmpty)
               complete(StatusCodes.NotFound, s"Plugin instance not found plugin: $pluginName, search $search")
             else
               complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
           case None => // all
-            val result = SortedSet[PluginInstance[SmqPlugin]]() ++ pm.instances(pluginName)
+            val result = SortedSet[PluginInstance[Plugin]]() ++ pm.instances(pluginName)
             complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
         }
     }

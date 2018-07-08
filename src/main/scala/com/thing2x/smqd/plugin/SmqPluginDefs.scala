@@ -41,12 +41,12 @@ class PluginPackageDefinition(val name: String, val vendor: String, val descript
   override def compare(that: PluginPackageDefinition): Int = this.name.compare(that.name)
 }
 
-class PluginDefinition(val name: String, val clazz: Class[SmqPlugin], val packageName: String, val version: String, val defaultConfig: Config, val multiInstantiable: Boolean)
+class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageName: String, val version: String, val defaultConfig: Config, val multiInstantiable: Boolean)
   extends Ordered[PluginDefinition]{
 
-  private var instances0: Seq[PluginInstance[SmqPlugin]] = Nil
+  private var instances0: Seq[PluginInstance[Plugin]] = Nil
 
-  def instances: Seq[PluginInstance[SmqPlugin]] = instances0
+  def instances: Seq[PluginInstance[Plugin]] = instances0
 
   def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config]): Service =
     createInstance(instanceName, smqd, config, classOf[Service])
@@ -54,7 +54,7 @@ class PluginDefinition(val name: String, val clazz: Class[SmqPlugin], val packag
   def createBridgeDriverInstance(instanceName: String, smqd: Smqd, config: Option[Config]): BridgeDriver =
     createInstance(instanceName, smqd, config, classOf[BridgeDriver])
 
-  def createInstance[T <: SmqPlugin](instanceName: String, smqd: Smqd, config: Option[Config], pluginType: Class[T]): T = {
+  def createInstance[T <: Plugin](instanceName: String, smqd: Smqd, config: Option[Config], pluginType: Class[T]): T = {
     val clazz = this.clazz.asInstanceOf[Class[T]]
     val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
     val mergedConf = if (config.isDefined) config.get.withFallback(defaultConfig) else defaultConfig
@@ -75,7 +75,7 @@ class PluginDefinition(val name: String, val clazz: Class[SmqPlugin], val packag
 }
 
 object PluginInstance {
-  def apply[T <: SmqPlugin](instance: T, pluginDef: PluginDefinition) = new PluginInstance(instance, pluginDef)
+  def apply[T <: Plugin](instance: T, pluginDef: PluginDefinition) = new PluginInstance(instance, pluginDef)
 
   sealed trait ExecResult
   case class ExecSuccess(message: String) extends ExecResult
@@ -84,7 +84,7 @@ object PluginInstance {
   case class ExecUnknownCommand(cmd: String) extends ExecResult
 }
 
-class PluginInstance[+T <: SmqPlugin](val instance: T, val pluginDef: PluginDefinition) {
+class PluginInstance[+T <: Plugin](val instance: T, val pluginDef: PluginDefinition) {
   val name: String = instance.name
 
   /** UNKNOWN, STOPPED, STOPPING, STARTING, RUNNING */

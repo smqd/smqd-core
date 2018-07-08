@@ -20,7 +20,7 @@ import com.typesafe.config.Config
 /**
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
-trait SmqPlugin extends LifeCycle {
+trait Plugin extends LifeCycle {
   def name: String
   def status: InstanceStatus
 
@@ -28,7 +28,7 @@ trait SmqPlugin extends LifeCycle {
   def execStop(): Unit
 }
 
-abstract class PluginLifeCycle extends SmqPlugin {
+abstract class PluginLifeCycle extends Plugin {
   private var _status = InstanceStatus.STOPPED
 
   def status: InstanceStatus = _status

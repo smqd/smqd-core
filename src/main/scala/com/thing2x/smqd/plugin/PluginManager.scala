@@ -125,11 +125,11 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
   def pluginDefinition(pluginName: String): Option[PluginDefinition] = packageDefs.flatMap(_.plugins).find(_.name == pluginName)
 
   /** find all plugin instances of the plugin */
-  def instances(pluginName: String): Seq[PluginInstance[SmqPlugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances)
+  def instances(pluginName: String): Seq[PluginInstance[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances)
   /** find all plugin instances of the plugin that has name contains searchName */
-  def instances(pluginName: String, searchName: String): Seq[PluginInstance[SmqPlugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).filter(_.name.contains(searchName))
+  def instances(pluginName: String, searchName: String): Seq[PluginInstance[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).filter(_.name.contains(searchName))
   /** find the plugin instance by plugin name and instance name */
-  def instance(pluginName: String, instanceName: String): Option[PluginInstance[SmqPlugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).find(_.name == instanceName)
+  def instance(pluginName: String, instanceName: String): Option[PluginInstance[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).find(_.name == instanceName)
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[BridgeDriver].isAssignableFrom(pd.clazz))
@@ -185,7 +185,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
           val multiInst = c.getOptionBoolean("multi-instantiable").getOrElse(false)
           val version = c.getOptionString("version").getOrElse(defaultVersion)
           val conf = c.getOptionConfig("default-config").getOrElse(emptyConfig)
-          val clazz = classLoader.loadClass(className).asInstanceOf[Class[SmqPlugin]]
+          val clazz = classLoader.loadClass(className).asInstanceOf[Class[Plugin]]
 
           new PluginDefinition(pluginName, clazz, packageName, version, conf, multiInst)
         }
@@ -206,7 +206,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
 
   ////////////////////////////////////////////////////////
   // create instance
-  def createInstaceFromClassOrPlugin[T <: SmqPlugin](smqd: Smqd, dname: String, dconf: Config, classType: Class[T]): T ={
+  def createInstaceFromClassOrPlugin[T <: Plugin](smqd: Smqd, dname: String, dconf: Config, classType: Class[T]): T ={
     val category: String = classType match {
       case c if c.isAssignableFrom(classOf[Service]) => "Service"
       case c if c.isAssignableFrom(classOf[BridgeDriver]) => "BridgeDriver"

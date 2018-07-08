@@ -24,16 +24,16 @@ import scala.collection.JavaConverters._
   */
 package object plugin extends DefaultJsonProtocol {
 
-  implicit object PluginInstanceOrdering extends Ordering[PluginInstance[SmqPlugin]] {
-    override def compare(x: PluginInstance[SmqPlugin], y: PluginInstance[SmqPlugin]): Int = {
+  implicit object PluginInstanceOrdering extends Ordering[PluginInstance[Plugin]] {
+    override def compare(x: PluginInstance[Plugin], y: PluginInstance[Plugin]): Int = {
       x.name.compare(y.name)
     }
   }
 
-  implicit object PluginInstanceFormat extends RootJsonFormat[PluginInstance[SmqPlugin]] {
-    override def read(json: JsValue): PluginInstance[SmqPlugin] = ???
+  implicit object PluginInstanceFormat extends RootJsonFormat[PluginInstance[Plugin]] {
+    override def read(json: JsValue): PluginInstance[Plugin] = ???
 
-    override def write(obj: PluginInstance[SmqPlugin]): JsValue = {
+    override def write(obj: PluginInstance[Plugin]): JsValue = {
       JsObject(
         "name" -> JsString(obj.name),
         "status" -> JsString(obj.status),

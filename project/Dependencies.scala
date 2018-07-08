@@ -34,6 +34,9 @@ object Dependencies {
     // json
     "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.3",
     //////////////////////////////////
+    // plugin package management
+    "org.scala-sbt" %% "librarymanagement-ivy" % "1.2.0-M3",
+    //////////////////////////////////
     // Logging
     "com.typesafe.akka" %% "akka-slf4j" % Versions.akka force(),
     "ch.qos.logback" % "logback-classic" % "1.2.3", // 01-Apr-2017 updated
