@@ -24,16 +24,16 @@ import scala.collection.JavaConverters._
   */
 package object plugin extends DefaultJsonProtocol {
 
-  implicit object PluginInstanceOrdering extends Ordering[PluginInstance[SmqPlugin]] {
-    override def compare(x: PluginInstance[SmqPlugin], y: PluginInstance[SmqPlugin]): Int = {
+  implicit object PluginInstanceOrdering extends Ordering[PluginInstance[Plugin]] {
+    override def compare(x: PluginInstance[Plugin], y: PluginInstance[Plugin]): Int = {
       x.name.compare(y.name)
     }
   }
 
-  implicit object PluginInstanceFormat extends RootJsonFormat[PluginInstance[SmqPlugin]] {
-    override def read(json: JsValue): PluginInstance[SmqPlugin] = ???
+  implicit object PluginInstanceFormat extends RootJsonFormat[PluginInstance[Plugin]] {
+    override def read(json: JsValue): PluginInstance[Plugin] = ???
 
-    override def write(obj: PluginInstance[SmqPlugin]): JsValue = {
+    override def write(obj: PluginInstance[Plugin]): JsValue = {
       JsObject(
         "name" -> JsString(obj.name),
         "status" -> JsString(obj.status),
@@ -83,13 +83,26 @@ package object plugin extends DefaultJsonProtocol {
   implicit object PluginRepositoryDefinitionFormat extends RootJsonFormat[PluginRepositoryDefinition] {
     override def read(json: JsValue): PluginRepositoryDefinition = ???
     override def write(obj: PluginRepositoryDefinition): JsValue = {
-      JsObject (
-        "name" -> JsString(obj.name),
-        "location" -> JsString(obj.location.toString),
-        "provider" -> JsString(obj.provider),
-        "installable" -> JsBoolean(obj.installable),
-        "installed" -> JsBoolean(obj.installed)
-      )
+      if (obj.location.isDefined) {
+        JsObject (
+          "name" -> JsString(obj.name),
+          "provider" -> JsString(obj.provider),
+          "installable" -> JsBoolean(obj.installable),
+          "installed" -> JsBoolean(obj.installed),
+          "location" -> JsString(obj.location.get.toString)
+        )
+      }
+      else {
+        JsObject (
+          "name" -> JsString(obj.name),
+          "provider" -> JsString(obj.provider),
+          "installable" -> JsBoolean(obj.installable),
+          "installed" -> JsBoolean(obj.installed),
+          "group" -> JsString(obj.module.get._1),
+          "artifact" -> JsString(obj.module.get._2),
+          "version" -> JsString(obj.module.get._3)
+        )
+      }
     }
   }
 
@@ -107,4 +120,11 @@ package object plugin extends DefaultJsonProtocol {
       )
     }
   }
+
+
+  sealed trait ExecResult
+  case class ExecSuccess(message: String) extends ExecResult
+  case class ExecFailure(message: String, cause: Option[Throwable]) extends ExecResult
+  case class ExecInvalidStatus(message: String) extends ExecResult
+  case class ExecUnknownCommand(cmd: String) extends ExecResult
 }
