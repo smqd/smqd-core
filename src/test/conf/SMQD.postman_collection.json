@@ -189,89 +189,6 @@
 					"description": "",
 					"item": [
 						{
-							"name": "GET packages",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
-										"type": "text/javascript",
-										"exec": [
-											"pm.test(\"response code\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.code).to.eql(0);",
-											"});",
-											"",
-											"pm.test(\"api endpoint\", function () {",
-											"    var jsonData = pm.response.json()",
-											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
-											"})"
-										]
-									}
-								}
-							],
-							"request": {
-								"method": "GET",
-								"header": [],
-								"body": {},
-								"url": {
-									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages",
-									"protocol": "http",
-									"host": [
-										"{{smqd_hostport}}"
-									],
-									"path": [
-										"{{smqd_api}}",
-										"management",
-										"packages"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "GET packages smqd-core",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
-										"type": "text/javascript",
-										"exec": [
-											"pm.test(\"response code\", function () {",
-											"    var jsonData = pm.response.json();",
-											"    pm.expect(jsonData.code).to.eql(0);",
-											"});",
-											"",
-											"pm.test(\"api endpoint\", function () {",
-											"    var jsonData = pm.response.json()",
-											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
-											"})"
-										]
-									}
-								}
-							],
-							"request": {
-								"method": "GET",
-								"header": [],
-								"body": {},
-								"url": {
-									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-core",
-									"protocol": "http",
-									"host": [
-										"{{smqd_hostport}}"
-									],
-									"path": [
-										"{{smqd_api}}",
-										"management",
-										"packages",
-										"smqd-core"
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "GET plugins",
 							"event": [
 								{
@@ -673,6 +590,186 @@
 						}
 					],
 					"_postman_isSubFolder": true
+				},
+				{
+					"name": "packages",
+					"description": "",
+					"item": [
+						{
+							"name": "GET packages",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET packages smqd-core",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-core",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages",
+										"smqd-core"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET packages query=core",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages?query=core",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages"
+									],
+									"query": [
+										{
+											"key": "query",
+											"value": "core"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT package install",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-bridge-mqtt/install",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages",
+										"smqd-bridge-mqtt",
+										"install"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"_postman_isSubFolder": true
 				}
 			]
 		},
@@ -758,7 +855,7 @@
 					},
 					"response": [
 						{
-							"id": "baa969b9-6560-411b-bd89-5779d972b6ee",
+							"id": "8c69a521-f1e1-4b8d-a96b-87a0b2b91cef",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -809,7 +906,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "bb1facc2-f95a-4e66-87b5-453b0b3a590c",
+							"id": "b934a925-5081-42da-9e7e-38fb207abdf8",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -891,7 +988,7 @@
 					},
 					"response": [
 						{
-							"id": "b1186339-93b4-48a7-8394-fcf2057b96de",
+							"id": "fc257665-35c0-49af-a967-8d7766fbdc46",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -964,7 +1061,7 @@
 					},
 					"response": [
 						{
-							"id": "46a642c4-e319-44a9-bb06-f9b15068fc5b",
+							"id": "2497eb3d-2c88-4388-a6ef-5b4ac950319b",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",

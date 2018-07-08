@@ -18,6 +18,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.plugin.PluginManager.{InstallResult, InstallSuccess}
 import com.thing2x.smqd.plugin._
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
@@ -25,6 +26,7 @@ import com.typesafe.scalalogging.StrictLogging
 import spray.json.{JsString, JsValue}
 
 import scala.collection.immutable.SortedSet
+import scala.util.{Failure, Success}
 
 
 /**
@@ -120,12 +122,24 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
     pm.repositoryDefinition(packageName) match {
       case Some(rdef) =>
         import smqd.Implicit._
-        val params: Map[String, Any] =  if (pm.rootDirectory.isDefined) Map("plugin.dir" -> pm.rootDirectory.get) else Map.empty
-        val result = rdef.exec(cmd.toLowerCase, params) map {
-          case ExecSuccess(_) => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
-          case rt => execResult(rt)
+        cmd.toLowerCase match {
+          case "install" =>
+            val jval = for {
+              rt <- pm.installPackage(smqd, rdef)
+              result = rt match {
+                case _: InstallSuccess => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
+                case e: InstallResult => restError(500, e.msg)
+              }
+            } yield result
+            complete(StatusCodes.OK, jval)
+          case command =>
+            val params: Map[String, Any] =  if (pm.rootDirectory.isDefined) Map("plugin.dir" -> pm.rootDirectory.get) else Map.empty
+            val result = rdef.exec(command, params) map {
+              case ExecSuccess(_) => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
+              case rt => execResult(rt)
+            }
+            complete(StatusCodes.OK, result)
         }
-        complete(StatusCodes.OK, result)
       case None =>
         complete(StatusCodes.NotFound, s"Package not found :$packageName")
     }
