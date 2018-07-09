@@ -46,7 +46,7 @@ trait SmqMainBase extends StrictLogging {
     //// for debug purpose /////
     dumpEnvNames.foreach{ k =>
       val v = System.getProperty(k, "<not defined>")
-      logger.trace(s"-D$k = $v")
+      logger.info(s"-D$k = $v")
     }
     //// build configuration ///////
 

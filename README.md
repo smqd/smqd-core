@@ -375,3 +375,15 @@ smqd {
 ### Configuration
 
 - [Reference config](src/main/resources/smqd-ref.conf)
+
+## For Developers
+
+- Core API
+
+  Postman json file is [here](src/test/conf/SMQD.postman_collection.json)
+
+  Run smqd-core process with following sbt command to test rest api
+
+```bash
+sbt '; set javaOptions ++= Seq("-Dconfig.file=./src/test/conf/smqd-1.conf", "-Dlogback.configurationFile=./src/test/conf/logback.xml", "-Djava.net.preferIPv4Stack=true"); runMain com.thing2x.smqd.Main'
+```
