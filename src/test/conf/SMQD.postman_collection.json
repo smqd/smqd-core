@@ -584,7 +584,7 @@
 							"response": []
 						},
 						{
-							"name": "plugin bridge-http",
+							"name": "plugin thing2x-core-http",
 							"event": [
 								{
 									"listen": "test",
@@ -610,7 +610,7 @@
 								"header": [],
 								"body": {},
 								"url": {
-									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/smqd-bridge-http/",
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/",
 									"protocol": "http",
 									"host": [
 										"{{smqd_hostport}}"
@@ -619,7 +619,7 @@
 										"{{smqd_api}}",
 										"management",
 										"plugins",
-										"smqd-bridge-http",
+										"thing2x-core-http",
 										""
 									]
 								}
@@ -627,7 +627,7 @@
 							"response": []
 						},
 						{
-							"name": "plugin bridge-http config",
+							"name": "plugin thing2x-core-http config",
 							"event": [
 								{
 									"listen": "test",
@@ -653,7 +653,7 @@
 								"header": [],
 								"body": {},
 								"url": {
-									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/smqd-bridge-http/config",
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/config",
 									"protocol": "http",
 									"host": [
 										"{{smqd_hostport}}"
@@ -662,7 +662,140 @@
 										"{{smqd_api}}",
 										"management",
 										"plugins",
-										"smqd-bridge-http",
+										"thing2x-core-http",
+										"config"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "create instance \"portal\"",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/instances/portal",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-http",
+										"instances",
+										"portal"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "update config of instance \"portal\"",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/instances/portal",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-http",
+										"instances",
+										"portal"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "plugin thing2x-core-http instance config",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/instances/portal/config",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-core-http",
+										"instances",
+										"portal",
 										"config"
 									]
 								}
@@ -978,7 +1111,7 @@
 					},
 					"response": [
 						{
-							"id": "2854a778-151c-4f8a-92cb-cb04aa63a974",
+							"id": "19b4ca14-ddc6-4e39-bff4-c39be2e0a3fa",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1029,7 +1162,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "4ebd2653-6026-42a8-b2ca-1be73bbb9620",
+							"id": "4b067974-8e30-4fcb-9b50-d389f3dc2c5f",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1111,7 +1244,7 @@
 					},
 					"response": [
 						{
-							"id": "246327a3-15cf-4b45-81b5-045fd1548459",
+							"id": "be1c411b-1168-4f80-b8e1-f4b52d2de25d",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1184,7 +1317,7 @@
 					},
 					"response": [
 						{
-							"id": "6f8658a8-4395-4cc3-b7a0-e741d045fd78",
+							"id": "8f92948e-93dd-475e-b145-23b2caf27db0",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1262,7 +1395,7 @@
 					},
 					"response": [
 						{
-							"id": "1e321a29-d093-4a46-8ae2-528bb4c6ba6b",
+							"id": "343f865d-1d66-4ec2-ac62-ccb6fb1d2f4f",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",

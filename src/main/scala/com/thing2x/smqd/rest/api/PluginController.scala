@@ -74,6 +74,14 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
         path("plugins" / Segment / "instances" / Segment / Segment) { (pluginName, instanceName, cmd) =>
           putPlugin(pluginName, instanceName, cmd)
         }
+      } ~
+      path("plugins" / Segment / "instances" / Segment) { (pluginName, instanceName) =>
+        post {
+          createPluginInstance(pluginName, instanceName)
+        } ~
+        patch {
+          updatePluginInstance(pluginName, instanceName)
+        }
       }
     }
   }
@@ -245,6 +253,13 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
       case None =>
         complete(StatusCodes.NotFound, s"Plugin instance not found plugin: $pluginName, instance: $instanceName")
     }
+  }
+
+  private def updatePluginInstance(pluginName: String, instanceName: String): Route = {
+    complete(StatusCodes.NotImplemented, restError(501, s"not implemented: $pluginName, $instanceName"))
+  }
+  private def createPluginInstance(pluginName: String, instanceName: String): Route = {
+    complete(StatusCodes.NotImplemented, restError(501, s"not implemented: $pluginName, $instanceName"))
   }
 
 }
