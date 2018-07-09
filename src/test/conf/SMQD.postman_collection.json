@@ -745,8 +745,16 @@
 							],
 							"request": {
 								"method": "PATCH",
-								"header": [],
-								"body": {},
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"auto-start\": false,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 9876,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"enabled\": false\n            }\n        }\n    }\n}"
+								},
 								"url": {
 									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/instances/portal",
 									"protocol": "http",
@@ -1305,7 +1313,7 @@
 					},
 					"response": [
 						{
-							"id": "4eb7b120-db14-4572-b646-1e47ae0e9c47",
+							"id": "dc2d01a4-d70a-45d2-95c9-3d4f932ac144",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1356,7 +1364,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "4703a311-5560-4b2f-ba45-3a9785c31849",
+							"id": "7e588f51-91f4-426a-9c79-a66529a4d332",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1438,7 +1446,7 @@
 					},
 					"response": [
 						{
-							"id": "e1b936be-56d6-4d78-8992-6e3fc0335f82",
+							"id": "75b72642-8e3f-4380-a0dd-30edbf30c83b",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1511,7 +1519,7 @@
 					},
 					"response": [
 						{
-							"id": "6bc92db1-da42-44d8-a5e9-582151c7cfd0",
+							"id": "3ab7b43b-7a60-4e84-9045-e96b8d400fc6",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1589,7 +1597,7 @@
 					},
 					"response": [
 						{
-							"id": "775e89f3-1535-479e-a107-238af934d8cd",
+							"id": "e06c2516-2dfb-4274-ae6f-c7bb23354721",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
