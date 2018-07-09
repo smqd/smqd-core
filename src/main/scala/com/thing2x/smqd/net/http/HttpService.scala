@@ -42,13 +42,13 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
   val localEnabled: Boolean = config.getOptionBoolean("local.enabled").getOrElse(true)
   val localAddress: String = config.getOptionString("local.address").getOrElse("127.0.0.1")
   val localPort: Int = config.getOptionInt("local.port").getOrElse(80)
-  val localBindAddress: String = config.getOptionString("local.bind.address").getOrElse(localAddress)
+  val localBindAddress: String = config.getOptionString("local.bind.address").getOrElse("0.0.0.0")
   val localBindPort: Int = config.getOptionInt("local.bind.port").getOrElse(localPort)
 
   val localSecureEnabled: Boolean = config.getOptionBoolean("local.secure.enabled").getOrElse(false)
   val localSecureAddress: String = config.getOptionString("local.secure.address").getOrElse("127.0.0.1")
   val localSecurePort: Int = config.getOptionInt("local.secure.port").getOrElse(443)
-  val localSecureBindAddress: String = config.getOptionString("local.secure.address").getOrElse(localSecureAddress)
+  val localSecureBindAddress: String = config.getOptionString("local.secure.address").getOrElse("0.0.0.0")
   val localSecureBindPort: Int = config.getOptionInt("local.secure.port").getOrElse(localSecurePort)
 
   private var bindingFuture: Future[ServerBinding] = _
@@ -68,7 +68,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 
     // load routes configuration
-    val routes = loadRouteFromConfig(config.getConfig("routes"))
+    val routes = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfig("routes")) else Set(emptyRoute)
 
     // merge all routes into a single route value
     // then encapsulate with log directives
@@ -159,7 +159,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
   private val emptyRoute: Route = {
     get {
-      complete(StatusCodes.InternalServerError, "There is no way to go.")
+      complete(StatusCodes.InternalServerError, "It works, but there is no way to go.")
     }
   }
 }

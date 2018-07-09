@@ -14,13 +14,15 @@
 
 package com.thing2x
 
+import java.text.ParseException
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.pattern.after
 import akka.stream.OverflowStrategy
 import akka.util.Timeout
 import com.codahale.metrics.Counter
-import com.typesafe.config.{Config, ConfigRenderOptions}
+import com.typesafe.config._
 import spray.json._
 
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
@@ -117,11 +119,23 @@ package object smqd extends DefaultJsonProtocol {
 
   case class EndpointInfo(address: Option[String], secureAddress: Option[String])
 
-  implicit object ConfigFormat extends RootJsonFormat[Config] {
-    override def read(json: JsValue): Config = ???
-    override def write(obj: Config): JsValue = {
-      val str = obj.root().render(ConfigRenderOptions.concise)
-      JsonParser(str)
+  implicit object TypesafeConfigFormat extends RootJsonFormat[Config] {
+    private val ParseOptions = ConfigParseOptions.defaults().setSyntax(ConfigSyntax.JSON)
+    private val RenderOptions = ConfigRenderOptions.concise().setJson(true)
+    override def read(json: JsValue): Config = json match {
+      case obj: JsObject => ConfigFactory.parseString(obj.compactPrint, ParseOptions)
+      // case _ => deserializationError("Expected JsObject for Config deserialization")
+      case _ =>
+        throw new ParseException("json parse error: unsable to build config object", 0)
+    }
+    override def write(config: Config): JsValue = {
+      //      val entries = config.entrySet().asScala.map { entry =>
+      //        val key = entry.getKey
+      //        val value: com.typesafe.config.ConfigValue = entry.getValue
+      //        val opt = value.render(ConfigRenderOptions.concise())
+      //        key ->JsonParser(opt)
+      //      }.toMap
+      JsonParser(config.root.render(RenderOptions))
     }
   }
 

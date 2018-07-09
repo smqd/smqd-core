@@ -14,13 +14,13 @@
 
 package com.thing2x.smqd.plugin
 
-import java.io.{File, FileOutputStream, InputStreamReader, OutputStreamWriter}
+import java.io._
 import java.net.{URI, URL, URLClassLoader}
 
 import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.PluginManager.InstallResult
 import com.thing2x.smqd.plugin.PluginRepositoryDefinition.IvyModule
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
 import com.typesafe.scalalogging.StrictLogging
 import sbt.librarymanagement.UnresolvedWarning
 
@@ -29,18 +29,42 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
-object PluginManager {
+object PluginManager extends StrictLogging {
   val STATIC_PKG = "smqd-static"
   val CORE_PKG = "smqd-core"
 
-  def apply(config: Config, coreVersion: String): PluginManager =
-    new PluginManager(config.getString("dir"), config.getOptionString("manifest"), coreVersion)
+  def apply(config: Config, coreVersion: String): PluginManager = {
+    val pluginDirPath = config.getString("dir")
+    val pluginInstanceConfDirPath =
+      if (config.hasPath("conf")) {
+        config.getString("conf")
+      }
+      else {
+        logger.trace("origin of plugin config", config.origin.filename)
+        val configFilePath = config.origin.filename
+        if (configFilePath != null) {
+          val file = new File(configFilePath)
+          if (file.exists && file.getParentFile.canRead && file.getParentFile.canWrite) {
+            val pluginConfDir = new File(file.getParentFile, "plugins")
+            pluginConfDir.mkdir()
+            pluginConfDir.getPath
+          }
+          else {
+            new File(new File(pluginDirPath), "plugins").getPath
+          }
+        }
+        else {
+          new File(new File(pluginDirPath), "plugins").getPath
+        }
+      }
+    new PluginManager(pluginDirPath, pluginInstanceConfDirPath, config.getOptionString("manifest"), coreVersion)
+  }
 
-  def apply(pluginDirPath: String, pluginManifestUri: String, coreVersion: String) =
-    new PluginManager(pluginDirPath, Some(pluginManifestUri), coreVersion)
+  def apply(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: String, coreVersion: String) =
+    new PluginManager(pluginLibPath, pluginConfPath, Some(pluginManifestUri), coreVersion)
 
-  def apply(pluginDirPath: String, pluginManifestUri: Option[String] = None, coreVersion: String = "") =
-    new PluginManager(pluginDirPath, pluginManifestUri, coreVersion)
+  def apply(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String] = None, coreVersion: String = "") =
+    new PluginManager(pluginLibPath, pluginConfPath, pluginManifestUri, coreVersion)
 
   trait InstallResult { def msg: String }
   case class InstallSuccess(msg: String) extends InstallResult
@@ -52,7 +76,7 @@ object PluginManager {
 
 import PluginManager._
 
-class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], coreVersion: String) extends StrictLogging {
+class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String], coreVersion: String) extends StrictLogging {
 
   //////////////////////////////////////////////////
   // repository definitions
@@ -127,9 +151,10 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
 
   //////////////////////////////////////////////////
   // plugin definitions
-  val rootDirectory: Option[File] = findRootDir(pluginDirPath)
+  val libDirectory: Option[File] = findRootDir(pluginLibPath)
+  val configDirectory: Option[File] = findConfigDir(pluginConfPath)
 
-  private var packageDefs: Seq[PluginPackageDefinition] = rootDirectory match {
+  private var packageDefs: Seq[PluginPackageDefinition] = libDirectory match {
     case Some(rootDir) =>             // plugin root directory
       findPluginFiles(rootDir)        // plugin files in the root directories
         .map(findPluginPackageLoader) // plugin loaders
@@ -171,7 +196,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
       val meta = ConfigFactory.parseFile(file)
       val pver = meta.getString("version")
       val jars = meta.getStringList("resolved").asScala
-      val urls = jars.map(new File(rootDirectory.get, _)).map(_.toURI.toURL).toArray
+      val urls = jars.map(new File(libDirectory.get, _)).map(_.toURI.toURL).toArray
       new PluginPackageLoader(urls, getClass.getClassLoader, pver)
     }
     else { // if (file.isFile && file.getPath.endsWith(".jar")) {
@@ -205,11 +230,23 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
   private def findRootDir(rootDir: String): Option[File] = {
     val file = new File(rootDir)
     if (file.isDirectory && file.canRead && file.canWrite) {
-      logger.info("Plugin directory is {}", file.getPath)
+      logger.info("Plugin repo directory is {}", file.getPath)
       Some(file)
     }
     else {
-      logger.info("Plugin directory is not accessible: {}", rootDir)
+      logger.info("Plugin repo directory is not accessible: {}", rootDir)
+      None
+    }
+  }
+
+  private def findConfigDir(confDir: String): Option[File] = {
+    val file = new File(confDir)
+    if (file.isDirectory && file.canRead && file.canWrite) {
+      logger.info("Plugin config directory is {}", file.getPath)
+      Some(file)
+    }
+    else {
+      logger.info("Plugin config directory is not accessible: {}", confDir)
       None
     }
   }
@@ -265,30 +302,137 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
 
   ////////////////////////////////////////////////////////
   // create instance
-  def createInstaceFromClassOrPlugin[T <: Plugin](smqd: Smqd, dname: String, dconf: Config, classType: Class[T]): T ={
+  def createInstaceFromClassOrPlugin[T <: Plugin](smqd: Smqd, dname: String, dconf: Config, classType: Class[T]): (T, Option[PluginInstance[T]]) ={
     val category: String = classType match {
       case c if c.isAssignableFrom(classOf[Service]) => "Service"
       case c if c.isAssignableFrom(classOf[BridgeDriver]) => "BridgeDriver"
+      case c if c.isAssignableFrom(classOf[Plugin]) => "Plugin"
       case _ => "Unknown type"
     }
     logger.info(s"$category '$dname' loading...")
-    val instance = dconf.getOptionString("entry.class") match {
+    val instanceResult = dconf.getOptionString("entry.class") match {
       case Some(className) =>
         val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[T]]
         val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-        cons.newInstance(dname, smqd, dconf.getConfig("config"))
+        (cons.newInstance(dname, smqd, dconf.getConfig("config")), None)
       case None =>
         val plugin = dconf.getString("entry.plugin")
+        val autoStart = dconf.getOptionBoolean("entry.auto-start").getOrElse(true)
         val pdef = pluginDefinitions(plugin)
         if (pdef.isEmpty) {
           throw new IllegalStateException(s"Undefined plugin: $plugin")
         }
         else {
-          pdef.head.createInstance(dname, smqd, dconf.getOptionConfig("config"), classType)
+          val idef = pdef.head.createInstance(dname, smqd, dconf.getOptionConfig("config"), autoStart, classType)
+          (idef.instance, Some(idef))
         }
     }
     logger.info(s"$category '$dname' loaded")
-    instance
+    instanceResult
+  }
+
+  def loadInstanceFromConfigs(smqd: Smqd): Seq[Plugin] = {
+    if (libDirectory.isEmpty) {
+      logger.error("Root directory of plugin manager is not defined")
+      Nil
+    }
+    else {
+      val rootDir = libDirectory.get
+      val instanceConfs = findPluginInstanceFiles(rootDir).map(ConfigFactory.parseFile)
+
+      val instances = instanceConfs.map(loadInstance(smqd, _))
+      instances
+    }
+  }
+
+  def loadInstanceFromConfigFile(smqd: Smqd, confFile: File): Plugin = {
+    val conf = ConfigFactory.parseFile(confFile)
+    loadInstance(smqd, conf)
+  }
+
+  def loadInstance(smqd: Smqd, instanceConfig: Config): Plugin = {
+    val instanceName = instanceConfig.getString("instance")
+    val pluginName = instanceConfig.getString("entry.plugin")
+    val autoStart = instanceConfig.getBoolean("entry.auto-start")
+
+    logger.info(s"Loading plugin '$pluginName' instance '$instanceName' - auto-start: $autoStart")
+
+    createInstaceFromClassOrPlugin(smqd, instanceName, instanceConfig, classOf[Plugin]) match {
+      case (_, Some(idef)) if idef.autoStart =>
+        idef.instance.execStart()
+        idef.instance
+      case (_, Some(idef)) =>
+        idef.instance
+    }
+  }
+
+  def createInstanceConfig(smqd: Smqd, pluginName: String, instanceName: String, file: File, conf: Config): Plugin = {
+    val autoStart = conf.getBoolean("auto-start")
+    val subConfig = conf.getConfig("config")
+
+    val out = new OutputStreamWriter(new FileOutputStream(file))
+    val option = ConfigRenderOptions.defaults.setJson(true).setComments(false).setOriginComments(false)
+
+    out.write(s"instance: $instanceName\n\n")
+    out.write(s"entry.plugin: $pluginName\n")
+    out.write(s"entry.auto-start: $autoStart\n")
+    out.write(s"config: ${subConfig.root.render(option)}")
+    out.close()
+
+    loadInstanceFromConfigFile(smqd, file)
+  }
+
+  def updateInstanceConfig(smqd: Smqd, pluginName: String, instanceName: String, file: File, conf: Config): Boolean = {
+    pluginDefinition(pluginName) match {
+      case Some(pdef) =>
+        if (pdef.removeInstance(instanceName)) {
+          val autoStart = conf.getBoolean("auto-start")
+          val subConfig = conf.getConfig("config")
+
+          val out = new OutputStreamWriter(new FileOutputStream(file))
+          val option = ConfigRenderOptions.defaults.setJson(true).setComments(false).setOriginComments(false)
+
+          out.write(s"instance: $instanceName\n\n")
+          out.write(s"entry.plugin: $pluginName\n")
+          out.write(s"entry.auto-start: $autoStart\n")
+          out.write(s"config: ${subConfig.root.render(option)}")
+          out.close()
+
+          loadInstanceFromConfigFile(smqd, file)
+          true
+        }
+        else {
+          false
+        }
+      case None =>
+        false
+    }
+  }
+
+  def deleteInstanceConfig(smqd: Smqd, pluginName: String, instanceName: String, file: File): Boolean = {
+    pluginDefinition(pluginName) match {
+      case Some(pdef) =>
+        if (pdef.removeInstance(instanceName)) {
+          file.delete()
+        }
+        else {
+          false
+        }
+      case None =>
+        false
+    }
+  }
+
+  private def findPluginInstanceFiles(rootDir: File): Seq[File] = {
+    if (configDirectory.isEmpty)
+      return Nil
+    val confDir = configDirectory.get
+    if (confDir.exists() && confDir.isDirectory && confDir.canRead) confDir.listFiles(new FileFilter {
+      override def accept(file: File): Boolean = file.isFile && file.getName.endsWith(".conf")
+    })
+    else {
+      Nil
+    }
   }
 
   ////////////////////////////////////////////////////////
@@ -307,7 +451,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
     if (!rdef.installable) {
       Future{ NotInstallable(s"Package '${rdef.name}' is not installable") }
     }
-    else if (rootDirectory.isEmpty) {
+    else if (libDirectory.isEmpty) {
       Future{ InvalidStateToInstall(s"Plugin manager's root directory is not defined")}
     }
     else if (rdef.isRemoteFile) {
@@ -317,7 +461,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
       }
     }
     else if (rdef.isIvyModule) {
-      install_maven(rdef.name, rdef.module.get, rootDirectory.get) match {
+      install_maven(rdef.name, rdef.module.get, libDirectory.get) match {
         case Some(meta) =>
           postInstallPluginPackageMeta(meta) map {
             case Some(pkgDef) =>

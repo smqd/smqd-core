@@ -30,20 +30,30 @@ class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageNa
 
   def instances: Seq[PluginInstance[Plugin]] = instances0
 
-  def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config]): Service =
-    createInstance(instanceName, smqd, config, classOf[Service])
+  def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config], autoStart: Boolean): PluginInstance[Service] =
+    createInstance(instanceName, smqd, config, autoStart, classOf[Service])
 
-  def createBridgeDriverInstance(instanceName: String, smqd: Smqd, config: Option[Config]): BridgeDriver =
-    createInstance(instanceName, smqd, config, classOf[BridgeDriver])
+  def createBridgeDriverInstance(instanceName: String, smqd: Smqd, config: Option[Config], autoStart: Boolean): PluginInstance[BridgeDriver] =
+    createInstance(instanceName, smqd, config, autoStart, classOf[BridgeDriver])
 
-  def createInstance[T <: Plugin](instanceName: String, smqd: Smqd, config: Option[Config], pluginType: Class[T]): T = {
+  def createInstance[T <: Plugin](instanceName: String, smqd: Smqd, config: Option[Config], autoStart: Boolean, pluginType: Class[T]): PluginInstance[T] = {
     val clazz = this.clazz.asInstanceOf[Class[T]]
     val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
     val mergedConf = if (config.isDefined) config.get.withFallback(defaultConfig) else defaultConfig
     val instance = cons.newInstance(instanceName, smqd, mergedConf)
-    val pluginInstance = PluginInstance(instance, this)
+    val pluginInstance = PluginInstance(instance, this, autoStart)
     this.instances0 = instances0 :+ pluginInstance
-    instance
+    pluginInstance
+  }
+
+  def removeInstance(instanceName: String): Boolean = {
+    this.instances0.find(_.name == instanceName) match {
+      case Some(instDef) =>
+        this.instances0 = instances0.filter(_ != instDef)
+        true
+      case None =>
+        false
+    }
   }
 
   override def equals(other: Any): Boolean = {

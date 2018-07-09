@@ -20,10 +20,10 @@ import scala.concurrent.{ExecutionContext, Future}
   * 2018. 7. 9. - Created by Kwon, Yeong Eon
   */
 object PluginInstance {
-  def apply[T <: Plugin](instance: T, pluginDef: PluginDefinition) = new PluginInstance(instance, pluginDef)
+  def apply[T <: Plugin](instance: T, pluginDef: PluginDefinition, autoStart: Boolean) = new PluginInstance(instance, pluginDef, autoStart)
 }
 
-class PluginInstance[+T <: Plugin](val instance: T, val pluginDef: PluginDefinition) {
+class PluginInstance[+T <: Plugin](val instance: T, val pluginDef: PluginDefinition, val autoStart: Boolean) {
   val name: String = instance.name
 
   /** UNKNOWN, STOPPED, STOPPING, STARTING, RUNNING */

@@ -14,6 +14,8 @@
 
 package com.thing2x.smqd.rest.api
 
+import java.io.File
+
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
@@ -77,10 +79,17 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
       } ~
       path("plugins" / Segment / "instances" / Segment) { (pluginName, instanceName) =>
         post {
-          createPluginInstance(pluginName, instanceName)
+          entity(as[com.typesafe.config.Config]) { conf =>
+            createPluginInstance(pluginName, instanceName, conf)
+          }
         } ~
         patch {
-          updatePluginInstance(pluginName, instanceName)
+          entity(as[com.typesafe.config.Config]) { conf =>
+            updatePluginInstance(pluginName, instanceName, conf)
+          }
+        } ~
+        delete {
+          deletePluginInstance(pluginName, instanceName)
         }
       }
     }
@@ -146,7 +155,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
             } yield result
             complete(StatusCodes.OK, jval)
           case command =>
-            val params: Map[String, Any] =  if (pm.rootDirectory.isDefined) Map("plugin.dir" -> pm.rootDirectory.get) else Map.empty
+            val params: Map[String, Any] =  if (pm.libDirectory.isDefined) Map("plugin.dir" -> pm.libDirectory.get) else Map.empty
             val result = rdef.exec(command, params) map {
               case ExecSuccess(_) => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
               case rt => execResult(rt)
@@ -242,11 +251,18 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
     val pm = smqd.pluginManager
     pm.instance(pluginName, instanceName) match {
       case Some(inst) =>
+        val autoStart = inst.autoStart
         inst.instance match {
           case ap: AbstractPlugin =>
-            complete(StatusCodes.OK, restSuccess(0, ap.config.toJson))
+            complete(StatusCodes.OK, restSuccess(0, JsObject(
+              "auto-start" -> JsBoolean(autoStart),
+              "config" -> ap.config.toJson
+            )))
           case _ =>
-            complete(StatusCodes.OK, restSuccess(0, JsObject()))
+            complete(StatusCodes.OK, restSuccess(0, JsObject(
+              "auto-start" -> JsBoolean(autoStart),
+              "config" -> JsObject()
+            )))
             //complete(StatusCodes.NotAcceptable, s"Plugin instance is not a configurable")
         }
 
@@ -255,11 +271,76 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
     }
   }
 
-  private def updatePluginInstance(pluginName: String, instanceName: String): Route = {
-    complete(StatusCodes.NotImplemented, restError(501, s"not implemented: $pluginName, $instanceName"))
-  }
-  private def createPluginInstance(pluginName: String, instanceName: String): Route = {
-    complete(StatusCodes.NotImplemented, restError(501, s"not implemented: $pluginName, $instanceName"))
+  private def createPluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
+    smqd.pluginManager.configDirectory match {
+      case Some(confDir) =>
+        val file = new File(confDir, s"$pluginName-$instanceName.conf")
+        if (file.exists()) {
+          complete(StatusCodes.PreconditionFailed, restError(412, "same plugin and instance name already exists"))
+        }
+        else if (!file.getParentFile.canRead || !file.getParentFile.canWrite) {
+          complete(StatusCodes.PreconditionFailed, restError(412, s"access denied. can't write the instance '$pluginName-$instanceName'"))
+        }
+        else {
+          smqd.pluginManager.createInstanceConfig(smqd, pluginName, instanceName, file, conf)
+          getPluginInstanceConfig(pluginName, instanceName)
+        }
+
+      case None =>
+        complete(StatusCodes.InternalServerError, restError(500, s"plugin configuration directory is not set"))
+    }
   }
 
+  private def updatePluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
+    val pm = smqd.pluginManager
+    pm.configDirectory match {
+      case Some(confDir) =>
+        val file = new File(confDir, s"$pluginName-$instanceName.conf")
+
+        (file.exists, pm.instance(pluginName, instanceName)) match {
+          case (true, Some(instDef)) =>
+            instDef.instance.status match {
+              case InstanceStatus.RUNNING | InstanceStatus.STARTING | InstanceStatus.STOPPING =>
+                complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
+              case InstanceStatus.STOPPED | InstanceStatus.UNKNOWN =>
+                if (pm.updateInstanceConfig(smqd, pluginName, instanceName, file, conf)) {
+                  getPluginInstanceConfig(pluginName, instanceName)
+                }
+                else {
+                  complete(StatusCodes.InternalServerError, restError(500, s"Fail to delete instance '$pluginName' '$instanceName'"))
+                }
+            }
+          case _ =>
+            complete(StatusCodes.NotFound, restError(404, s"Not found instance or configuration '$pluginName' '$instanceName'"))
+        }
+
+      case None =>
+        complete(StatusCodes.NotFound, restError(404, s"Not found instance configuration '$pluginName' '$instanceName'"))
+    }
+  }
+
+  private def deletePluginInstance(pluginName: String, instanceName: String): Route = {
+    val pm = smqd.pluginManager
+    pm.configDirectory match {
+      case Some(confDir) =>
+        val file = new File(confDir, s"$pluginName-$instanceName.conf")
+
+        (file.exists, pm.instance(pluginName, instanceName)) match {
+          case (true, Some(instDef)) =>
+            instDef.instance.status match {
+              case InstanceStatus.RUNNING | InstanceStatus.STARTING | InstanceStatus.STOPPING =>
+                complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
+              case InstanceStatus.STOPPED | InstanceStatus.UNKNOWN =>
+                if (pm.deleteInstanceConfig(smqd, pluginName, instanceName, file))
+                  complete(StatusCodes.OK, restSuccess(0, JsObject("success" -> JsString("plugin instance deleted"))))
+                else
+                  complete(StatusCodes.InternalServerError, restError(500, s"Fail to delete instance '$pluginName' '$instanceName'"))
+            }
+          case _ =>
+            complete(StatusCodes.NotFound, restError(404, s"Not found instance or configuration '$pluginName' '$instanceName'"))
+        }
+      case None =>
+        complete(StatusCodes.NotFound, restError(404, s"Not found instance configuration '$pluginName' '$instanceName'"))
+    }
+  }
 }

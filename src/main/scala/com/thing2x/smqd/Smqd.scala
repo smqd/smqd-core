@@ -14,6 +14,8 @@
 
 package com.thing2x.smqd
 
+import java.io.File
+
 import akka.actor.{ActorRef, ActorSystem, Address, Props}
 import akka.cluster.Cluster
 import akka.dispatch.MessageDispatcher
@@ -60,6 +62,8 @@ class Smqd(val config: Config,
 
   import Implicit._
 
+  logger.trace("Origin of configuration: {}", config.origin.description())
+
   val version: String = config.getString("smqd.version")
   val commitVersion: String = config.getString("smqd.commit-version")
   val nodeName: String = config.getString("smqd.node_name")
@@ -105,6 +109,8 @@ class Smqd(val config: Config,
 
     //// core facilities and actor system are ready.
     //// then loading plugins
+    ////
+    //// display list of repositories for information
     pluginManager.repositoryDefinitions.foreach { repo =>
       repo.packageDefinition match {
         case Some(pkg) =>
@@ -117,13 +123,20 @@ class Smqd(val config: Config,
       }
     }
 
-    //// start services
     try {
-      serviceDefs.map { case (cname, sconf) =>
-        val svc = pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service])
-        svc.execStart()
-        svc
-      }.toSeq
+      //// start services
+      serviceDefs.foreach { case (cname, sconf) =>
+        pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service]) match {
+          case (inst, None) =>
+            inst.execStart()
+          case (_, Some(idef)) =>
+            if (idef.autoStart)
+              idef.instance.execStart()
+        }
+      }
+
+      //// load plugin instances
+      pluginManager.loadInstanceFromConfigs(this)
     }
     catch {
       case ex: Throwable =>
@@ -134,9 +147,15 @@ class Smqd(val config: Config,
     //// bridge drivers
     try {
       bridgeDrivers = bridgeDriverDefs.map { case (dname, dconf) =>
-        val driver = pluginManager.createInstaceFromClassOrPlugin(this, dname, dconf, classOf[BridgeDriver])
-        driver.execStart()
-        dname -> driver
+        pluginManager.createInstaceFromClassOrPlugin(this, dname, dconf, classOf[BridgeDriver]) match {
+          case (inst, None) =>
+            inst.execStart()
+            dname -> inst
+          case (_, Some(idef)) =>
+            if (idef.autoStart)
+              idef.instance.execStart()
+            dname -> idef.instance
+        }
       }
 
       bridgeDefs.foreach { bconf =>

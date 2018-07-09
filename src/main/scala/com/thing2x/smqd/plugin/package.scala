@@ -14,7 +14,9 @@
 
 package com.thing2x.smqd
 
-import com.typesafe.config.ConfigRenderOptions
+import java.text.ParseException
+
+import com.typesafe.config._
 import spray.json.{DefaultJsonProtocol, JsArray, JsBoolean, JsObject, JsString, JsValue, JsonParser, RootJsonFormat}
 
 import scala.collection.JavaConverters._
@@ -37,6 +39,7 @@ package object plugin extends DefaultJsonProtocol {
       JsObject(
         "name" -> JsString(obj.name),
         "status" -> JsString(obj.status),
+        "auto-start" -> JsBoolean(obj.autoStart),
         "plugin" -> JsString(obj.pluginDef.name),
         "package" -> JsString(obj.pluginDef.packageName)
       )
@@ -56,13 +59,6 @@ package object plugin extends DefaultJsonProtocol {
       } else {
         "SINGLE"
       }
-
-      val entries = obj.defaultConfig.entrySet().asScala.map { entry =>
-        val key = entry.getKey
-        val value: com.typesafe.config.ConfigValue = entry.getValue
-        val opt = value.render(ConfigRenderOptions.concise())
-        key ->JsonParser(opt)
-      }.toMap
 
       val instances = obj.instances.map(inst => PluginInstanceFormat.write(inst)).toVector
 
