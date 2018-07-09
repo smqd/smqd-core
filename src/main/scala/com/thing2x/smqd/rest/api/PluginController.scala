@@ -221,7 +221,8 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
     pm.pluginDefinition(pluginName) match {
       case Some(pdef) =>
         val result = JsObject(
-          "default-config" -> pdef.defaultConfig.toJson
+          "default-config" -> pdef.defaultConfig.toJson,
+          "config-schema" -> pdef.configSchema.toJson
         )
         complete(StatusCodes.OK, restSuccess(0, result))
       case None =>

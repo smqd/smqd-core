@@ -23,7 +23,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * 2018. 7. 5. - Created by Kwon, Yeong Eon
   */
 
-class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageName: String, val version: String, val defaultConfig: Config, val multiInstantiable: Boolean)
+class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageName: String, val version: String, val defaultConfig: Config, val configSchema: Config, val multiInstantiable: Boolean)
   extends Ordered[PluginDefinition]{
 
   private var instances0: Seq[PluginInstance[Plugin]] = Nil

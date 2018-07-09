@@ -243,11 +243,12 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
           val multiInst = c.getOptionBoolean("multi-instantiable").getOrElse(false)
           val version = c.getOptionString("version").getOrElse(defaultVersion)
           val conf = c.getOptionConfig("default-config").getOrElse(emptyConfig)
+          val confSchema = c.getOptionConfig("config-schema").getOrElse(emptyConfig)
           val clazz = classLoader.loadClass(className).asInstanceOf[Class[Plugin]]
 
           logger.trace(s"Plugin '$pluginName' in package '$packageName' from ${clazz.getProtectionDomain.getCodeSource.getLocation}")
 
-          new PluginDefinition(pluginName, clazz, packageName, version, conf, multiInst)
+          new PluginDefinition(pluginName, clazz, packageName, version, conf, confSchema, multiInst)
         }
 
         val pkg = new PluginPackageDefinition(packageName, packageVendor, packageDescription, plugins, repo)
