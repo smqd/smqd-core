@@ -17,8 +17,8 @@ package com.thing2x.smqd.rest.api
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
-import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.plugin.PluginManager.{InstallResult, InstallSuccess}
+import com.thing2x.smqd._
+import com.thing2x.smqd.plugin.PluginManager._
 import com.thing2x.smqd.plugin._
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
@@ -58,6 +58,9 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
         parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
           path("plugins" / Segment / "config") { pluginName =>
             getPluginConfig(pluginName)
+          } ~
+          path("plugins" / Segment / "instances" / Segment / "config") { (pluginName, instanceName) =>
+            getPluginInstanceConfig(pluginName, instanceName)
           } ~
           path("plugins" / Segment / "instances" / Segment.?) { (pluginName, instanceName) =>
             getPluginInstances(pluginName, instanceName, searchName, currPage, pageSize)
@@ -99,16 +102,6 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
             val result = SortedSet[PluginRepositoryDefinition]() ++ pm.repositoryDefinitions
             complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
         }
-    }
-  }
-
-  private def getPluginConfig(pluginName: String): Route = {
-    val pm = smqd.pluginManager
-    pm.pluginDefinition(pluginName) match {
-      case Some(pdef) =>
-        complete(StatusCodes.OK, restError(500, s"Not implemented - plugin config for $pluginName"))
-      case None =>
-        complete(StatusCodes.NotFound, restError(404, s"Plugine not found $pluginName"))
     }
   }
 
@@ -222,4 +215,35 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
         }
     }
   }
+
+  private def getPluginConfig(pluginName: String): Route = {
+    val pm = smqd.pluginManager
+    pm.pluginDefinition(pluginName) match {
+      case Some(pdef) =>
+        val result = JsObject(
+          "default-config" -> pdef.defaultConfig.toJson
+        )
+        complete(StatusCodes.OK, restSuccess(0, result))
+      case None =>
+        complete(StatusCodes.NotFound, restError(404, s"Plugine not found $pluginName"))
+    }
+  }
+
+  private def getPluginInstanceConfig(pluginName:String, instanceName: String): Route = {
+    val pm = smqd.pluginManager
+    pm.instance(pluginName, instanceName) match {
+      case Some(inst) =>
+        inst.instance match {
+          case ap: AbstractPlugin =>
+            complete(StatusCodes.OK, restSuccess(0, ap.config.toJson))
+          case _ =>
+            complete(StatusCodes.OK, restSuccess(0, JsObject()))
+            //complete(StatusCodes.NotAcceptable, s"Plugin instance is not a configurable")
+        }
+
+      case None =>
+        complete(StatusCodes.NotFound, s"Plugin instance not found plugin: $pluginName, instance: $instanceName")
+    }
+  }
+
 }

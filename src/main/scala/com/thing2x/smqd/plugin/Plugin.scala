@@ -28,7 +28,7 @@ trait Plugin extends LifeCycle {
   def execStop(): Unit
 }
 
-abstract class PluginLifeCycle extends Plugin {
+abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Config) extends Plugin {
   private var _status = InstanceStatus.STOPPED
 
   def status: InstanceStatus = _status

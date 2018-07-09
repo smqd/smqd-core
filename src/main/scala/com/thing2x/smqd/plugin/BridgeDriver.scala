@@ -26,7 +26,7 @@ import scala.collection.{SortedSet, mutable}
   * 2018. 7. 7. - Created by Kwon, Yeong Eon
   */
 
-abstract class BridgeDriver(val name: String, val smqd: Smqd, val config: Config) extends PluginLifeCycle with StrictLogging {
+abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends AbstractPlugin(name, smqd, config) with StrictLogging {
   private val indexes: AtomicLong = new AtomicLong()
 
   protected val bridgeSet: mutable.SortedSet[Bridge] = mutable.SortedSet.empty

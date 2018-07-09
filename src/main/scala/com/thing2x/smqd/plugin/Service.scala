@@ -21,5 +21,5 @@ import com.typesafe.config.Config
   * 2018. 7. 7. - Created by Kwon, Yeong Eon
   */
 
-abstract class Service(val name: String, smqd: Smqd, config: Config) extends PluginLifeCycle
+abstract class Service(name: String, smqd: Smqd, config: Config) extends AbstractPlugin(name, smqd, config)
 

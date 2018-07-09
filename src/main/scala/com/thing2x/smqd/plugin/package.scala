@@ -74,7 +74,6 @@ package object plugin extends DefaultJsonProtocol {
         "version" -> JsString(obj.version),
         "type" -> JsString(ptype),
         "instantiability" -> JsString(multi),
-        "default-config" -> JsObject(entries),
         "instances" -> JsArray(instances)
       )
     }

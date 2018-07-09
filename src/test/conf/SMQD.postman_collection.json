@@ -14,7 +14,7 @@
 					"description": "",
 					"item": [
 						{
-							"name": "GET version",
+							"name": "version",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -35,7 +35,7 @@
 							"response": []
 						},
 						{
-							"name": "GET version simple",
+							"name": "version simple",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -62,7 +62,7 @@
 							"response": []
 						},
 						{
-							"name": "GET version commit",
+							"name": "version commit",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -96,7 +96,7 @@
 					"description": "",
 					"item": [
 						{
-							"name": "GET nodes",
+							"name": "nodes",
 							"event": [
 								{
 									"listen": "test",
@@ -137,7 +137,7 @@
 							"response": []
 						},
 						{
-							"name": "GET node",
+							"name": "node",
 							"event": [
 								{
 									"listen": "test",
@@ -189,7 +189,7 @@
 					"description": "",
 					"item": [
 						{
-							"name": "GET plugins",
+							"name": "plugins",
 							"event": [
 								{
 									"listen": "test",
@@ -230,7 +230,7 @@
 							"response": []
 						},
 						{
-							"name": "GET plugins fault-logger",
+							"name": "plugins fault-logger",
 							"event": [
 								{
 									"listen": "test",
@@ -272,7 +272,7 @@
 							"response": []
 						},
 						{
-							"name": "GET plugins query=logger",
+							"name": "plugins query=logger",
 							"event": [
 								{
 									"listen": "test",
@@ -298,7 +298,7 @@
 								"header": [],
 								"body": {},
 								"url": {
-									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins?query=logger",
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-protocol-logger",
 									"protocol": "http",
 									"host": [
 										"{{smqd_hostport}}"
@@ -306,20 +306,15 @@
 									"path": [
 										"{{smqd_api}}",
 										"management",
-										"plugins"
-									],
-									"query": [
-										{
-											"key": "query",
-											"value": "logger"
-										}
+										"plugins",
+										"thing2x-core-protocol-logger"
 									]
 								}
 							},
 							"response": []
 						},
 						{
-							"name": "GET plugins instances",
+							"name": "plugins instances",
 							"event": [
 								{
 									"listen": "test",
@@ -362,7 +357,7 @@
 							"response": []
 						},
 						{
-							"name": "GET plugins instance",
+							"name": "plugins instance",
 							"event": [
 								{
 									"listen": "test",
@@ -406,7 +401,7 @@
 							"response": []
 						},
 						{
-							"name": "GET plugins instance query=mqtt",
+							"name": "plugins instance query=mqtt",
 							"event": [
 								{
 									"listen": "test",
@@ -455,7 +450,7 @@
 							"response": []
 						},
 						{
-							"name": "GET plugin status protocol-logger",
+							"name": "plugin status protocol-logger",
 							"event": [
 								{
 									"listen": "test",
@@ -499,7 +494,7 @@
 							"response": []
 						},
 						{
-							"name": "PUT plugin stop protocol-logger",
+							"name": "plugin stop protocol-logger",
 							"event": [
 								{
 									"listen": "test",
@@ -544,7 +539,7 @@
 							"response": []
 						},
 						{
-							"name": "PUT plugin start protocol-logger",
+							"name": "plugin start protocol-logger",
 							"event": [
 								{
 									"listen": "test",
@@ -587,6 +582,92 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "plugin bridge-http",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/smqd-bridge-http/",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"smqd-bridge-http",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "plugin bridge-http config",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/smqd-bridge-http/config",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"smqd-bridge-http",
+										"config"
+									]
+								}
+							},
+							"response": []
 						}
 					],
 					"_postman_isSubFolder": true
@@ -596,7 +677,7 @@
 					"description": "",
 					"item": [
 						{
-							"name": "GET packages",
+							"name": "packages",
 							"event": [
 								{
 									"listen": "test",
@@ -637,7 +718,7 @@
 							"response": []
 						},
 						{
-							"name": "GET packages smqd-core",
+							"name": "package smqd-core",
 							"event": [
 								{
 									"listen": "test",
@@ -679,7 +760,7 @@
 							"response": []
 						},
 						{
-							"name": "GET packages query=core",
+							"name": "packages query=core",
 							"event": [
 								{
 									"listen": "test",
@@ -726,7 +807,7 @@
 							"response": []
 						},
 						{
-							"name": "PUT package install",
+							"name": "package install",
 							"event": [
 								{
 									"listen": "test",
@@ -752,7 +833,7 @@
 								"header": [],
 								"body": {},
 								"url": {
-									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-bridge-mqtt/install",
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-bridge-http/install",
 									"protocol": "http",
 									"host": [
 										"{{smqd_hostport}}"
@@ -761,8 +842,50 @@
 										"{{smqd_api}}",
 										"management",
 										"packages",
-										"smqd-bridge-mqtt",
+										"smqd-bridge-http",
 										"install"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "package smqd-bridge-http",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-bridge-http",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages",
+										"smqd-bridge-http"
 									]
 								}
 							},
@@ -778,7 +901,7 @@
 			"description": "",
 			"item": [
 				{
-					"name": "GET routes",
+					"name": "routes",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -808,7 +931,7 @@
 					"response": []
 				},
 				{
-					"name": "GET route  $SYS/faults",
+					"name": "route  $SYS/faults",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -836,7 +959,7 @@
 			"description": "",
 			"item": [
 				{
-					"name": "GET clients",
+					"name": "clients",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -855,7 +978,7 @@
 					},
 					"response": [
 						{
-							"id": "8c69a521-f1e1-4b8d-a96b-87a0b2b91cef",
+							"id": "2854a778-151c-4f8a-92cb-cb04aa63a974",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -906,7 +1029,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "b934a925-5081-42da-9e7e-38fb207abdf8",
+							"id": "4ebd2653-6026-42a8-b2ca-1be73bbb9620",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -959,7 +1082,7 @@
 					]
 				},
 				{
-					"name": "GET clients paging",
+					"name": "clients paging",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -988,7 +1111,7 @@
 					},
 					"response": [
 						{
-							"id": "fc257665-35c0-49af-a967-8d7766fbdc46",
+							"id": "246327a3-15cf-4b45-81b5-045fd1548459",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1041,13 +1164,13 @@
 					]
 				},
 				{
-					"name": "GET clients client",
+					"name": "client ClientId",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"body": {},
 						"url": {
-							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients/client",
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients/ClientA",
 							"protocol": "http",
 							"host": [
 								"{{smqd_hostport}}"
@@ -1055,13 +1178,91 @@
 							"path": [
 								"{{smqd_api}}",
 								"clients",
-								"client"
+								"ClientA"
 							]
 						}
 					},
 					"response": [
 						{
-							"id": "2497eb3d-2c88-4388-a6ef-5b4ac950319b",
+							"id": "6f8658a8-4395-4cc3-b7a0-e741d045fd78",
+							"name": "GET clients",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"clients"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "415",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 06 Jul 2018 09:01:22 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Server",
+									"value": "akka-http/10.1.3",
+									"name": "Server",
+									"description": "A name for the server"
+								}
+							],
+							"cookie": [],
+							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
+						}
+					]
+				},
+				{
+					"name": "client query=lient",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients?query=lient",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"clients"
+							],
+							"query": [
+								{
+									"key": "query",
+									"value": "lient"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "1e321a29-d093-4a46-8ae2-528bb4c6ba6b",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1120,7 +1321,7 @@
 			"description": "",
 			"item": [
 				{
-					"name": "GET metrics",
+					"name": "metrics",
 					"request": {
 						"method": "GET",
 						"header": [],
