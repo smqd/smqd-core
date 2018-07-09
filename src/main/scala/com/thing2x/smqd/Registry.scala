@@ -15,6 +15,7 @@
 package com.thing2x.smqd
 
 import akka.actor.ActorRef
+import com.thing2x.smqd._
 import com.thing2x.smqd.QoS._
 import com.thing2x.smqd.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
 import com.thing2x.smqd.util.ActorIdentifying

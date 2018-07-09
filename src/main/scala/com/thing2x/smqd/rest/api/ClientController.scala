@@ -21,6 +21,7 @@ import com.thing2x.smqd._
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
+import spray.json._
 
 import scala.collection.immutable.SortedSet
 
@@ -33,32 +34,35 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
 
   private def clients: Route = {
     ignoreTrailingSlash {
-      parameters('curr_page.as[Int].?, 'page_size.as[Int].?) { (currPage, pageSize) =>
-        path(Segment) { clientId =>
-          get { getClients(Some(clientId), currPage, pageSize) }
-        } ~
-        pathEnd {
-          get { getClients(None, currPage, pageSize) }
+      get {
+        parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
+          path(Segment.?) { clientId =>
+            getClients(clientId, searchName, currPage, pageSize)
+          }
         }
       }
     }
   }
 
-  private def getClients(clientId: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
-    val result = {
-      val rt = smqd.snapshotRegistrations
+  private def getClients(clientId: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
+    val rt = smqd.snapshotRegistrations
 
-      val filtered = clientId match {
-        case Some(cid) =>
-          SortedSet[Registration]() ++
-            rt.filter(r => r.clientId.isDefined && r.clientId.get.id.contains(cid))
-        case None =>
-          SortedSet[Registration]() ++ rt
-      }
-
-      pagenate(filtered, currPage, pageSize)
+    clientId match {
+      case Some(cid) => // exact match
+        rt.find(r => r.clientId.isDefined && r.clientId.get.id == cid) match {
+          case Some(c) => // found a client
+            complete(StatusCodes.OK, restSuccess(0, c.toJson))
+          case None => // not found
+            complete(StatusCodes.NotFound, restError(404, s"Client not found: $cid"))
+        }
+      case None => // search
+        val result = searchName match {
+          case Some(search) => // query
+            SortedSet[Registration]() ++ rt.filter(r => r.clientId.isDefined && r.clientId.get.id.contains(search))
+          case None => // all
+            SortedSet[Registration]() ++ rt
+        }
+        complete(StatusCodes.OK, pagenate(result, currPage, pageSize))
     }
-
-    complete(StatusCodes.OK, restSuccess(0, result))
   }
 }

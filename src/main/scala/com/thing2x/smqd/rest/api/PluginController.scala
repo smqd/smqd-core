@@ -23,10 +23,9 @@ import com.thing2x.smqd.plugin._
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
-import spray.json.{JsString, JsValue}
+import spray.json._
 
 import scala.collection.immutable.SortedSet
-import scala.util.{Failure, Success}
 
 
 /**
