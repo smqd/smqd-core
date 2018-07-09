@@ -57,6 +57,9 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
     ignoreTrailingSlash {
       get {
         parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
+          path("plugins" / Segment / "config") { pluginName =>
+            getPluginConfig(pluginName)
+          } ~
           path("plugins" / Segment / "instances" / Segment.?) { (pluginName, instanceName) =>
             getPluginInstances(pluginName, instanceName, searchName, currPage, pageSize)
           } ~
@@ -97,6 +100,16 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
             val result = SortedSet[PluginRepositoryDefinition]() ++ pm.repositoryDefinitions
             complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
         }
+    }
+  }
+
+  private def getPluginConfig(pluginName: String): Route = {
+    val pm = smqd.pluginManager
+    pm.pluginDefinition(pluginName) match {
+      case Some(pdef) =>
+        complete(StatusCodes.OK, restError(500, s"Not implemented - plugin config for $pluginName"))
+      case None =>
+        complete(StatusCodes.NotFound, restError(404, s"Plugine not found $pluginName"))
     }
   }
 
