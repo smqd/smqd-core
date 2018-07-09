@@ -500,7 +500,10 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     val ivyConfig = InlineIvyConfiguration().withLog(ivyLogger).withResolutionCacheDir(fileCache).withResolvers(ivyResolvers)
     val lm = IvyDependencyResolution(ivyConfig)
 
-    val module = moduleDef.group % moduleDef.artifact % moduleDef.version
+    val module = moduleDef.group % moduleDef.artifact % moduleDef.version excludeAll(
+      ExclusionRule("com.thing2x", "smqd-core_2.12"),
+      ExclusionRule("org.scala-lang", "scala-library"),
+    ) force()
 
     lm.retrieve(module, scalaModuleInfo = None, fileRetrieve, ivyLogger) match {
       case Left(w: UnresolvedWarning) =>
@@ -509,7 +512,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
         None
       case Right(files: Vector[File]) =>
         val prefixLen = rootDir.getPath.length + 1
-        val str = files.map(_.getPath.substring(prefixLen)).mkString("resolved: [\n\"", "\",\n\"", "\"]\n")
+        val str = files.map(_.getPath.substring(prefixLen)).toSet.mkString("resolved: [\n\"", "\",\n\"", "\"]\n")
         val metaFile = new File(rootDir, packageName + ".plugin")
         val out = new OutputStreamWriter(new FileOutputStream(metaFile))
         out.write(s"package: $packageName\n")
