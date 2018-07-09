@@ -50,8 +50,16 @@ class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageNa
     if (!other.isInstanceOf[PluginDefinition]) return false
     val r = other.asInstanceOf[PluginDefinition]
 
-    this.name == r.name
+    this.packageName == r.packageName && this.name == r.name
   }
 
-  override def compare(that: PluginDefinition): Int = this.name.compare(that.name)
+  override def compare(that: PluginDefinition): Int = {
+    // make smqd-core package come first
+    val delta = this.packageName match {
+      case "smqd-core" if that.packageName == "smqd-core" => 0
+      case "smqd-core" => 1
+      case _ => this.packageName.compare(that.packageName)
+    }
+    if (delta == 0) this.name.compare(that.name) else delta
+  }
 }

@@ -52,8 +52,6 @@ class PluginRepositoryDefinition(val name: String,
     installedPkg = Option(pkgDef)
   }
 
-  override def compare(that: PluginRepositoryDefinition): Int = this.name.compare(that.name)
-
   def exec(cmd: String, params: Map[String, Any])(implicit ec: ExecutionContext): Future[ExecResult] = Future {
     try {
       cmd match {
@@ -65,4 +63,12 @@ class PluginRepositoryDefinition(val name: String,
       case ex: Throwable => ExecFailure(s"Fail to $cmd package '$name'", Some(ex))
     }
   }
+
+  override def compare(that: PluginRepositoryDefinition): Int = {
+    this.name match {
+      case "smqd-core" => 1
+      case _ => this.name.compare(that.name)
+    }
+  }
+
 }

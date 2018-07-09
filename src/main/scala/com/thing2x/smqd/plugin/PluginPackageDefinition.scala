@@ -29,5 +29,12 @@ class PluginPackageDefinition(val name: String, val vendor: String, val descript
     this.name == r.name
   }
 
-  override def compare(that: PluginPackageDefinition): Int = this.name.compare(that.name)
+  override def compare(that: PluginPackageDefinition): Int = {
+    // make smqd-core package come first
+    this.name match {
+      case "smqd-core" if that.name == "smqd-core" => 0
+      case "smqd-core" => 1
+      case _ => this.name.compare(that.name)
+    }
+  }
 }

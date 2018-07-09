@@ -107,7 +107,7 @@ object TName {
 }
 
 
-trait TPath {
+trait TPath extends Ordered[TPath]{
   def tokens: Seq[TName]
   override val toString: String = {
     tokens.map(_.name).mkString("/")
@@ -130,6 +130,10 @@ trait TPath {
         !tokens.zip(other.tokens).exists(t => t._1 != t._2)
       }
     }
+  }
+
+  override def compare(that: TPath): Int = {
+    this.toString.compare(that.toString)
   }
 }
 

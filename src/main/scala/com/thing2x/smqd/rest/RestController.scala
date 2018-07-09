@@ -16,8 +16,8 @@ package com.thing2x.smqd.rest
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Route
-import com.typesafe.config.Config
 import com.thing2x.smqd.Smqd
+import com.typesafe.config.Config
 import spray.json._
 
 /**
@@ -38,7 +38,10 @@ abstract class RestController(name: String, smqd: Smqd, config: Config) extends 
 
     val from = (currPage - 1) * pageSize
     val until = from + pageSize
-    val sliced = objects.slice(from, until)
+
+    val sliced = objects match {
+      case _ => objects.slice(from, until)
+    }
 
     JsObject(
       "current_page" -> JsNumber(currPage),

@@ -38,8 +38,6 @@ import scala.util.{Failure, Success}
   */
 class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging with CORSHandler {
 
-  private val smqdApi: Boolean = config.getOptionBoolean("-.smqd.api").getOrElse(false)
-  private val smqdPrefix: String = config.getOptionString("-.smqd.prefix").getOrElse("")
   val corsEnabled: Boolean = config.getOptionBoolean("cors.enabled").getOrElse(true)
   val localEnabled: Boolean = config.getOptionBoolean("local.enabled").getOrElse(true)
   val localAddress: String = config.getOptionString("local.address").getOrElse("127.0.0.1")
@@ -55,10 +53,6 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
   private var bindingFuture: Future[ServerBinding] = _
   private var finalRoutes: Route = _
-
-  private var localEndpoint: Option[String] = None
-  private var secureEndpoint: Option[String] = None
-  def endpoint: EndpointInfo = EndpointInfo(localEndpoint, secureEndpoint)
 
   override def start(): Unit = {
     logger.info(s"Http Service [$name] Starting...")
@@ -93,11 +87,6 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
     val handler = Route.asyncHandler(finalRoutes)
 
-    def trimSlash(p: String): String = rtrimSlash(ltrimSlash(p))
-
-    def ltrimSlash(p: String): String = if (p.startsWith("/")) p.substring(1) else p
-    def rtrimSlash(p: String): String = if (p.endsWith("/")) p.substring(0, p.length - 1) else p
-
     if (localEnabled) {
       val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(system), logAdapter)
       bindingFuture = serverSource.to(Sink.foreach{ connection =>
@@ -106,8 +95,6 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
       bindingFuture.onComplete {
         case Success(b) =>
-          localEndpoint = Some(s"http://$localAddress:$localPort/${trimSlash(smqdPrefix)}")
-          if (smqdApi) smqd.setApiEndpoint(EndpointInfo(localEndpoint, secureEndpoint))
           logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
         case Failure(e) =>
           logger.error(s"Http Service [$name] Failed", e)
@@ -127,8 +114,6 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
             bindingFuture.onComplete {
               case Success(b) =>
-                secureEndpoint = Some(s"https://$localSecureAddress:$localSecurePort/${trimSlash(smqdPrefix)}")
-                if (smqdApi) smqd.setApiEndpoint(EndpointInfo(localEndpoint, secureEndpoint))
                 logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
               case Failure(e) =>
                 logger.error(s"Http Service [$name] Failed", e)
