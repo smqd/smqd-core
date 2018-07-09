@@ -23,7 +23,7 @@ import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.{ConnectionContext, Http, server}
 import akka.stream.scaladsl.Sink
 import com.thing2x.smqd._
-import com.thing2x.smqd.plugin.{InstanceStatus, Service}
+import com.thing2x.smqd.plugin.Service
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
@@ -36,10 +36,11 @@ import scala.util.{Failure, Success}
 /**
   * 2018. 6. 19. - Created by Kwon, Yeong Eon
   */
-class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
+class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging with CORSHandler {
 
   private val smqdApi: Boolean = config.getOptionBoolean("-.smqd.api").getOrElse(false)
   private val smqdPrefix: String = config.getOptionString("-.smqd.prefix").getOrElse("")
+  val corsEnabled: Boolean = config.getOptionBoolean("cors.enabled").getOrElse(true)
   val localEnabled: Boolean = config.getOptionBoolean("local.enabled").getOrElse(true)
   val localAddress: String = config.getOptionString("local.address").getOrElse("127.0.0.1")
   val localPort: Int = config.getOptionInt("local.port").getOrElse(80)
@@ -78,7 +79,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
     // merge all routes into a single route value
     // then encapsulate with log directives
     finalRoutes = logRequestResult(LoggingMagnet(_ => logAdapter.accessLog(System.nanoTime))) {
-      if (routes.isEmpty) {
+      val rs = if (routes.isEmpty) {
         emptyRoute
       }
       else if (routes.size == 1)
@@ -86,6 +87,8 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
       else {
         routes.tail.foldLeft(routes.head)((prev, r) => prev ~ r)
       }
+
+      if (corsEnabled) corsHandler(rs) else rs
     }
 
     val handler = Route.asyncHandler(finalRoutes)
