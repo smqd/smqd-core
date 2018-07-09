@@ -16,7 +16,7 @@ package com.thing2x.smqd.net.http
 
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
-import akka.http.scaladsl.server.RouteResult.Complete
+import akka.http.scaladsl.server.RouteResult.{Complete, Rejected}
 import com.typesafe.scalalogging.Logger
 
 /**
@@ -63,6 +63,8 @@ class HttpServiceLogger(logger: Logger, name: String = "-") extends LoggingAdapt
     val result = rsp match {
       case Complete(rsp: HttpResponse) =>
         s";${rsp.status.intValue} ${rsp.status.reason}"
+      case Rejected(_) =>
+        s";400 Rejected"
       case m =>
         s"-${m.toString}"
     }
