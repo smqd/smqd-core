@@ -61,6 +61,14 @@ package object smqd extends DefaultJsonProtocol {
         None
       }
 
+    def getOptionStringList(path: String): Option[java.util.List[String]] =
+      if (base.hasPath(path)) {
+        Some(base.getStringList(path))
+      }
+      else {
+        None
+      }
+
     def getOptionConfig(path: String): Option[Config] =
       if (base.hasPath(path)) {
         Some(base.getConfig(path))

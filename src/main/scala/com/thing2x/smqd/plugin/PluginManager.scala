@@ -19,6 +19,7 @@ import java.net.{URI, URL, URLClassLoader}
 
 import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.PluginManager.InstallResult
+import com.thing2x.smqd.plugin.PluginRepositoryDefinition.IvyModule
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 import sbt.librarymanagement.UnresolvedWarning
@@ -83,7 +84,9 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
       val group = conf.getString("group")
       val artifact = conf.getString("artifact")
       val version = conf.getString("version")
-      PluginRepositoryDefinition(name, provider, group, artifact, version, installable = true, description)
+      val resolvers = conf.getOptionStringList("resolvers").getOrElse(new java.util.Vector[String]())
+      val module = IvyModule(group, artifact, version, resolvers.asScala.toVector)
+      PluginRepositoryDefinition(name, provider, module, installable = true, description)
     }
   }
 
@@ -313,7 +316,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
       }
     }
     else if (rdef.isIvyModule) {
-      install_ivy(rdef.name, rdef.module.get._1, rdef.module.get._2, rdef.module.get._3, rootDirectory.get) match {
+      install_maven(rdef.name, rdef.module.get, rootDirectory.get) match {
         case Some(meta) =>
           postInstallPluginPackageMeta(meta) map {
             case Some(pkgDef) =>
@@ -334,7 +337,7 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
 
   }
 
-  private def install_ivy(packageName: String, group: String, artifact: String, version: String, rootDir: File): Option[File] = {
+  private def install_maven(packageName: String, moduleDef: IvyModule, rootDir: File): Option[File] = {
     import sbt.librarymanagement.syntax._
     import sbt.librarymanagement.ivy._
 
@@ -342,10 +345,17 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
     val fileCache = new File(rootDir, "ivy/cache")
 
     val ivyLogger = sbt.util.LogExchange.logger("com.thing2x.smqd.plugin")
-    val ivyConfig = InlineIvyConfiguration().withLog(ivyLogger).withResolutionCacheDir(fileCache)
+    val ivyResolvers = moduleDef.resolvers.map {
+      case "sonatype" =>
+        sbt.librarymanagement.MavenRepository("sonatype", "https://oss.sonatype.org/content/groups/public", localIfFile = true)
+      case url =>
+        sbt.librarymanagement.MavenRepository("maven", url, localIfFile = true)
+    }
+
+    val ivyConfig = InlineIvyConfiguration().withLog(ivyLogger).withResolutionCacheDir(fileCache).withResolvers(ivyResolvers)
     val lm = IvyDependencyResolution(ivyConfig)
 
-    val module = group % artifact % version
+    val module = moduleDef.group % moduleDef.artifact % moduleDef.version
 
     lm.retrieve(module, scalaModuleInfo = None, fileRetrieve, ivyLogger) match {
       case Left(w: UnresolvedWarning) =>
@@ -358,9 +368,9 @@ class PluginManager(pluginDirPath: String, pluginManifestUri: Option[String], co
         val metaFile = new File(rootDir, packageName + ".plugin")
         val out = new OutputStreamWriter(new FileOutputStream(metaFile))
         out.write(s"package: $packageName\n")
-        out.write(s"group: $group\n")
-        out.write(s"artifact: $artifact\n")
-        out.write(s"version: $version\n")
+        out.write(s"group: ${moduleDef.group}\n")
+        out.write(s"artifact: ${moduleDef.artifact}\n")
+        out.write(s"version: ${moduleDef.version}\n")
         out.write(s"download-time: ${System.currentTimeMillis().toString}\n")
         out.write(str)
         out.close()

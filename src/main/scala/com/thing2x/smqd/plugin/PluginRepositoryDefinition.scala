@@ -2,6 +2,7 @@ package com.thing2x.smqd.plugin
 
 import java.net.URI
 
+import com.thing2x.smqd.plugin.PluginRepositoryDefinition.IvyModule
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -12,11 +13,18 @@ import scala.concurrent.{ExecutionContext, Future}
 object PluginRepositoryDefinition {
   def apply(name: String, provider: String, location: URI, installable: Boolean, description: String) =
     new PluginRepositoryDefinition(name, provider, Some(location), None, installable, description: String)
-  def apply(name: String, provider: String, group: String, artifact: String, version: String, installable: Boolean, description: String) =
-    new PluginRepositoryDefinition(name, provider, None, Some((group, artifact, version)), installable, description)
+  def apply(name: String, provider: String, module: IvyModule, installable: Boolean, description: String) =
+    new PluginRepositoryDefinition(name, provider, None, Some(module), installable, description)
+
+  case class IvyModule(group: String, artifact: String, version: String, resolvers: Vector[String])
 }
 
-class PluginRepositoryDefinition(val name: String, val provider: String, val location: Option[URI], val module: Option[(String, String, String)], val installable: Boolean, val description: String)
+class PluginRepositoryDefinition(val name: String,
+                                 val provider: String,
+                                 val location: Option[URI],
+                                 val module: Option[IvyModule],
+                                 val installable: Boolean,
+                                 val description: String)
   extends Ordered[PluginRepositoryDefinition] with StrictLogging {
 
   private var installedPkg: Option[PluginPackageDefinition] = None

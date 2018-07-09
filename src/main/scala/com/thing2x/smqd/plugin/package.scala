@@ -100,9 +100,10 @@ package object plugin extends DefaultJsonProtocol {
           "installable" -> JsBoolean(obj.installable),
           "installed" -> JsBoolean(obj.installed),
           "description" -> JsString(obj.description),
-          "group" -> JsString(obj.module.get._1),
-          "artifact" -> JsString(obj.module.get._2),
-          "version" -> JsString(obj.module.get._3)
+          "group" -> JsString(obj.module.get.group),
+          "artifact" -> JsString(obj.module.get.artifact),
+          "version" -> JsString(obj.module.get.version),
+          "reolvers" -> JsArray(obj.module.get.resolvers.toVector.map(JsString(_)))
         )
       }
     }
