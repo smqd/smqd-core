@@ -23,21 +23,6 @@ import scala.concurrent.{ExecutionContext, Future}
   * 2018. 7. 5. - Created by Kwon, Yeong Eon
   */
 
-class PluginPackageDefinition(val name: String, val vendor: String, val description: String,
-                              val plugins: Seq[PluginDefinition],
-                              val repository: PluginRepositoryDefinition)
-  extends Ordered[PluginPackageDefinition] {
-
-  override def equals(other: Any): Boolean = {
-    if (!other.isInstanceOf[PluginPackageDefinition]) return false
-    val r = other.asInstanceOf[PluginPackageDefinition]
-
-    this.name == r.name
-  }
-
-  override def compare(that: PluginPackageDefinition): Int = this.name.compare(that.name)
-}
-
 class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageName: String, val version: String, val defaultConfig: Config, val multiInstantiable: Boolean)
   extends Ordered[PluginDefinition]{
 
@@ -70,46 +55,3 @@ class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageNa
 
   override def compare(that: PluginDefinition): Int = this.name.compare(that.name)
 }
-
-object PluginInstance {
-  def apply[T <: Plugin](instance: T, pluginDef: PluginDefinition) = new PluginInstance(instance, pluginDef)
-}
-
-class PluginInstance[+T <: Plugin](val instance: T, val pluginDef: PluginDefinition) {
-  val name: String = instance.name
-
-  /** UNKNOWN, STOPPED, STOPPING, STARTING, RUNNING */
-  def status: String = instance.status.toString
-
-  /** packageName / pluginName / instanceName */
-  val path: String = s"${pluginDef.packageName}/${pluginDef.name}/$name"
-
-  def exec(cmd: String)(implicit ec: ExecutionContext): Future[ExecResult] = Future {
-    try {
-      cmd match {
-        case "start" =>
-          instance.status match {
-            case InstanceStatus.UNKNOWN | InstanceStatus.STOPPED =>
-              instance.execStart()
-              ExecSuccess(s"Instance '$name' is ${instance.status}")
-            case status =>
-              ExecInvalidStatus(s"Instance '$name' is $status")
-          }
-        case "stop" =>
-          instance.status match {
-            case InstanceStatus.UNKNOWN | InstanceStatus.RUNNING =>
-              instance.execStop()
-              ExecSuccess(s"Instance '$name' is ${instance.status}")
-            case status =>
-              ExecInvalidStatus(s"Instance '$name' is $status")
-          }
-        case _ =>
-          ExecUnknownCommand(cmd)
-      }
-    }
-    catch {
-      case ex: Throwable => ExecFailure(s"Fail to $cmd instance '$name", Some(ex))
-    }
-  }
-}
-
