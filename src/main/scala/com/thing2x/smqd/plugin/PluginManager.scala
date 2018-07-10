@@ -19,7 +19,7 @@ import java.net.{URI, URL, URLClassLoader}
 
 import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.PluginManager.InstallResult
-import com.thing2x.smqd.plugin.PluginRepositoryDefinition.IvyModule
+import com.thing2x.smqd.plugin.RepositoryDefinition.IvyModule
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
 import com.typesafe.scalalogging.StrictLogging
 import sbt.librarymanagement.UnresolvedWarning
@@ -82,27 +82,27 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   // repository definitions
   private val repositoryDefs =
   // repo def for core plugins (internal)
-  PluginRepositoryDefinition(CORE_PKG, "thing2x.com", new URI("https://github.com/smqd"), installable = false, "smqd core plugins") +:
+  RepositoryDefinition(CORE_PKG, "thing2x.com", new URI("https://github.com/smqd"), installable = false, "smqd core plugins") +:
     // repo def for manually installed
-    PluginRepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false, "manually installed plugins") +:
+    RepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false, "manually installed plugins") +:
     findRepositoryDefinitions(findManifest(pluginManifestUri))
 
-  def repositoryDefinitions: Seq[PluginRepositoryDefinition] = repositoryDefs
-  def repositoryDefinition(name: String): Option[PluginRepositoryDefinition] = repositoryDefs.find(p => p.name == name)
+  def repositoryDefinitions: Seq[RepositoryDefinition] = repositoryDefs
+  def repositoryDefinition(name: String): Option[RepositoryDefinition] = repositoryDefs.find(p => p.name == name)
 
-  private def findRepositoryDefinitions(conf: Config): Seq[PluginRepositoryDefinition] = {
+  private def findRepositoryDefinitions(conf: Config): Seq[RepositoryDefinition] = {
     val cfs = conf.getConfigList("smqd-plugin.repositories").asScala
     cfs.map(repositoryDefinition)
   }
 
-  private def repositoryDefinition(conf: Config): PluginRepositoryDefinition = {
+  private def repositoryDefinition(conf: Config): RepositoryDefinition = {
     val name = conf.getString("package-name")
     val provider = conf.getString("provider")
     val description = conf.getOptionString("description").getOrElse("n/a")
     logger.trace(s"Plugin manifest has package '$name'")
     if (conf.hasPath("location")) {
       val location = new URI(conf.getString("location"))
-      PluginRepositoryDefinition(name, provider, location, installable = true, description)
+      RepositoryDefinition(name, provider, location, installable = true, description)
     }
     else {
       val group = conf.getString("group")
@@ -110,7 +110,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
       val version = conf.getString("version")
       val resolvers = conf.getOptionStringList("resolvers").getOrElse(new java.util.Vector[String]())
       val module = IvyModule(group, artifact, version, resolvers.asScala.toVector)
-      PluginRepositoryDefinition(name, provider, module, installable = true, description)
+      RepositoryDefinition(name, provider, module, installable = true, description)
     }
   }
 
@@ -154,7 +154,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   val libDirectory: Option[File] = findRootDir(pluginLibPath)
   val configDirectory: Option[File] = findConfigDir(pluginConfPath)
 
-  private var packageDefs: Seq[PluginPackageDefinition] = libDirectory match {
+  private var packageDefs: Seq[PackageDefinition] = libDirectory match {
     case Some(rootDir) =>             // plugin root directory
       findPluginFiles(rootDir)        // plugin files in the root directories
         .map(findPluginPackageLoader) // plugin loaders
@@ -167,7 +167,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   }
 
   /** all package definitions */
-  def packageDefinitions: Seq[PluginPackageDefinition] = packageDefs
+  def packageDefinitions: Seq[PackageDefinition] = packageDefs
 
   /** all plugin definitions */
   def pluginDefinitions: Seq[PluginDefinition] = packageDefs.flatMap(pd => pd.plugins)
@@ -179,11 +179,11 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   def pluginDefinition(pluginName: String): Option[PluginDefinition] = packageDefs.flatMap(_.plugins).find(_.name == pluginName)
 
   /** find all plugin instances of the plugin */
-  def instances(pluginName: String): Seq[PluginInstance[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances)
+  def instances(pluginName: String): Seq[InstanceDefinition[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances)
   /** find all plugin instances of the plugin that has name contains searchName */
-  def instances(pluginName: String, searchName: String): Seq[PluginInstance[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).filter(_.name.contains(searchName))
+  def instances(pluginName: String, searchName: String): Seq[InstanceDefinition[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).filter(_.name.contains(searchName))
   /** find the plugin instance by plugin name and instance name */
-  def instance(pluginName: String, instanceName: String): Option[PluginInstance[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).find(_.name == instanceName)
+  def instance(pluginName: String, instanceName: String): Option[InstanceDefinition[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).find(_.name == instanceName)
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[BridgeDriver].isAssignableFrom(pd.clazz))
@@ -204,7 +204,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
-  private def postInstallPluginPackageMeta(metaFile: File)(implicit ec: ExecutionContext): Future[Option[PluginPackageDefinition]] = Future {
+  private def postInstallPluginPackageMeta(metaFile: File)(implicit ec: ExecutionContext): Future[Option[PackageDefinition]] = Future {
     findPluginPackageLoader(metaFile).definition match {
       case Some(pkgDef) =>
         this.packageDefs = this.packageDefs :+ pkgDef
@@ -259,7 +259,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
     private val emptyConfig = ConfigFactory.parseString("")
 
-    def definition: Option[PluginPackageDefinition] = {
+    def definition: Option[PackageDefinition] = {
       try {
         val in = resourceLoader.getResourceAsStream("smqd-plugin.conf")
         if (in == null) return None
@@ -288,7 +288,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
           new PluginDefinition(pluginName, clazz, packageName, version, conf, confSchema, multiInst)
         }
 
-        val pkg = new PluginPackageDefinition(packageName, packageVendor, packageDescription, plugins, repo)
+        val pkg = new PackageDefinition(packageName, packageVendor, packageDescription, plugins, repo)
         repo.setInstalledPackage(pkg)
         Some(pkg)
       }
@@ -302,7 +302,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
   ////////////////////////////////////////////////////////
   // create instance
-  def createInstaceFromClassOrPlugin[T <: Plugin](smqd: Smqd, dname: String, dconf: Config, classType: Class[T]): (T, Option[PluginInstance[T]]) ={
+  def createInstaceFromClassOrPlugin[T <: Plugin](smqd: Smqd, dname: String, dconf: Config, classType: Class[T]): (T, Option[InstanceDefinition[T]]) ={
     val category: String = classType match {
       case c if c.isAssignableFrom(classOf[Service]) => "Service"
       case c if c.isAssignableFrom(classOf[BridgeDriver]) => "BridgeDriver"
@@ -447,7 +447,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
-  def installPackage(smqd: Smqd, rdef: PluginRepositoryDefinition)(implicit ec: ExecutionContext): Future[InstallResult] = {
+  def installPackage(smqd: Smqd, rdef: RepositoryDefinition)(implicit ec: ExecutionContext): Future[InstallResult] = {
     if (!rdef.installable) {
       Future{ NotInstallable(s"Package '${rdef.name}' is not installable") }
     }

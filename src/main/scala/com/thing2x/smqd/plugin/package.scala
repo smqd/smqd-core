@@ -26,16 +26,16 @@ import scala.collection.JavaConverters._
   */
 package object plugin extends DefaultJsonProtocol {
 
-  implicit object PluginInstanceOrdering extends Ordering[PluginInstance[Plugin]] {
-    override def compare(x: PluginInstance[Plugin], y: PluginInstance[Plugin]): Int = {
+  implicit object PluginInstanceOrdering extends Ordering[InstanceDefinition[Plugin]] {
+    override def compare(x: InstanceDefinition[Plugin], y: InstanceDefinition[Plugin]): Int = {
       x.name.compare(y.name)
     }
   }
 
-  implicit object PluginInstanceFormat extends RootJsonFormat[PluginInstance[Plugin]] {
-    override def read(json: JsValue): PluginInstance[Plugin] = ???
+  implicit object PluginInstanceFormat extends RootJsonFormat[InstanceDefinition[Plugin]] {
+    override def read(json: JsValue): InstanceDefinition[Plugin] = ???
 
-    override def write(obj: PluginInstance[Plugin]): JsValue = {
+    override def write(obj: InstanceDefinition[Plugin]): JsValue = {
       JsObject(
         "name" -> JsString(obj.name),
         "status" -> JsString(obj.status),
@@ -75,9 +75,9 @@ package object plugin extends DefaultJsonProtocol {
     }
   }
 
-  implicit object PluginRepositoryDefinitionFormat extends RootJsonFormat[PluginRepositoryDefinition] {
-    override def read(json: JsValue): PluginRepositoryDefinition = ???
-    override def write(obj: PluginRepositoryDefinition): JsValue = {
+  implicit object PluginRepositoryDefinitionFormat extends RootJsonFormat[RepositoryDefinition] {
+    override def read(json: JsValue): RepositoryDefinition = ???
+    override def write(obj: RepositoryDefinition): JsValue = {
       if (obj.location.isDefined) {
         JsObject (
           "name" -> JsString(obj.name),
@@ -104,9 +104,9 @@ package object plugin extends DefaultJsonProtocol {
     }
   }
 
-  implicit object PluginPackageDefinitionFormat extends RootJsonFormat[PluginPackageDefinition] {
-    override def read(json: JsValue): PluginPackageDefinition = ???
-    override def write(obj: PluginPackageDefinition): JsValue = {
+  implicit object PluginPackageDefinitionFormat extends RootJsonFormat[PackageDefinition] {
+    override def read(json: JsValue): PackageDefinition = ???
+    override def write(obj: PackageDefinition): JsValue = {
       JsObject (
         "name"-> JsString(obj.name),
         "vendor" -> JsString(obj.vendor),

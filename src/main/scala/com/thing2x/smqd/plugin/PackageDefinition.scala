@@ -17,19 +17,19 @@ package com.thing2x.smqd.plugin
 /**
   * 2018. 7. 9. - Created by Kwon, Yeong Eon
   */
-class PluginPackageDefinition(val name: String, val vendor: String, val description: String,
-                              val plugins: Seq[PluginDefinition],
-                              val repository: PluginRepositoryDefinition)
-  extends Ordered[PluginPackageDefinition] {
+class PackageDefinition(val name: String, val vendor: String, val description: String,
+                        val plugins: Seq[PluginDefinition],
+                        val repository: RepositoryDefinition)
+  extends Ordered[PackageDefinition] {
 
   override def equals(other: Any): Boolean = {
-    if (!other.isInstanceOf[PluginPackageDefinition]) return false
-    val r = other.asInstanceOf[PluginPackageDefinition]
+    if (!other.isInstanceOf[PackageDefinition]) return false
+    val r = other.asInstanceOf[PackageDefinition]
 
     this.name == r.name
   }
 
-  override def compare(that: PluginPackageDefinition): Int = {
+  override def compare(that: PackageDefinition): Int = {
     // make smqd-core package come first
     this.name match {
       case "smqd-core" if that.name == "smqd-core" => 0
