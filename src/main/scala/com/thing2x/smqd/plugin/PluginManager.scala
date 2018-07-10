@@ -16,7 +16,13 @@ package com.thing2x.smqd.plugin
 
 import java.io._
 import java.net.{URI, URL, URLClassLoader}
+import java.nio.file.FileSystems
 
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
+import akka.stream.{IOResult, Materializer}
+import akka.stream.scaladsl.{FileIO, Sink, Source}
 import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.PluginManager.InstallResult
 import com.thing2x.smqd.plugin.RepositoryDefinition.IvyModule
@@ -26,6 +32,7 @@ import sbt.librarymanagement.UnresolvedWarning
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 /**
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
@@ -202,6 +209,10 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     else { // if (file.isFile && file.getPath.endsWith(".jar")) {
       new PluginPackageLoader(Array(file.toURI.toURL), getClass.getClassLoader)
     }
+  }
+
+  private def postInstallPluginPackageJar(jarFile: File)(implicit ec: ExecutionContext): Future[Option[PackageDefinition]] = Future {
+    None
   }
 
   private def postInstallPluginPackageMeta(metaFile: File)(implicit ec: ExecutionContext): Future[Option[PackageDefinition]] = Future {
@@ -468,9 +479,17 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
       Future{ InvalidStateToInstall(s"Plugin manager's root directory is not defined")}
     }
     else if (rdef.isRemoteFile) {
-      Future {
-        install_remote(rdef.location.get)
-        InstallSuccess(s"Installing package '${rdef.name}")
+      import smqd.Implicit._
+      install_remote(rdef.location.get, libDirectory.get) match {
+        case Some(file) =>
+          postInstallPluginPackageJar(file) map {
+            case Some(pkgDef) =>
+              InstallSuccess(s"Installed package '${pkgDef.name}")
+            case None =>
+              InstallFailure("Install failure to load jar", None)
+          }
+        case None =>
+          Future { InstallFailure(s"Install failure", None) }
       }
     }
     else if (rdef.isIvyModule) {
@@ -491,8 +510,41 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
-  private def install_remote(uri: URI): Unit = {
+  // TODO: not tested
+  private def install_remote(uri: URI, rootDir: File)(implicit system: ActorSystem, mat: Materializer): Option[File] = {
+    def writeFile(file: File)(httpResponse: HttpResponse): Future[IOResult] = {
+      httpResponse.entity.dataBytes.runWith(FileIO.toPath(FileSystems.getDefault.getPath(file.getAbsolutePath)))
+    }
 
+    def responseOrFail[T](in: (Try[HttpResponse], T)): (HttpResponse, T) = in match {
+      case (responseTry, context) => (responseTry.get, context)
+    }
+
+    try {
+      val url = uri.toURL
+      val filename = url.getFile
+      if (filename.endsWith(".jar")) {
+        val file = new File(rootDir, filename)
+
+        val request = HttpRequest(uri = Uri(uri.toString))
+        val source = Source.single(request, ())
+        val requestResponseFlow = Http().superPool[Unit]()
+
+        source.via(requestResponseFlow)
+          .map(responseOrFail)
+          .map(_._1)
+          .runWith(Sink.foreach(writeFile(file)))
+        Some(file)
+      }
+      else {
+        None
+      }
+    }
+    catch {
+      case ex: Throwable =>
+        logger.error(s"Fail to download plugin '${uri.toString}")
+        None
+    }
   }
 
   private def install_maven(packageName: String, moduleDef: IvyModule, rootDir: File): Option[File] = {
