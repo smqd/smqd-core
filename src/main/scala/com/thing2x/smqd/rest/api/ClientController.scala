@@ -62,7 +62,7 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
           case None => // all
             SortedSet[Registration]() ++ rt
         }
-        complete(StatusCodes.OK, pagenate(result, currPage, pageSize))
+        complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
     }
   }
 }
