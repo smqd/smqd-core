@@ -282,8 +282,12 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
           complete(StatusCodes.PreconditionFailed, restError(412, s"access denied. can't write the instance '$pluginName-$instanceName'"))
         }
         else {
-          smqd.pluginManager.createInstanceConfig(smqd, pluginName, instanceName, file, conf)
-          getPluginInstanceConfig(pluginName, instanceName)
+          smqd.pluginManager.createInstanceConfigFile(smqd, pluginName, instanceName, file, conf) match {
+            case Some(_) =>
+              getPluginInstanceConfig(pluginName, instanceName)
+            case None =>
+              complete(StatusCodes.InternalServerError, restError(500, s"Unable to load plugin '$pluginName-$instanceName'"))
+          }
         }
 
       case None =>
@@ -303,7 +307,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
               case InstanceStatus.RUNNING | InstanceStatus.STARTING | InstanceStatus.STOPPING =>
                 complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
               case InstanceStatus.STOPPED | InstanceStatus.UNKNOWN =>
-                if (pm.updateInstanceConfig(smqd, pluginName, instanceName, file, conf)) {
+                if (pm.updateInstanceConfigFile(smqd, pluginName, instanceName, file, conf)) {
                   getPluginInstanceConfig(pluginName, instanceName)
                 }
                 else {
@@ -331,7 +335,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
               case InstanceStatus.RUNNING | InstanceStatus.STARTING | InstanceStatus.STOPPING =>
                 complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
               case InstanceStatus.STOPPED | InstanceStatus.UNKNOWN =>
-                if (pm.deleteInstanceConfig(smqd, pluginName, instanceName, file))
+                if (pm.deleteInstanceConfigFile(smqd, pluginName, instanceName, file))
                   complete(StatusCodes.OK, restSuccess(0, JsObject("success" -> JsString("plugin instance deleted"))))
                 else
                   complete(StatusCodes.InternalServerError, restError(500, s"Fail to delete instance '$pluginName' '$instanceName'"))

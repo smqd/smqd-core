@@ -41,7 +41,14 @@ class ServiceLookupTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseS
   val smqd = new SmqdBuilder(system.settings.config)
     .setActorSystem(system)
     .build()
-  smqd.start()
+
+  override def beforeAll(): Unit = {
+    smqd.start()
+  }
+
+  override def afterAll(): Unit = {
+    smqd.stop()
+  }
 
   "Service lookup" must {
     "find core-api" in {

@@ -300,73 +300,85 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
+  private def pluginCategoryOf(clazz: Class[_]): String = {
+    if (clazz.isAssignableFrom(classOf[Service])) "Service"
+    else if (clazz.isAssignableFrom(classOf[BridgeDriver])) "Service"
+    else "Unknown type"
+  }
+
   ////////////////////////////////////////////////////////
   // create instance
-  def createInstaceFromClassOrPlugin[T <: Plugin](smqd: Smqd, dname: String, dconf: Config, classType: Class[T]): (T, Option[InstanceDefinition[T]]) ={
-    val category: String = classType match {
-      case c if c.isAssignableFrom(classOf[Service]) => "Service"
-      case c if c.isAssignableFrom(classOf[BridgeDriver]) => "BridgeDriver"
-      case c if c.isAssignableFrom(classOf[Plugin]) => "Plugin"
-      case _ => "Unknown type"
-    }
+  def defineInstance(smqd: Smqd, dname: String, dconf: Config): Option[InstanceDefinition[Plugin]] = {
+    var category = "Unknown type"
     logger.info(s"$category '$dname' loading...")
-    val instanceResult = dconf.getOptionString("entry.class") match {
+    dconf.getOptionString("entry.class") match {
       case Some(className) =>
-        val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[T]]
-        val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-        (cons.newInstance(dname, smqd, dconf.getConfig("config")), None)
+        try {
+          val autoStart = dconf.getOptionBoolean("entry.auto-start").getOrElse(true)
+          val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Plugin]]
+          val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
+          val inst = cons.newInstance(dname, smqd, dconf.getConfig("config"))
+          val pdef = PluginDefinition.nonPluggablePlugin(dname, clazz)
+          val idef = InstanceDefinition(inst, pdef, autoStart)
+          category = pluginCategoryOf(clazz)
+          logger.info(s"$category '$dname' loaded")
+          Some(idef)
+        }
+        catch {
+          case ex: Throwable =>
+            logger.error(s"Fail to load and create an instance of plugin '$dname'", ex)
+            None
+        }
       case None =>
         val plugin = dconf.getString("entry.plugin")
         val autoStart = dconf.getOptionBoolean("entry.auto-start").getOrElse(true)
-        val pdef = pluginDefinitions(plugin)
-        if (pdef.isEmpty) {
-          throw new IllegalStateException(s"Undefined plugin: $plugin")
-        }
-        else {
-          val idef = pdef.head.createInstance(dname, smqd, dconf.getOptionConfig("config"), autoStart, classType)
-          (idef.instance, Some(idef))
+        pluginDefinition(plugin) match {
+          case Some(pdef) =>
+            val idef: InstanceDefinition[Plugin] = pdef.createInstance(dname, smqd, dconf.getOptionConfig("config"), autoStart)
+            category = pluginCategoryOf(pdef.clazz)
+            logger.info(s"$category '$dname' loaded")
+            Some(idef)
+          case None =>
+            logger.error(s"Plugin not found '$plugin' '$dname'")
+            None
         }
     }
-    logger.info(s"$category '$dname' loaded")
-    instanceResult
   }
 
-  def loadInstanceFromConfigs(smqd: Smqd): Seq[Plugin] = {
+  def findInstanceConfigs: Seq[Config] = {
     if (libDirectory.isEmpty) {
       logger.error("Root directory of plugin manager is not defined")
       Nil
     }
     else {
       val rootDir = libDirectory.get
-      val instanceConfs = findPluginInstanceFiles(rootDir).map(ConfigFactory.parseFile)
-
-      val instances = instanceConfs.map(loadInstance(smqd, _))
-      instances
+      findInstanceConfigFiles(rootDir).map(ConfigFactory.parseFile)
     }
   }
 
-  def loadInstanceFromConfigFile(smqd: Smqd, confFile: File): Plugin = {
-    val conf = ConfigFactory.parseFile(confFile)
-    loadInstance(smqd, conf)
-  }
-
-  def loadInstance(smqd: Smqd, instanceConfig: Config): Plugin = {
+  /** define an instance with the given config, and start it if auto-start is true in the config */
+  def loadInstance(smqd: Smqd, instanceConfig: Config): Option[InstanceDefinition[Plugin]] = {
     val instanceName = instanceConfig.getString("instance")
     val pluginName = instanceConfig.getString("entry.plugin")
     val autoStart = instanceConfig.getBoolean("entry.auto-start")
 
     logger.info(s"Loading plugin '$pluginName' instance '$instanceName' - auto-start: $autoStart")
 
-    createInstaceFromClassOrPlugin(smqd, instanceName, instanceConfig, classOf[Plugin]) match {
-      case (_, Some(idef)) if idef.autoStart =>
+    defineInstance(smqd, instanceName, instanceConfig).map { idef =>
+      if (idef.autoStart)
         idef.instance.execStart()
-        idef.instance
-      case (_, Some(idef)) =>
-        idef.instance
+      idef
     }
   }
 
-  def createInstanceConfig(smqd: Smqd, pluginName: String, instanceName: String, file: File, conf: Config): Plugin = {
+  /** read instance config from the given file, then define an instance, and start it if auto-start is true in the config */
+  def loadInstanceFromConfigFile(smqd: Smqd, configFile: File): Option[InstanceDefinition[Plugin]] = {
+    val conf = ConfigFactory.parseFile(configFile)
+    loadInstance(smqd, conf)
+  }
+
+  /** save the instance config into the given file, then define an instance, and start it if auto-start is true in the config */
+  def createInstanceConfigFile(smqd: Smqd, pluginName: String, instanceName: String, file: File, conf: Config): Option[InstanceDefinition[Plugin]] = {
     val autoStart = conf.getBoolean("auto-start")
     val subConfig = conf.getConfig("config")
 
@@ -382,7 +394,8 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     loadInstanceFromConfigFile(smqd, file)
   }
 
-  def updateInstanceConfig(smqd: Smqd, pluginName: String, instanceName: String, file: File, conf: Config): Boolean = {
+  /** overwrite the instance config file, then define the instance, and start it if auto-start is true in the config */
+  def updateInstanceConfigFile(smqd: Smqd, pluginName: String, instanceName: String, file: File, conf: Config): Boolean = {
     pluginDefinition(pluginName) match {
       case Some(pdef) =>
         if (pdef.removeInstance(instanceName)) {
@@ -409,7 +422,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
-  def deleteInstanceConfig(smqd: Smqd, pluginName: String, instanceName: String, file: File): Boolean = {
+  def deleteInstanceConfigFile(smqd: Smqd, pluginName: String, instanceName: String, file: File): Boolean = {
     pluginDefinition(pluginName) match {
       case Some(pdef) =>
         if (pdef.removeInstance(instanceName)) {
@@ -423,7 +436,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
-  private def findPluginInstanceFiles(rootDir: File): Seq[File] = {
+  private def findInstanceConfigFiles(rootDir: File): Seq[File] = {
     if (configDirectory.isEmpty)
       return Nil
     val confDir = configDirectory.get

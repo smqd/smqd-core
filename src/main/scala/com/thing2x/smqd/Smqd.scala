@@ -83,7 +83,6 @@ class Smqd(val config: Config,
   private val requestor      = new Requestor()
 
   private var chiefActor: ActorRef = _
-  private var bridgeDrivers: Map[String, BridgeDriver] = Map.empty
 
   override def start(): Unit = {
 
@@ -125,18 +124,24 @@ class Smqd(val config: Config,
 
     try {
       //// start services
-      serviceDefs.foreach { case (cname, sconf) =>
-        pluginManager.createInstaceFromClassOrPlugin(this, cname, sconf, classOf[Service]) match {
-          case (inst, None) =>
-            inst.execStart()
-          case (_, Some(idef)) =>
+      serviceDefs.foreach { case (sname, sconf) =>
+        pluginManager.defineInstance(this, sname, sconf) match {
+          case Some(idef) =>
             if (idef.autoStart)
               idef.instance.execStart()
+          case None =>
+            logger.error(s"Service not found: $sname")
         }
       }
 
       //// load plugin instances
-      pluginManager.loadInstanceFromConfigs(this)
+      pluginManager.findInstanceConfigs.foreach { pconf =>
+        pluginManager.loadInstance(this, pconf) match {
+          case None =>
+            logger.error(s"Plugin loading filaure...")
+          case _ =>  // already started by plugin manager if plugin has auto-start=true
+        }
+      }
     }
     catch {
       case ex: Throwable =>
@@ -146,23 +151,21 @@ class Smqd(val config: Config,
 
     //// bridge drivers
     try {
-      bridgeDrivers = bridgeDriverDefs.map { case (dname, dconf) =>
-        pluginManager.createInstaceFromClassOrPlugin(this, dname, dconf, classOf[BridgeDriver]) match {
-          case (inst, None) =>
-            inst.execStart()
-            dname -> inst
-          case (_, Some(idef)) =>
+      bridgeDriverDefs.foreach { case (dname, dconf) =>
+        pluginManager.defineInstance(this, dname, dconf) match {
+          case Some(idef) =>
             if (idef.autoStart)
               idef.instance.execStart()
-            dname -> idef.instance
+          case None =>
+            logger.error(s"Service not found: $dname")
         }
       }
 
       bridgeDefs.foreach { bconf =>
         val driverName = bconf.getString("driver")
         val topic = bconf.getString("topic")
-        bridgeDrivers.get(driverName) match {
-          case Some(drv) => drv.addBridge(FilterPath(topic), bconf)
+        pluginManager.bridgePluginDefinitions.flatMap(pd => pd.instances).find(drv => drv.name == driverName).map(_.instance) match {
+          case Some(drv : BridgeDriver) => drv.addBridge(FilterPath(topic), bconf)
           case _ => throw new IllegalArgumentException(s"driver[$driverName] not found")
         }
       }
@@ -185,19 +188,9 @@ class Smqd(val config: Config,
   override def stop(): Unit = {
     synchronized {
 
-      bridgeDrivers.foreach { case (_, drv) =>
+      pluginManager.pluginDefinitions.reverse.flatMap(_.instances).foreach { p =>
         try {
-          drv.execStop()
-        }
-        catch {
-          case ex: Throwable =>
-            logger.error("Stopping failed", ex)
-        }
-      }
-
-      pluginManager.servicePluginDefinitions.reverse.flatMap(_.instances).foreach { p =>
-        try {
-          p.instance.asInstanceOf[Service].execStop()
+          p.instance.execStop()
         }
         catch {
           case ex: Throwable =>
