@@ -14,8 +14,6 @@
 
 package com.thing2x.smqd
 
-import java.io.File
-
 import akka.actor.{ActorRef, ActorSystem, Address, Props}
 import akka.cluster.Cluster
 import akka.dispatch.MessageDispatcher
@@ -23,7 +21,6 @@ import akka.pattern.ask
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
-import com.sun.xml.internal.ws.api.server.ServiceDefinition
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.plugin.{BridgeDriver, InstanceDefinition, PluginManager, Service}
@@ -110,17 +107,7 @@ class Smqd(val config: Config,
     //// then loading plugins
     ////
     //// display list of repositories for information
-    pluginManager.repositoryDefinitions.foreach { repo =>
-      repo.packageDefinition match {
-        case Some(pkg) =>
-          val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
-          val info = pkg.plugins.map( _.name).mkString(", ")
-          val size = pkg.plugins.size
-          logger.info(s"Plugin package '${repo.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
-        case None =>
-          logger.info(s"Plugin package '${repo.name}' is not installed")
-      }
-    }
+    pluginManager.logRepositoryDefinitions()
 
     try {
       //// start services

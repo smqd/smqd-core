@@ -219,6 +219,21 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
+  def logRepositoryDefinitions(): Unit = {
+    //// display list of repositories for information
+    repositoryDefinitions.foreach { repo =>
+      repo.packageDefinition match {
+        case Some(pkg) =>
+          val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
+          val info = pkg.plugins.map( _.name).mkString(", ")
+          val size = pkg.plugins.size
+          logger.info(s"Plugin package '${repo.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
+        case None =>
+          logger.info(s"Plugin package '${repo.name}' is not installed")
+      }
+    }
+  }
+
   ////////////////////////////////////////////////////////
   // create instance
 
