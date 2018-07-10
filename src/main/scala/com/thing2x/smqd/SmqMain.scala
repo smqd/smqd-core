@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.StrictLogging
 trait SmqMainBase extends StrictLogging {
   def dumpEnvNames: Seq[String] = Nil
 
-  // override for rebranding logo and application's version
+  // override for rebranding logo, application's version, config file base name
   def logo: String = ""
   def versionString = ""
   def configBasename = "smqd"
@@ -35,13 +35,19 @@ trait SmqMainBase extends StrictLogging {
     // print out logo first then load config,
     // because there is chances to fail while loading config,
     if (config == null) {
-      logger.info(logo+"\n")
+      logger.info(s"\n$logo")
       scala.sys.exit(-1)
     }
     else {
+      val logoImpl: String = logo
+      val banner = if (logoImpl == null || logoImpl.length == 0)
+        com.thing2x.smqd.util.FigletFormat.figlet(config.getString("smqd.logo"))
+      else
+        logoImpl
       val smqdVersion: String = config.getString("smqd.version")
-      logger.info(s"$logo $versionString(smqd: $smqdVersion)\n")
+      logger.info(s"\n$banner $versionString(smqd: $smqdVersion)\n")
     }
+    logger.info("build: {}", config.getString("smqd.commit-version"))
 
     //// for debug purpose /////
     dumpEnvNames.foreach{ k =>

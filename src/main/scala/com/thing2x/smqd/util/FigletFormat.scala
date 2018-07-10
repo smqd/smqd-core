@@ -12,29 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd
-
-import com.typesafe.scalalogging.StrictLogging
+package com.thing2x.smqd.util
 
 /**
-  * 2018. 5. 29. - Created by Kwon, Yeong Eon
+  * 2018. 7. 10. - Created by Kwon, Yeong Eon
   */
-object Main extends App with  SmqMainBase with StrictLogging {
-
-  override val dumpEnvNames = Seq(
-    "config.file",
-    "logback.configurationFile",
-    "java.net.preferIPv4Stack",
-    "java.net.preferIPv6Addresses"
-  )
-
-  try{
-    val smqd = super.buildSmqd()
-    smqd.start()
-  }
-  catch {
-    case ex: Throwable =>
-      logger.error("starting failed", ex)
-      System.exit(1)
+object FigletFormat {
+  def figlet(text: String): String = {
+    try {
+      val url = getClass.getClassLoader.getResource("figlet/standard.flf")
+      val font = new FigletFont(url)
+      val result = font.convert(text, false, true, 40)
+      if(result.endsWith("\n\n")) result.substring(0, result.length - 3) else result
+    } catch {
+      case _: Throwable =>
+        ""
+    }
   }
 }

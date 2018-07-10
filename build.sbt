@@ -9,8 +9,10 @@ lazy val gitBranch = "git rev-parse --abbrev-ref HEAD".!!.trim
 lazy val gitCommitShort = "git rev-parse HEAD | cut -c 1-7".!!.trim
 lazy val gitCommitFull = "git rev-parse HEAD".!!.trim
 
-val versionFile       = s"echo version = $versionString" #> file("src/main/resources/smqd-core-version.conf") !
-val commitVersionFile = s"echo commit-version = $gitCommitFull" #>> file("src/main/resources/smqd-core-version.conf") !
+val versionFile       = file("src/main/resources/smqd-core-version.conf")
+val logo_             = s"echo logo = SMQD" #> versionFile !
+val version_          = s"echo version = $versionString" #>> versionFile !
+val commitVersion_    = s"echo commit-version = $gitCommitFull" #>> versionFile !
 
 val `smqd-core` = project.in(file(".")).settings(
   organization := "com.thing2x",
