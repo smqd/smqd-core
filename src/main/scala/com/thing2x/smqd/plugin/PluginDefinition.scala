@@ -15,6 +15,7 @@
 package com.thing2x.smqd.plugin
 
 import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.plugin.PluginManager.CORE_PKG
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.collection.mutable
@@ -23,33 +24,21 @@ import scala.collection.mutable
   * 2018. 7. 5. - Created by Kwon, Yeong Eon
   */
 object PluginDefinition{
+  def apply(name: String, clazz: Class[Plugin], packageName: String, version: String, multiInstantiable: Boolean, defaultConfig: Config, configSchema: Config) =
+    new PluginDefinition(name, clazz, packageName, version, multiInstantiable, defaultConfig, configSchema)
+
   /** create a PluginDefinition for a class based plugin implementation which is using "entry.class" to be wired with smqd */
   def nonPluggablePlugin(name: String, clazz: Class[Plugin]): PluginDefinition = {
-    new PluginDefinition(name, clazz, "n/a", "n/a", ConfigFactory.empty, ConfigFactory.empty, false)
+    PluginDefinition(name, clazz, "n/a", "n/a", multiInstantiable = false, ConfigFactory.empty, ConfigFactory.empty)
   }
 }
-class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageName: String, val version: String, val defaultConfig: Config, val configSchema: Config, val multiInstantiable: Boolean)
+
+class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageName: String, val version: String, val multiInstantiable: Boolean, val defaultConfig: Config, val configSchema: Config)
   extends Ordered[PluginDefinition]{
 
   private var instances0: mutable.SortedSet[InstanceDefinition[Plugin]] = mutable.SortedSet.empty
 
   def instances: mutable.SortedSet[InstanceDefinition[Plugin]] = instances0
-
-//  def createServiceInstance(instanceName: String, smqd: Smqd, config: Option[Config], autoStart: Boolean): InstanceDefinition[Service] =
-//    createInstance(instanceName, smqd, config, autoStart, classOf[Service])
-//
-//  def createBridgeDriverInstance(instanceName: String, smqd: Smqd, config: Option[Config], autoStart: Boolean): InstanceDefinition[BridgeDriver] =
-//    createInstance(instanceName, smqd, config, autoStart, classOf[BridgeDriver])
-//
-//  def createInstance[T <: Plugin](instanceName: String, smqd: Smqd, config: Option[Config], autoStart: Boolean, pluginType: Class[T]): InstanceDefinition[T] = {
-//    val clazz = this.clazz.asInstanceOf[Class[T]]
-//    val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-//    val mergedConf = if (config.isDefined) config.get.withFallback(defaultConfig) else defaultConfig
-//    val instance = cons.newInstance(instanceName, smqd, mergedConf)
-//    val pluginInstance = InstanceDefinition(instance, this, autoStart)
-//    this.instances0 += pluginInstance
-//    pluginInstance
-//  }
 
   def createInstance[T <: Plugin](instanceName: String, smqd: Smqd, config: Option[Config], autoStart: Boolean): InstanceDefinition[T] = {
     val clazz = this.clazz.asInstanceOf[Class[T]]
@@ -81,8 +70,8 @@ class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageNa
   override def compare(that: PluginDefinition): Int = {
     // make smqd-core package come first
     val delta = this.packageName match {
-      case "smqd-core" if that.packageName == "smqd-core" => 0
-      case "smqd-core" => 1
+      case CORE_PKG if that.packageName == CORE_PKG => 0
+      case CORE_PKG => 1
       case _ => this.packageName.compare(that.packageName)
     }
     if (delta == 0) this.name.compare(that.name) else delta

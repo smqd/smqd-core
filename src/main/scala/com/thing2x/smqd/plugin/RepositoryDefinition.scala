@@ -16,7 +16,7 @@ package com.thing2x.smqd.plugin
 
 import java.net.URI
 
-import com.thing2x.smqd.plugin.RepositoryDefinition.IvyModule
+import com.thing2x.smqd.plugin.RepositoryDefinition.MavenModule
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -27,16 +27,16 @@ import scala.concurrent.{ExecutionContext, Future}
 object RepositoryDefinition {
   def apply(name: String, provider: String, location: URI, installable: Boolean, description: String) =
     new RepositoryDefinition(name, provider, Some(location), None, installable, description: String)
-  def apply(name: String, provider: String, module: IvyModule, installable: Boolean, description: String) =
+  def apply(name: String, provider: String, module: MavenModule, installable: Boolean, description: String) =
     new RepositoryDefinition(name, provider, None, Some(module), installable, description)
 
-  case class IvyModule(group: String, artifact: String, version: String, resolvers: Vector[String])
+  case class MavenModule(group: String, artifact: String, version: String, resolvers: Vector[String])
 }
 
 class RepositoryDefinition(val name: String,
                            val provider: String,
                            val location: Option[URI],
-                           val module: Option[IvyModule],
+                           val module: Option[MavenModule],
                            val installable: Boolean,
                            val description: String)
   extends Ordered[RepositoryDefinition] with StrictLogging {
@@ -45,7 +45,7 @@ class RepositoryDefinition(val name: String,
   def installed: Boolean = installedPkg.isDefined
   def packageDefinition: Option[PackageDefinition] = installedPkg
 
-  val isIvyModule: Boolean = module.isDefined
+  val isMavenModule: Boolean = module.isDefined
   val isRemoteFile: Boolean = location.isDefined
 
   private[plugin] def setInstalledPackage(pkgDef: PackageDefinition): Unit = {

@@ -25,7 +25,7 @@ import akka.stream.{IOResult, Materializer}
 import akka.stream.scaladsl.{FileIO, Sink, Source}
 import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.PluginManager.InstallResult
-import com.thing2x.smqd.plugin.RepositoryDefinition.IvyModule
+import com.thing2x.smqd.plugin.RepositoryDefinition.MavenModule
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
 import com.typesafe.scalalogging.StrictLogging
 import sbt.librarymanagement.UnresolvedWarning
@@ -40,6 +40,9 @@ object PluginManager extends StrictLogging {
   val STATIC_PKG = "smqd-static"
   val CORE_PKG = "smqd-core"
 
+  val PM_CONF_DIR_NAME = "plugins"
+  val PM_LIB_DIR_NAME = "plugins"
+
   def apply(config: Config, coreVersion: String): PluginManager = {
     val pluginDirPath = config.getString("dir")
     val pluginInstanceConfDirPath =
@@ -52,16 +55,16 @@ object PluginManager extends StrictLogging {
         if (configFilePath != null) {
           val file = new File(configFilePath)
           if (file.exists && file.getParentFile.canRead && file.getParentFile.canWrite) {
-            val pluginConfDir = new File(file.getParentFile, "plugins")
+            val pluginConfDir = new File(file.getParentFile, PM_CONF_DIR_NAME)
             pluginConfDir.mkdir()
             pluginConfDir.getPath
           }
           else {
-            new File(new File(pluginDirPath), "plugins").getPath
+            new File(new File(pluginDirPath), PM_CONF_DIR_NAME).getPath
           }
         }
         else {
-          new File(new File(pluginDirPath), "plugins").getPath
+          new File(new File(pluginDirPath), PM_CONF_DIR_NAME).getPath
         }
       }
     new PluginManager(pluginDirPath, pluginInstanceConfDirPath, config.getOptionString("manifest"), coreVersion)
@@ -79,82 +82,19 @@ object PluginManager extends StrictLogging {
   case class PackageNotFound(msg: String) extends InstallResult
   case class InvalidStateToInstall(msg: String) extends InstallResult
   case class InstallFailure(msg: String, cause: Option[Throwable]) extends InstallResult
+
+  trait ReloadResult { def msg: String }
+  case class ReloadSuccess(msg: String) extends ReloadResult
+  case class ReloadFailure(msg: String) extends ReloadResult
 }
 
 import PluginManager._
 
-class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String], coreVersion: String) extends StrictLogging {
+class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String], val coreVersion: String) extends StrictLogging {
 
-  //////////////////////////////////////////////////
-  // repository definitions
-  private val repositoryDefs =
-  // repo def for core plugins (internal)
-  RepositoryDefinition(CORE_PKG, "thing2x.com", new URI("https://github.com/smqd"), installable = false, "smqd core plugins") +:
-    // repo def for manually installed
-    RepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false, "manually installed plugins") +:
-    findRepositoryDefinitions(findManifest(pluginManifestUri))
-
-  def repositoryDefinitions: Seq[RepositoryDefinition] = repositoryDefs
-  def repositoryDefinition(name: String): Option[RepositoryDefinition] = repositoryDefs.find(p => p.name == name)
-
-  private def findRepositoryDefinitions(conf: Config): Seq[RepositoryDefinition] = {
-    val cfs = conf.getConfigList("smqd-plugin.repositories").asScala
-    cfs.map(repositoryDefinition)
-  }
-
-  private def repositoryDefinition(conf: Config): RepositoryDefinition = {
-    val name = conf.getString("package-name")
-    val provider = conf.getString("provider")
-    val description = conf.getOptionString("description").getOrElse("n/a")
-    logger.trace(s"Plugin manifest has package '$name'")
-    if (conf.hasPath("location")) {
-      val location = new URI(conf.getString("location"))
-      RepositoryDefinition(name, provider, location, installable = true, description)
-    }
-    else {
-      val group = conf.getString("group")
-      val artifact = conf.getString("artifact")
-      val version = conf.getString("version")
-      val resolvers = conf.getOptionStringList("resolvers").getOrElse(new java.util.Vector[String]())
-      val module = IvyModule(group, artifact, version, resolvers.asScala.toVector)
-      RepositoryDefinition(name, provider, module, installable = true, description)
-    }
-  }
-
-  private def findManifest(uriPathOpt: Option[String]): Config = {
-    // load reference manifest
-    val ref = ConfigFactory.parseResources(getClass.getClassLoader, "smqd-plugins.manifest")
-
-    // is custom uri set?
-    val uriPath = uriPathOpt match {
-      case Some(p) => p
-      case None =>
-        logger.info("No plugin manifest is defined")
-        return ref
-    }
-
-    logger.info(s"Plugin manifest is $uriPath")
-
-    try {
-      // try first as a file, incase of relative path
-      val file = new File(uriPath)
-      val uri = if (file.exists && file.canRead) file.toURI else new URI(uriPath)
-      // try to find from uri
-      val in = uri.toURL.openStream()
-
-      if (in == null){
-        logger.warn(s"Can not access plugin manifest: ${uri.toString}")
-        ref
-      }
-      else {
-        ConfigFactory.parseReader(new InputStreamReader(in)).withFallback(ref)
-      }
-    } catch {
-      case ex: Throwable =>
-        logger.warn(s"Invalid plugin manifest location: '$uriPath' {}", ex.getMessage)
-        ref
-    }
-  }
+  private val repositoryManager: RepositoryManager = new RepositoryManager(this, pluginManifestUri)
+  def repositoryDefinitions: Seq[RepositoryDefinition] = repositoryManager.repositoryDefs
+  def repositoryDefinition(name: String): Option[RepositoryDefinition] = repositoryManager.repositoryDefinition(name)
 
   //////////////////////////////////////////////////
   // plugin definitions
@@ -195,19 +135,19 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[BridgeDriver].isAssignableFrom(pd.clazz))
 
-  private def findPluginPackageLoader(file: File): PluginPackageLoader = {
+  private def findPluginPackageLoader(file: File): PackageLoader = {
     if (file.isDirectory) {
-      new PluginPackageLoader(Array(file.toURI.toURL), getClass.getClassLoader)
+      new PackageLoader(this, Array(file.toURI.toURL), getClass.getClassLoader)
     }
     else if (file.isFile && file.getPath.endsWith(".plugin")) {
       val meta = ConfigFactory.parseFile(file)
       val pver = meta.getString("version")
       val jars = meta.getStringList("resolved").asScala
       val urls = jars.map(new File(libDirectory.get, _)).map(_.toURI.toURL).toArray
-      new PluginPackageLoader(urls, getClass.getClassLoader, pver)
+      new PackageLoader(this, urls, getClass.getClassLoader, pver)
     }
     else { // if (file.isFile && file.getPath.endsWith(".jar")) {
-      new PluginPackageLoader(Array(file.toURI.toURL), getClass.getClassLoader)
+      new PackageLoader(this, Array(file.toURI.toURL), getClass.getClassLoader)
     }
   }
 
@@ -259,55 +199,6 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     else {
       logger.info("Plugin config directory is not accessible: {}", confDir)
       None
-    }
-  }
-
-  private[plugin] class PluginPackageLoader(urls: Array[URL], parent: ClassLoader, packageDefaultVersion: String = "") {
-    private val logger = PluginManager.this.logger
-    private val resourceLoader = new URLClassLoader(urls, null)
-    private val classLoader = new URLClassLoader(urls, parent)
-    var config: Config = _
-
-    private val emptyConfig = ConfigFactory.parseString("")
-
-    def definition: Option[PackageDefinition] = {
-      try {
-        val in = resourceLoader.getResourceAsStream("smqd-plugin.conf")
-        if (in == null) return None
-
-        config = ConfigFactory.parseReader(new InputStreamReader(in))
-        in.close()
-
-        val packageName = config.getString("package.name")
-        val packageVendor = config.getOptionString("package.vendor").getOrElse("")
-        val packageDescription = config.getOptionString("package.description").getOrElse("")
-        val repo = repositoryDefinition(packageName).getOrElse(repositoryDefinition(STATIC_PKG).get)
-
-        val defaultVersion = if (packageName.equals(CORE_PKG)) coreVersion else packageDefaultVersion
-
-        val plugins = config.getConfigList("package.plugins").asScala.map{ c =>
-          val pluginName = c.getString("name")
-          val className = c.getString("class")
-          val multiInst = c.getOptionBoolean("multi-instantiable").getOrElse(false)
-          val version = c.getOptionString("version").getOrElse(defaultVersion)
-          val conf = c.getOptionConfig("default-config").getOrElse(emptyConfig)
-          val confSchema = c.getOptionConfig("config-schema").getOrElse(emptyConfig)
-          val clazz = classLoader.loadClass(className).asInstanceOf[Class[Plugin]]
-
-          logger.trace(s"Plugin '$pluginName' in package '$packageName' from ${clazz.getProtectionDomain.getCodeSource.getLocation}")
-
-          new PluginDefinition(pluginName, clazz, packageName, version, conf, confSchema, multiInst)
-        }
-
-        val pkg = new PackageDefinition(packageName, packageVendor, packageDescription, plugins, repo)
-        repo.setInstalledPackage(pkg)
-        Some(pkg)
-      }
-      catch {
-        case ex: Throwable =>
-          logger.warn(s"Plugin fail to loading", ex)
-          None
-      }
     }
   }
 
@@ -463,7 +354,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   // install package
 
   def installPackage(smqd: Smqd, packageName: String)(implicit ec: ExecutionContext): Future[InstallResult] = {
-    repositoryDefinition(packageName) match {
+    repositoryManager.repositoryDefinition(packageName) match {
       case Some(rdef) =>
         installPackage(smqd, rdef)
       case None =>
@@ -480,7 +371,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
     else if (rdef.isRemoteFile) {
       import smqd.Implicit._
-      install_remote(rdef.location.get, libDirectory.get) match {
+      repositoryManager.installHttp(rdef.location.get, libDirectory.get) match {
         case Some(file) =>
           postInstallPluginPackageJar(file) map {
             case Some(pkgDef) =>
@@ -492,8 +383,8 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
           Future { InstallFailure(s"Install failure", None) }
       }
     }
-    else if (rdef.isIvyModule) {
-      install_maven(rdef.name, rdef.module.get, libDirectory.get) match {
+    else if (rdef.isMavenModule) {
+      repositoryManager.installMaven(rdef.name, rdef.module.get, libDirectory.get) match {
         case Some(meta) =>
           postInstallPluginPackageMeta(meta) map {
             case Some(pkgDef) =>
@@ -510,85 +401,16 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
-  // TODO: not tested
-  private def install_remote(uri: URI, rootDir: File)(implicit system: ActorSystem, mat: Materializer): Option[File] = {
-    def writeFile(file: File)(httpResponse: HttpResponse): Future[IOResult] = {
-      httpResponse.entity.dataBytes.runWith(FileIO.toPath(FileSystems.getDefault.getPath(file.getAbsolutePath)))
-    }
-
-    def responseOrFail[T](in: (Try[HttpResponse], T)): (HttpResponse, T) = in match {
-      case (responseTry, context) => (responseTry.get, context)
-    }
-
-    try {
-      val url = uri.toURL
-      val filename = url.getFile
-      if (filename.endsWith(".jar")) {
-        val file = new File(rootDir, filename)
-
-        val request = HttpRequest(uri = Uri(uri.toString))
-        val source = Source.single(request, ())
-        val requestResponseFlow = Http().superPool[Unit]()
-
-        source.via(requestResponseFlow)
-          .map(responseOrFail)
-          .map(_._1)
-          .runWith(Sink.foreach(writeFile(file)))
-        Some(file)
-      }
-      else {
-        None
+  def reloadPackage(smqd: Smqd, rdef: RepositoryDefinition)(implicit ec: ExecutionContext): Future[ReloadResult] = {
+    Future {
+      rdef.packageDefinition match {
+        case Some(pdef) =>
+//          pdef.plugins.foreach { pl =>
+//          }
+          ReloadFailure(s"Not implemented")
+        case None =>
+          ReloadFailure(s"Plugin '${rdef.name} not found")
       }
     }
-    catch {
-      case ex: Throwable =>
-        logger.error(s"Fail to download plugin '${uri.toString}")
-        None
-    }
   }
-
-  private def install_maven(packageName: String, moduleDef: IvyModule, rootDir: File): Option[File] = {
-    import sbt.librarymanagement.syntax._
-    import sbt.librarymanagement.ivy._
-
-    val fileRetrieve = new File(rootDir, "ivy")
-    val fileCache = new File(rootDir, "ivy/cache")
-
-    val ivyLogger = sbt.util.LogExchange.logger("com.thing2x.smqd.plugin")
-    val ivyResolvers = moduleDef.resolvers.map {
-      case "sonatype" =>
-        sbt.librarymanagement.MavenRepository("sonatype", "https://oss.sonatype.org/content/groups/public", localIfFile = true)
-      case url =>
-        sbt.librarymanagement.MavenRepository("maven", url, localIfFile = true)
-    }
-
-    val ivyConfig = InlineIvyConfiguration().withLog(ivyLogger).withResolutionCacheDir(fileCache).withResolvers(ivyResolvers)
-    val lm = IvyDependencyResolution(ivyConfig)
-
-    val module = moduleDef.group % moduleDef.artifact % moduleDef.version excludeAll(
-      ExclusionRule("com.thing2x", "smqd-core_2.12"),
-      ExclusionRule("org.scala-lang", "scala-library"),
-    ) force()
-
-    lm.retrieve(module, scalaModuleInfo = None, fileRetrieve, ivyLogger) match {
-      case Left(w: UnresolvedWarning) =>
-        val str= w.failedPaths.map(_.toString).mkString("\n", "\n", "\n")
-        logger.warn(s"UnresolvedWarning -- $str", w.resolveException)
-        None
-      case Right(files: Vector[File]) =>
-        val prefixLen = rootDir.getPath.length + 1
-        val str = files.map(_.getPath.substring(prefixLen)).toSet.mkString("resolved: [\n\"", "\",\n\"", "\"]\n")
-        val metaFile = new File(rootDir, packageName + ".plugin")
-        val out = new OutputStreamWriter(new FileOutputStream(metaFile))
-        out.write(s"package: $packageName\n")
-        out.write(s"group: ${moduleDef.group}\n")
-        out.write(s"artifact: ${moduleDef.artifact}\n")
-        out.write(s"version: ${moduleDef.version}\n")
-        out.write(s"download-time: ${System.currentTimeMillis().toString}\n")
-        out.write(str)
-        out.close()
-        Some(metaFile)
-    }
-  }
-
 }
