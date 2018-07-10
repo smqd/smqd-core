@@ -52,17 +52,11 @@ case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, clien
   }
 
   override def compare(that: Registration): Int = {
-    if (this.clientId.isDefined && that.clientId.isDefined) {
-      this.clientId.get.id.compareToIgnoreCase(that.clientId.get.id)
-    }
-    else if (this.clientId.isDefined && that.clientId.isEmpty) {
-      -1
-    }
-    else if (this.clientId.isEmpty && that.clientId.isDefined) {
-      1
-    }
-    else {
-      this.actor.path.toString.compareToIgnoreCase(that.actor.path.toString)
+    (this.clientId, that.clientId) match {
+      case (Some(l), Some(r)) => l.id.compareToIgnoreCase(r.id)
+      case (Some(_), None) => -1
+      case (None, Some(_)) => 1
+      case _ =>  this.actor.path.toString.compareToIgnoreCase(that.actor.path.toString)
     }
   }
 }

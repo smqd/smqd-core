@@ -15,24 +15,14 @@
 package com.thing2x.smqd.plugin
 
 import java.io._
-import java.net.{URI, URL, URLClassLoader}
-import java.nio.file.FileSystems
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
-import akka.stream.{IOResult, Materializer}
-import akka.stream.scaladsl.{FileIO, Sink, Source}
 import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.PluginManager.InstallResult
-import com.thing2x.smqd.plugin.RepositoryDefinition.MavenModule
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
 import com.typesafe.scalalogging.StrictLogging
-import sbt.librarymanagement.UnresolvedWarning
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 /**
   * 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
@@ -88,7 +78,7 @@ object PluginManager extends StrictLogging {
   case class ReloadFailure(msg: String) extends ReloadResult
 }
 
-import PluginManager._
+import com.thing2x.smqd.plugin.PluginManager._
 
 class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String], val coreVersion: String) extends StrictLogging {
 
@@ -104,10 +94,10 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   private var packageDefs: Seq[PackageDefinition] = libDirectory match {
     case Some(rootDir) =>             // plugin root directory
       findPluginFiles(rootDir)        // plugin files in the root directories
-        .map(findPluginPackageLoader) // plugin loaders
+        .map(findPackageLoader)       // plugin loaders
         .flatMap(_.definition)        // to plugin definitions
     case None =>
-      findPluginPackageLoader(new File(getClass.getProtectionDomain.getCodeSource.getLocation.getPath)).definition match {
+      findPackageLoader(new File(getClass.getProtectionDomain.getCodeSource.getLocation.getPath)).definition match {
         case Some(d) => Seq(d)
         case None => Nil
       }
@@ -135,7 +125,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[BridgeDriver].isAssignableFrom(pd.clazz))
 
-  private def findPluginPackageLoader(file: File): PackageLoader = {
+  private def findPackageLoader(file: File): PackageLoader = {
     if (file.isDirectory) {
       new PackageLoader(this, Array(file.toURI.toURL), getClass.getClassLoader)
     }
@@ -151,14 +141,40 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
+  private def replacePackageDefinitions(pdefs: Seq[PackageDefinition], anotherDef: PackageDefinition): Seq[PackageDefinition] = {
+    val rt = pdefs.find(_.name == anotherDef.name) match {
+      case Some(oldDef) =>
+        val plugins = oldDef.plugins
+        plugins.flatMap(_.instances) foreach { inst =>
+          if (inst.instance.status != InstanceStatus.STOPPED) {
+            // stopping instance if it is still running
+            logger.warn(s"Force to stop plugin: ${inst.pluginDef.name} ${inst.name}")
+            inst.instance.execStop()
+          }
+        }
+        val instStatus = plugins.flatMap(_.instances).map(idef => s"${idef.pluginDef.name} ${idef.name}(${idef.status})")
+        logger.info(s"Replacing package '${oldDef.name}' having plugins $instStatus")
+        pdefs.filterNot( _ eq oldDef )
+      case None =>
+        pdefs
+    }
+    rt :+ anotherDef
+  }
+
   private def postInstallPluginPackageJar(jarFile: File)(implicit ec: ExecutionContext): Future[Option[PackageDefinition]] = Future {
-    None
+    findPackageLoader(jarFile).definition match {
+      case Some(pkgDef) =>
+        this.packageDefs = replacePackageDefinitions(this.packageDefs, pkgDef)
+        Some(pkgDef)
+      case None =>
+        None
+    }
   }
 
   private def postInstallPluginPackageMeta(metaFile: File)(implicit ec: ExecutionContext): Future[Option[PackageDefinition]] = Future {
-    findPluginPackageLoader(metaFile).definition match {
+    findPackageLoader(metaFile).definition match {
       case Some(pkgDef) =>
-        this.packageDefs = this.packageDefs :+ pkgDef
+        this.packageDefs = replacePackageDefinitions(this.packageDefs, pkgDef)
         Some(pkgDef)
       case None =>
         logger.warn(s"Pakcage loading fail: ${metaFile.getPath}")
@@ -166,16 +182,17 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
+  /** find candidates archive/meta/directory for plugin */
   private def findPluginFiles(rootDir: File): Seq[File] = {
-    new File(getClass.getProtectionDomain.getCodeSource.getLocation.getPath) +:
-      rootDir.listFiles{ file =>
-        val filename = file.getName
-        if (!file.canRead) false
-        else if (filename.endsWith(".jar") && file.isFile) true
-        else if (filename.endsWith(".plugin") && file.isFile) true
-        else if (file.isDirectory) true
-        else false
-      }
+    val codeBase = getClass.getProtectionDomain.getCodeSource.getLocation.getPath
+    new File(codeBase) +: rootDir.listFiles{ file =>
+      val filename = file.getName
+      if (!file.canRead) false
+      else if (filename.endsWith(".jar") && file.isFile) true
+      else if (filename.endsWith(".plugin") && file.isFile) true
+      else if (file.isDirectory) true
+      else false
+    }
   }
 
   private def findRootDir(rootDir: String): Option[File] = {
@@ -202,50 +219,8 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     }
   }
 
-  private def pluginCategoryOf(clazz: Class[_]): String = {
-    if (clazz.isAssignableFrom(classOf[Service])) "Service"
-    else if (clazz.isAssignableFrom(classOf[BridgeDriver])) "Service"
-    else "Unknown type"
-  }
-
   ////////////////////////////////////////////////////////
   // create instance
-  def defineInstance(smqd: Smqd, dname: String, dconf: Config): Option[InstanceDefinition[Plugin]] = {
-    var category = "Unknown type"
-    logger.info(s"$category '$dname' loading...")
-    dconf.getOptionString("entry.class") match {
-      case Some(className) =>
-        try {
-          val autoStart = dconf.getOptionBoolean("entry.auto-start").getOrElse(true)
-          val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Plugin]]
-          val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-          val inst = cons.newInstance(dname, smqd, dconf.getConfig("config"))
-          val pdef = PluginDefinition.nonPluggablePlugin(dname, clazz)
-          val idef = InstanceDefinition(inst, pdef, autoStart)
-          category = pluginCategoryOf(clazz)
-          logger.info(s"$category '$dname' loaded")
-          Some(idef)
-        }
-        catch {
-          case ex: Throwable =>
-            logger.error(s"Fail to load and create an instance of plugin '$dname'", ex)
-            None
-        }
-      case None =>
-        val plugin = dconf.getString("entry.plugin")
-        val autoStart = dconf.getOptionBoolean("entry.auto-start").getOrElse(true)
-        pluginDefinition(plugin) match {
-          case Some(pdef) =>
-            val idef: InstanceDefinition[Plugin] = pdef.createInstance(dname, smqd, dconf.getOptionConfig("config"), autoStart)
-            category = pluginCategoryOf(pdef.clazz)
-            logger.info(s"$category '$dname' loaded")
-            Some(idef)
-          case None =>
-            logger.error(s"Plugin not found '$plugin' '$dname'")
-            None
-        }
-    }
-  }
 
   def findInstanceConfigs: Seq[Config] = {
     if (libDirectory.isEmpty) {
@@ -266,7 +241,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
     logger.info(s"Loading plugin '$pluginName' instance '$instanceName' - auto-start: $autoStart")
 
-    defineInstance(smqd, instanceName, instanceConfig).map { idef =>
+    InstanceDefinition.defineInstance(smqd, instanceName, instanceConfig).map { idef =>
       if (idef.autoStart)
         idef.instance.execStart()
       idef
@@ -404,7 +379,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   def reloadPackage(smqd: Smqd, rdef: RepositoryDefinition)(implicit ec: ExecutionContext): Future[ReloadResult] = {
     Future {
       rdef.packageDefinition match {
-        case Some(pdef) =>
+        case Some(_) =>
 //          pdef.plugins.foreach { pl =>
 //          }
           ReloadFailure(s"Not implemented")

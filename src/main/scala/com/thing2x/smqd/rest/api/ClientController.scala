@@ -23,8 +23,6 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
 
-import scala.collection.immutable.SortedSet
-
 
 /**
   * 2018. 7. 6. - Created by Kwon, Yeong Eon
@@ -58,9 +56,9 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
       case None => // search
         val result = searchName match {
           case Some(search) => // query
-            SortedSet[Registration]() ++ rt.filter(r => r.clientId.isDefined && r.clientId.get.id.contains(search))
+            rt.filter(r => r.clientId.isDefined && r.clientId.get.id.contains(search))
           case None => // all
-            SortedSet[Registration]() ++ rt
+            rt
         }
         complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
     }

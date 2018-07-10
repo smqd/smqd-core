@@ -69,11 +69,15 @@ class PluginDefinition(val name: String, val clazz: Class[Plugin], val packageNa
 
   override def compare(that: PluginDefinition): Int = {
     // make smqd-core package come first
-    val delta = this.packageName match {
-      case CORE_PKG if that.packageName == CORE_PKG => 0
-      case CORE_PKG => 1
+    val delta = (this.packageName, that.packageName) match {
+      case (PluginManager.CORE_PKG, _) => -1
+      case (_, PluginManager.CORE_PKG) => 1
+      case (l, r) if l.startsWith("smqd-") && r.startsWith("smqd") => l.compare(r)
+      case (l, r) if l.startsWith("smqd-") && !r.startsWith("smqd") => -1
+      case (l, r) if !l.startsWith("smqd-") && r.startsWith("smqd") => 1
       case _ => this.packageName.compare(that.packageName)
     }
+
     if (delta == 0) this.name.compare(that.name) else delta
   }
 }

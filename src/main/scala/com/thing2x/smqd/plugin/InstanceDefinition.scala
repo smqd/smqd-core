@@ -14,13 +14,61 @@
 
 package com.thing2x.smqd.plugin
 
+import com.thing2x.smqd.Smqd
+import com.typesafe.config.Config
+import com.typesafe.scalalogging.StrictLogging
+
 import scala.concurrent.{ExecutionContext, Future}
+import com.thing2x.smqd._
 
 /**
   * 2018. 7. 9. - Created by Kwon, Yeong Eon
   */
-object InstanceDefinition {
+object InstanceDefinition extends StrictLogging {
   def apply[T <: Plugin](instance: T, pluginDef: PluginDefinition, autoStart: Boolean) = new InstanceDefinition(instance, pluginDef, autoStart)
+
+  private def pluginCategoryOf(clazz: Class[_]): String = {
+    if (clazz.isAssignableFrom(classOf[Service])) "Service"
+    else if (clazz.isAssignableFrom(classOf[BridgeDriver])) "BirdgeDriver"
+    else "Unknown type"
+  }
+
+  def defineInstance(smqd: Smqd, instName: String, instConf: Config): Option[InstanceDefinition[Plugin]] = {
+    var category = "Unknown type"
+    logger.info(s"$category '$instName' loading...")
+    instConf.getOptionString("entry.class") match {
+      case Some(className) =>
+        try {
+          val autoStart = instConf.getOptionBoolean("entry.auto-start").getOrElse(true)
+          val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Plugin]]
+          val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
+          val inst = cons.newInstance(instName, smqd, instConf.getConfig("config"))
+          val pdef = PluginDefinition.nonPluggablePlugin(instName, clazz)
+          val idef = InstanceDefinition(inst, pdef, autoStart)
+          category = pluginCategoryOf(clazz)
+          logger.info(s"$category '$instName' loaded")
+          Some(idef)
+        }
+        catch {
+          case ex: Throwable =>
+            logger.error(s"Fail to load and create an instance of plugin '$instName'", ex)
+            None
+        }
+      case None =>
+        val plugin = instConf.getString("entry.plugin")
+        val autoStart = instConf.getOptionBoolean("entry.auto-start").getOrElse(true)
+        smqd.pluginManager.pluginDefinition(plugin) match {
+          case Some(pdef) =>
+            val idef: InstanceDefinition[Plugin] = pdef.createInstance(instName, smqd, instConf.getOptionConfig("config"), autoStart)
+            category = pluginCategoryOf(pdef.clazz)
+            logger.info(s"$category '$instName' loaded")
+            Some(idef)
+          case None =>
+            logger.error(s"Plugin not found '$plugin' '$instName'")
+            None
+        }
+    }
+  }
 }
 
 class InstanceDefinition[+T <: Plugin](val instance: T, val pluginDef: PluginDefinition, val autoStart: Boolean) {

@@ -26,7 +26,7 @@ import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.sun.xml.internal.ws.api.server.ServiceDefinition
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.fault.FaultNotificationManager
-import com.thing2x.smqd.plugin.{BridgeDriver, PluginManager, Service}
+import com.thing2x.smqd.plugin.{BridgeDriver, InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
@@ -125,7 +125,7 @@ class Smqd(val config: Config,
     try {
       //// start services
       serviceDefs.foreach { case (sname, sconf) =>
-        pluginManager.defineInstance(this, sname, sconf) match {
+        InstanceDefinition.defineInstance(this, sname, sconf) match {
           case Some(idef) =>
             if (idef.autoStart)
               idef.instance.execStart()
@@ -152,7 +152,7 @@ class Smqd(val config: Config,
     //// bridge drivers
     try {
       bridgeDriverDefs.foreach { case (dname, dconf) =>
-        pluginManager.defineInstance(this, dname, dconf) match {
+        InstanceDefinition.defineInstance(this, dname, dconf) match {
           case Some(idef) =>
             if (idef.autoStart)
               idef.instance.execStart()
