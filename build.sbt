@@ -49,7 +49,10 @@ val `smqd-core` = project.in(file(".")).settings(
   publishMavenStyle := true
 ).settings(
   // sbt fork sqmd process to allow javaOptions parameters from command line
-  fork in run := true
+  fork in run := true,
+  javaOptions in Test ++= Seq(
+    "-Xmx2G"
+  )
 ).settings(
   // PGP signing
   pgpPublicRing := file("./travis/local.pubring.asc"),
