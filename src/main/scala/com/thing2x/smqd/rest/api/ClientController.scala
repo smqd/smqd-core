@@ -56,9 +56,9 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
       case None => // search
         val result = searchName match {
           case Some(search) => // query
-            rt.filter(r => r.clientId.isDefined && r.clientId.get.id.contains(search))
+            rt.filter(r => r.clientId.isDefined && r.clientId.get.id.contains(search)).sorted
           case None => // all
-            rt
+            rt.sorted
         }
         complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
     }
