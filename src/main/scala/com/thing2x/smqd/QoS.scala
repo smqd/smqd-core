@@ -14,16 +14,21 @@
 
 package com.thing2x.smqd
 
-/**
-  * 2018. 6. 8. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 8. - Created by Kwon, Yeong Eon
 
+/**
+  * Qos Level
+  */
 object QoS extends Enumeration {
   type QoS = Value
 
+  /** At most once qos level = 0x00 */
   val AtMostOnce: QoS.Value = Value(0x00)
+  /** At least once qos level = 0x01 */
   val AtLeastOnce: QoS.Value = Value(0x01)
+  /** Exactly once qos level = 0x02 */
   val ExactlyOnce: QoS.Value = Value(0x02)
+  /** Returned by smqd when subscription failed, or not allowed = 0x80 */
   val Failure: QoS.Value = Value(0x80)
 }
 

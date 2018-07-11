@@ -26,12 +26,15 @@ import com.thing2x.smqd.util.SslUtil
 
 import scala.collection.JavaConverters._
 
+// 2018. 6. 26. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 26. - Created by Kwon, Yeong Eon
+  * TLS provider shared in smqd
   *
   * set following parameter to debug
-  *
-  *      -Djavax.net.debug=ssl
+  *{{{
+  *   -Djavax.net.debug=ssl
+  *}}}
   */
 object TlsProvider {
   def apply(config: Config) = new TlsProvider(config)

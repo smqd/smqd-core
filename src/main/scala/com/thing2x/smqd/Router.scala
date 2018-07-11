@@ -26,9 +26,8 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.duration._
 
-/**
-  * 2018. 6. 15. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 15. - Created by Kwon, Yeong Eon
+
 trait Router {
   def snapshot: Map[FilterPath, Set[SmqdRoute]]
 

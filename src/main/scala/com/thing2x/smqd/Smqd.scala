@@ -33,8 +33,10 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.language.postfixOps
 
+// 2018. 6. 12. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 12. - Created by Kwon, Yeong Eon
+  * smqd core instance and providing APIs for embedding applications
   */
 class Smqd(val config: Config,
            _system: ActorSystem,

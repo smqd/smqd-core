@@ -29,8 +29,10 @@ import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
 
+// 2018. 6. 24. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 24. - Created by Kwon, Yeong Eon
+  *
   */
 package object smqd extends DefaultJsonProtocol {
   implicit def stringToFilterPath(str: String): FilterPath = FilterPath(str)

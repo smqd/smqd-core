@@ -14,9 +14,8 @@
 
 package com.thing2x.smqd
 
-/**
-  * 2018. 6. 11. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 11. - Created by Kwon, Yeong Eon
+
 object ClientId {
   def apply(id: String, channelId: Option[String]) = new ClientId(id, channelId)
   def apply(id: String, channelId: String) = new ClientId(id, Option(channelId))

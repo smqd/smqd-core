@@ -24,10 +24,11 @@ import com.typesafe.scalalogging.StrictLogging
 import scala.collection.mutable
 import scala.concurrent.{Await, Future}
 
-/**
-  * 2018. 6. 3. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 3. - Created by Kwon, Yeong Eon
 
+/**
+  * Subscription management registry. Hold all subscriber's [[Registration]]
+  */
 trait Registry {
   def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): QoS
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean
@@ -40,6 +41,14 @@ trait Registry {
   def snapshot: Seq[Registration]
 }
 
+/**
+  * Represents a subscription
+  *
+  * @param filterPath  subscribed topic filter
+  * @param qos         subscribed qos level [[QoS]]
+  * @param actor       Actor that wraps actual subscriber (mqtt client, actor, callback function)
+  * @param clientId    Holding remote client's [[ClientId]], only presets if the subscription is made by remote mqtt client.
+  */
 case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, clientId: Option[ClientId]) extends Ordered[Registration] {
   override def toString = s"${filterPath.toString} ($qos) => ${actor.path.toString}"
 

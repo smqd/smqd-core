@@ -19,9 +19,8 @@ import com.thing2x.smqd.SessionStore.{InitialData, SessionStoreToken, Subscripti
 
 import scala.concurrent.Future
 
-/**
-  * 2018. 7. 2. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 2. - Created by Kwon, Yeong Eon
+
 trait SessionStoreDelegate {
   /**
     * create new session

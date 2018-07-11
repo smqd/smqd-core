@@ -29,6 +29,13 @@ val `smqd-core` = project.in(file(".")).settings(
       Dependencies.metrics ++
       Dependencies.crypto
 ).settings(
+  // ScalaDoc
+  scalacOptions in (Compile, doc) ++= Seq(
+    "-doc-title", "SMQD",
+    "-doc-version", versionString,
+    "-skip-packages", "akka.pattern:org.apache"
+  )
+).settings(
   // Publishing
   publishTo := {
     val nexus = "https://oss.sonatype.org/"

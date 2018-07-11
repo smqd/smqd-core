@@ -16,8 +16,10 @@ package com.thing2x.smqd
 
 import com.typesafe.scalalogging.StrictLogging
 
+// 2018. 5. 29. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 5. 29. - Created by Kwon, Yeong Eon
+  * Default main class to launching a smqd process
   */
 object Main extends App with  SmqMainBase with StrictLogging {
 

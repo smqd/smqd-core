@@ -29,8 +29,10 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
+// 2018. 6. 2. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 2. - Created by Kwon, Yeong Eon
+  * Top level actor that manages all actors working in smqd
   */
 object ChiefActor {
   val actorName = "chief"

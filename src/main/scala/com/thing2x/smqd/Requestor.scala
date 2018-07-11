@@ -27,9 +27,8 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
 
 
-/**
-  * 2018. 6. 20. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 20. - Created by Kwon, Yeong Eon
+
 class Requestor extends StrictLogging {
 
   def request[T](topicPath: TopicPath, msg: Any)(implicit ec: ExecutionContext, timeout: Timeout): Future[T] = {

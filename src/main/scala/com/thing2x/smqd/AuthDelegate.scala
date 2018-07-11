@@ -16,8 +16,10 @@ package com.thing2x.smqd
 
 import scala.concurrent.{ExecutionContext, Future}
 
+// 2018. 6. 3. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 3. - Created by Kwon, Yeong Eon
+  * Trait for Authentication Delegate, implement this for customization
   */
 trait AuthDelegate {
   def authenticate(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]])(implicit ec: ExecutionContext): Future[com.thing2x.smqd.SmqResult]

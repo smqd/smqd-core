@@ -14,8 +14,10 @@
 
 package com.thing2x.smqd
 
+// 2018. 5. 29. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 5. 29. - Created by Kwon, Yeong Eon
+  * Having lifecyle by `start()` and `stop()`
   */
 trait LifeCycle {
 

@@ -22,10 +22,11 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 
-/**
-  * 2018. 5. 31. - Created by Kwon, Yeong Eon
-  */
+// 2018. 5. 31. - Created by Kwon, Yeong Eon
 
+/**
+  *
+  */
 sealed abstract class TName(val name: String) extends Serializable {
   def isLocalPrefix: Boolean = name == "$local"
   def isQueuePrefix: Boolean = name == "$queue"

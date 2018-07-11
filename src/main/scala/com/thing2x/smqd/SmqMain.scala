@@ -19,8 +19,11 @@ import java.io.{File, InputStreamReader}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 
+// 2018. 6. 28. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 28. - Created by Kwon, Yeong Eon
+  * Basic functions to build smqd based application.
+  * To build an application that is based on smqd, extend `SmqMainBase` and customize it.
   */
 trait SmqMainBase extends StrictLogging {
   def dumpEnvNames: Seq[String] = Nil

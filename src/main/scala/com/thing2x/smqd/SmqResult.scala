@@ -14,10 +14,11 @@
 
 package com.thing2x.smqd
 
-/**
-  * 2018. 6. 3. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 3. - Created by Kwon, Yeong Eon
 
+/**
+  * Top level trait of all kind of success and fault messages in smqd
+  */
 sealed trait SmqResult {
 }
 

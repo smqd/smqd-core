@@ -20,9 +20,7 @@ import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
 import com.thing2x.smqd.session.SessionActor.OutboundPublish
 
-/**
-  * 2018. 6. 18. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 18. - Created by Kwon, Yeong Eon
 
 object RegistryCallbackManagerActor {
   val actorName: String = "registry_callbacks"

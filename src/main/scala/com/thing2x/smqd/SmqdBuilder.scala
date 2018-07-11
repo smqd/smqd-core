@@ -25,8 +25,10 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Success
 
+// 2018. 6. 12. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 12. - Created by Kwon, Yeong Eon
+  * smqd instance builder
   */
 object SmqdBuilder {
   def apply(config: Config): SmqdBuilder = new SmqdBuilder(config)

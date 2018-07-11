@@ -22,10 +22,11 @@ import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
 
-/**
-  * 2018. 6. 15. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 15. - Created by Kwon, Yeong Eon
 
+/**
+  *
+  */
 class SmqSerializer extends Serializer with StrictLogging {
   override val identifier: Int = 0xDEAD + 1
 

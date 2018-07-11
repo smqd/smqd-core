@@ -26,9 +26,8 @@ import io.netty.buffer.ByteBufUtil
 import scala.collection.mutable
 import scala.concurrent.duration._
 
-/**
-  * 2018. 6. 15. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 15. - Created by Kwon, Yeong Eon
+
 trait Retainer {
 
   def set(map: Map[TopicPath, Array[Byte]]): Unit
