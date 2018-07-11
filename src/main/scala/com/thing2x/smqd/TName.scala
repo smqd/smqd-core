@@ -15,6 +15,12 @@
 package com.thing2x.smqd
 
 import com.thing2x.smqd.FilterPathPrefix.FilterPathPrefix
+import com.typesafe.scalalogging.Logger
+
+import scala.annotation.tailrec
+import scala.collection.concurrent.TrieMap
+import scala.collection.immutable.HashMap
+import scala.collection.mutable
 
 /**
   * 2018. 5. 31. - Created by Kwon, Yeong Eon
@@ -46,9 +52,9 @@ class TNameEmpty extends TName("")
 
 abstract class TNameWildcard(name: String) extends TName(name)
 
-class TNameMultiWildcard extends TNameWildcard("#")
+object TNameMultiWildcard extends TNameWildcard("#")
 
-class TNameSingleWildcard extends TNameWildcard("+")
+object TNameSingleWildcard extends TNameWildcard("+")
 
 object TName {
 
@@ -56,8 +62,8 @@ object TName {
     name match {
       // [MQTT-4.7.1-2] The multi-level wildcard character MUST be specified either on its own or following a topic
       // level seperator. In either case it MUST be the last character specified in the Topic Filter
-      case "#" if isLast => new TNameMultiWildcard()
-      case "+" => new TNameSingleWildcard()
+      case "#" if isLast => TNameMultiWildcard
+      case "+" => TNameSingleWildcard
       case "" => new TNameEmpty()
       case _ if name.contains('#') => new TNameInvalid(name, "name contains invalid character(#)")
       case _ if name.contains("+") => new TNameInvalid(name, "name contains invalid character(+)")
@@ -172,10 +178,10 @@ case class FilterPath(tokens: Seq[TName], prefix: FilterPathPrefix = NoPrefix, g
         if (t.name != p.head.name) return false
         p = p.tail
 
-      case _: TNameMultiWildcard =>
+      case TNameMultiWildcard =>
         if (p.nonEmpty) return true
 
-      case _: TNameSingleWildcard =>
+      case TNameSingleWildcard =>
         if (p.isEmpty) return false
         p = p.tail
 
@@ -243,7 +249,7 @@ object TPath {
     tokens.foreach {
       case _: TNameInvalid =>
         return None
-      case n: TNameMultiWildcard =>
+      case n @ TNameMultiWildcard =>
         // '#' can be only the last place
         if (tokens.indexOf(n) != tokens.length - 1)
           return None
@@ -292,5 +298,122 @@ object TPath {
       case _ =>
     }
     Some(TopicPath(tokens))
+  }
+}
+
+object TPathTrie {
+  def apply[T]() = new TPathTrie[T]()
+}
+
+class TPathTrie[T] {
+
+  private class Node(token: TName) {
+    private val children: TrieMap[TName, Node] = TrieMap.empty
+    private val contexts: mutable.ListBuffer[T] = mutable.ListBuffer()
+
+    @tailrec
+    final def addDescendants(des: Seq[TName], context: T): Unit = {
+      if (des.isEmpty) {
+        contexts += context
+      }
+      else {
+        val current = des.head
+        val child = children.get(current) match {
+          case Some(kid) =>
+            kid
+          case _ =>
+            val kid = new Node(current)
+            children.put(current, kid)
+            kid
+        }
+        child.addDescendants(des.tail, context)
+      }
+    }
+
+    final def removeDescendants(des: Seq[TName], context: T): Int = {
+      if (des.isEmpty) {
+        contexts -= context
+        contexts.size
+      }
+      else {
+        val current = des.head
+        children.get(current) match {
+          case Some(child) =>
+            if (child.removeDescendants(des.tail, context) == 0) {
+              children.remove(current)
+            }
+          case _ =>
+            // Question: can we silently ignore?
+        }
+        // ask parent not to remove my self, i have still have children
+        children.size
+      }
+    }
+
+    /** this method is the key point of performance for delivering published message to subscribers */
+    final def matches(des: Seq[TName]): Seq[T] = {
+      if (des.isEmpty || this.token == TNameMultiWildcard) {
+        contexts
+      }
+      else {
+        val current = des.head
+        val remains = des.tail
+
+        val exact = children.get(current).map(_.matches(remains))
+        val multi = children.get(TNameMultiWildcard).map(_.matches(remains))
+        val single = children.get(TNameSingleWildcard).map(_.matches(remains))
+
+        (exact :: multi :: single :: Nil).filterNot(_.isEmpty).flatMap(_.get)
+      }
+    }
+
+    final def snapshot: Seq[T] = {
+      Nil ++ contexts.seq ++ children.values.flatMap(_.snapshot)
+    }
+
+    final def dump(lvl: Int, sb: StringBuilder): Unit = {
+      if (lvl == 0) {
+        sb.append("<root>\n")
+      }
+      else {
+        (0 until lvl).foldLeft(sb)((sb, _) => sb.append("  "))
+        sb.append("").append(if(token.name.length == 0) "''" else token.name).append("\t")
+        if (contexts.nonEmpty) sb.append("=> ")
+        contexts.foldLeft(sb)((sb, ctx) => sb.append("[").append(ctx.toString).append("] "))
+        sb.append("\n")
+      }
+
+      children.foreach{ case (_, child) =>
+        child.dump(lvl+1, sb)
+      }
+    }
+  }
+
+  private val root = new Node(TName(""))
+
+  def add(path: TPath, context: T): Unit =
+    add(path.tokens, context)
+
+  def add(tokens: Seq[TName], context: T): Unit =
+    root.addDescendants(tokens, context)
+
+  def remove(path: TPath, context: T): Unit =
+    remove(path.tokens, context)
+
+  def remove(tokens: Seq[TName], context: T): Unit =
+    root.removeDescendants(tokens, context)
+
+  def matches(path: TPath): Seq[T] =
+    matches(path.tokens)
+
+  def matches(tokens: Seq[TName]): Seq[T] =
+    root.matches(tokens)
+
+  def snapshot: Seq[T] =
+    root.snapshot
+
+  /** only for debugging purpose */
+  def dump(sb: StringBuilder): Unit = {
+    root.dump(0, sb)
   }
 }

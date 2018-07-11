@@ -112,7 +112,7 @@ class TNameTest extends FlatSpec {
   it should "one/two/#" in {
     val ns = TName.parse("one/two/#")
     assert(ns.size == 3)
-    assert(ns(2).isInstanceOf[TNameMultiWildcard])
+    assert(ns(2) == TNameMultiWildcard)
 
     val tp = TPath.parseForTopic(ns)
     assert(tp.isEmpty)
@@ -125,8 +125,8 @@ class TNameTest extends FlatSpec {
     val path = "one/+/#"
     val ns = TName.parse(path)
     assert(ns.size == 3)
-    assert(ns(1).isInstanceOf[TNameSingleWildcard])
-    assert(ns(2).isInstanceOf[TNameMultiWildcard])
+    assert(ns(1) == TNameSingleWildcard)
+    assert(ns(2) == TNameMultiWildcard)
 
     val tp = TPath.parseForTopic(ns)
     assert(tp.isEmpty)
@@ -151,8 +151,8 @@ class TNameTest extends FlatSpec {
   it should "+/+" in {
     val ns = TName.parse("+/+")
     assert(ns.size == 2)
-    assert(ns(0).isInstanceOf[TNameSingleWildcard])
-    assert(ns(1).isInstanceOf[TNameSingleWildcard])
+    assert(ns(0) == TNameSingleWildcard)
+    assert(ns(1) == TNameSingleWildcard)
 
     val fl = TPath.parseForFilter(ns)
     assert(fl.isDefined)
@@ -197,7 +197,7 @@ class TNameTest extends FlatSpec {
     tokens = tokens.tail
 
     assert(tokens.head.name == "+")
-    assert(tokens.head.isInstanceOf[TNameSingleWildcard])
+    assert(tokens.head == TNameSingleWildcard)
 
     tokens = tokens.tail
     assert(tokens.head.name == "temp")
