@@ -12,7 +12,7 @@ environment:  MacBook 15-inch 2017 (2.9GHz i7) 4 cores, 16G RAM
 
 #### 1,000 x 1,000 topics
 
-scenario: each client subscribes to a topic `massive/sensors/<g>/<n>/#` (g: 1~1,000, n: 1~1,000)
+scenario: each client subscribes to a topic `massive/sensors/<g>/<n>/#` (g: 1 ~ 1,000, n: 1 ~ 1,000)
 
 - all registrations: 9,567 ms.
 - random topic filtering 10,000 times: 92 ms.
