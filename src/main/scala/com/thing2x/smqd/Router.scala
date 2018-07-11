@@ -171,7 +171,7 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
       // do nothing
     }
     else {
-      if (routesCount.incrementAndGet() >= blindRoutingThreshold) {
+      if (blindRoutingThreshold != 0 && routesCount.incrementAndGet() >= blindRoutingThreshold) {
         if (!blindRoutingFlag) { // enable blind routing
           blindRoutingFlag = true
           logger.warn("Blind routing triggered: > {}", blindRoutingThreshold)
@@ -185,7 +185,12 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
   }
 
   private[smqd] def removeRoute(filter: FilterPath): Unit = {
-    replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.removeBinding(filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
+    if (blindRoutingFlag) {
+      // do nothing
+    }
+    else {
+      replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.removeBinding(filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
+    }
   }
 }
 
