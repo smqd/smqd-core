@@ -14,6 +14,8 @@
 
 package com.thing2x.smqd
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import akka.actor.{Actor, ActorRef, Props}
 import akka.cluster.Cluster
 import akka.cluster.ddata.Replicator._
@@ -118,8 +120,28 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
   private val replicator = DistributedData(context.system).replicator
   private val FiltersKey = ORMultiMapKey[FilterPath, SmqdRoute]("smqd.filters")
 
-  private val writeConsistency = WriteMajority(1.second)
-  private val readConsistency = ReadMajority(1.second)
+  private val config = smqd.Implicit.system.settings.config
+
+  private val numRegex = "([0-9]+)".r
+
+  private val writeCLTimeout = config.getDuration("smqd.router.write_consistency_timeout").toMillis.milli
+  private val writeConsistency = config.getString("smqd.router.write_consistency_level").toLowerCase match {
+    case "majority" => WriteMajority(writeCLTimeout)
+    case "local"    => WriteLocal
+    case "all"      => WriteAll(writeCLTimeout)
+    case numRegex(str) => WriteTo(str.toInt, writeCLTimeout)
+  }
+  private val readCLTimeout = config.getDuration("smqd.router.read_consistency_timeout").toMillis.milli
+  private val readConsistency = config.getString("smqd.router.read_consistency_level").toLowerCase match {
+    case "majority" => ReadMajority(readCLTimeout)
+    case "local"    => ReadLocal
+    case "all"      => ReadAll(readCLTimeout)
+    case numRegex(str) => ReadFrom(str.toInt, readCLTimeout)
+  }
+
+  private val blindRoutingThreshold = config.getInt("smqd.router.blind_routing_threshold")
+  private var blindRoutingFlag = false
+  private val routesCount = new AtomicInteger(0)
 
   private val localRouter = context.actorOf(Props(classOf[ClusterAwareLocalRouter], registry), "node-router")
 
@@ -145,7 +167,21 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
   }
 
   private[smqd] def addRoute(filter: FilterPath): Unit = {
-    replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
+    if (blindRoutingFlag) {
+      // do nothing
+    }
+    else {
+      if (routesCount.incrementAndGet() >= blindRoutingThreshold) {
+        if (!blindRoutingFlag) { // enable blind routing
+          blindRoutingFlag = true
+          logger.warn("Blind routing triggered: > {}", blindRoutingThreshold)
+          replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding("#", SmqdRoute("#", localRouter, smqd.nodeName)))
+        }
+      }
+      else {
+        replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
+      }
+    }
   }
 
   private[smqd] def removeRoute(filter: FilterPath): Unit = {
