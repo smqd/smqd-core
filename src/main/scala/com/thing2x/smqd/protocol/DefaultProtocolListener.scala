@@ -35,7 +35,15 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
   private def colored_do(str: String, hash: Int): String = s"${colors(math.abs(hash % colors.length))}$str$RESET"
   private def colored_no(str: String, hash: Int): String = str
 
-  private var colored:(String, Int) => String = colored_no
+  private def logTrace(m: String): Unit = logger.trace(m)
+  private def logDebug(m: String): Unit = logger.debug(m)
+  private def logInfo(m: String): Unit = logger.info(m)
+  private def logWarn(m: String): Unit = logger.warn(m)
+  private def logDefault(m: String): Unit = logger.debug(m)
+
+  private var colored: (String, Int) => String = colored_no
+  private var level: String => Unit = logDebug
+
 
   private var subr: Option[ActorRef] = None
 
@@ -48,6 +56,13 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
 
     val coloring = config.getBoolean("coloring")
     colored = if(coloring) colored_do else colored_no
+    level = config.getOptionString("level").getOrElse("debug").toLowerCase match {
+      case "trace" => logTrace
+      case "debug" => logDebug
+      case "info" => logInfo
+      case "warn" => logWarn
+      case _ => logDefault
+    }
   }
 
   override def stop(): Unit = {
@@ -63,7 +78,8 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
         val channelId = m.channelId
         val clientId = if (m.clientId.contains("@")) m.clientId else channelId + "@" + m.clientId
         val dirType = s"${if(m.direction == Recv) "Recv" else if(m.direction == Send) "Send" else "---" }"
-        logger.debug(s"${colored(s"[$clientId] $dirType ${m.messageType}", channelId.hashCode)} ${m.message}")
+        val msg = s"${colored(s"[$clientId] $dirType ${m.messageType}", channelId.hashCode)} ${m.message}"
+        this.level(msg)
 
       case _ =>
     }

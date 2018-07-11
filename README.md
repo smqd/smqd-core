@@ -31,8 +31,8 @@ If you want to try snapshot version, add a resolver for soatype repository
 - [x] System Topic ($SYS)
 - [x] Request & Response pattern in embed mode
 - [x] Http RESTful API (http, https)
-- [x] Bridge - Mqtt
-- [x] Bridge - Http
+- [x] Bridges (through external plugins)
+- [x] Third-party plugins
 
 #### Local Subscription: 
 
