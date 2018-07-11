@@ -83,7 +83,7 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
   "Callback Subscription" must {
     "callback - partial function must work" in {
       val origin = self
-      val subr = smqd.subscribe("registry/test/+/temp"){
+      val subr = smqd.subscribe("registry/test/pf/+/temp"){
         case (topic, msg) =>
           //logger.info(s"==p==> ${topic} ${msg}")
           origin ! msg
@@ -91,7 +91,7 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
 
       1 to 100 foreach { i =>
         val msg = s"Hello World - $i"
-        smqd.publish(s"registry/test/$i/temp", msg)
+        smqd.publish(s"registry/test/pf/$i/temp", msg)
         expectMsg(msg)
       }
 
@@ -105,11 +105,11 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
         origin ! msg
       }
 
-      val subr = smqd.subscribe("registry/test/+/temp", callback _ )
+      val subr = smqd.subscribe("registry/test/callback/+/temp", callback _ )
 
       1 to 100 foreach { i =>
         val msg = s"Hello World - $i"
-        smqd.publish(s"registry/test/$i/temp", msg)
+        smqd.publish(s"registry/test/callback/$i/temp", msg)
         expectMsg(msg)
       }
 
@@ -121,11 +121,11 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
 
   "Actor Subscription" must {
     "actor must work" in {
-      smqd.subscribe("registry/test/#", subscribeActor)
+      smqd.subscribe("registry/test/actor/#", subscribeActor)
 
       1 to 100 foreach { i =>
         val msg = s"Hello World - $i"
-        smqd.publish(s"registry/test/$i/temp", msg)
+        smqd.publish(s"registry/test/actor/$i/temp", msg)
         expectMsg(msg)
       }
 
