@@ -68,7 +68,7 @@ class TPathTriePerfTest extends FlatSpec with StrictLogging{
     assert(m1.toSet == Set("#"))
 
     m1 = trie.matches(TopicPath("/buildings/1/maybe"))
-    assert(m1.toSet == Set("#", "building"))
+    assert(m1.toSet == Set("#", "building", "building-all"))
 
     m1 = trie.matches(TopicPath("/buildings/1/maybe/abc/xyz"))
     assert(m1.toSet == Set("#", "building-all"))
