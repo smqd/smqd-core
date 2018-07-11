@@ -25,9 +25,6 @@ import scala.util.Random
   */
 class TPathTrieTest extends FlatSpec with StrictLogging{
   val trie = TPathTrie[String]()
-  val sbuilder = new StringBuilder()
-  var savedShape = ""
-  var initialCount = 0
 
   "TPathTrie" should "append children" in {
     trie.add(FilterPath(""), context = "empty")
@@ -48,12 +45,11 @@ class TPathTrieTest extends FlatSpec with StrictLogging{
     trie.add(FilterPath("houses/mine/bedroom/3/temp"), "roomtemp3")
     trie.add(FilterPath("/buildings/+/maybe"), context="building")
     trie.add(FilterPath("/buildings/+/maybe/#"), context="building-all")
+    trie.add(FilterPath("$local/$SYS/protocols/#"), context="protocol")
 
-    initialCount = trie.snapshot.length
-
-    trie.dump(sbuilder)
-    savedShape = sbuilder.toString
-    //logger.info(s"\n${sbuilder.toString}")
+    val sb = new StringBuilder()
+    trie.dump(sb)
+    logger.info(s"\n${sb.toString}")
   }
 
   it should "matches" in {
@@ -67,100 +63,12 @@ class TPathTrieTest extends FlatSpec with StrictLogging{
     assert(m1.toSet == Set("#"))
 
     m1 = trie.matches(TopicPath("/buildings/1/maybe"))
-    assert(m1.toSet == Set("#", "building"))
+    assert(m1.toSet == Set("#", "building", "building-all"))
 
     m1 = trie.matches(TopicPath("/buildings/1/maybe/abc/xyz"))
     assert(m1.toSet == Set("#", "building-all"))
-  }
 
-  def time[T](str: String)(thunk: => T): T = {
-    logger.info(str + "... ")
-    val t1 = System.currentTimeMillis
-    val x = thunk
-    val t2 = System.currentTimeMillis
-    logger.info((t2 - t1) + " ms.")
-    x
-  }
-
-  val groupRange = 1000
-  val filterRange = 1000
-
-  it should "handle massive filters" in {
-    val repeats = 10000
-
-    time(s"insert $groupRange topics that have $filterRange filters") {
-      for {
-        g <- 1 to groupRange
-        n <- 1 to filterRange
-      } {
-        trie.add(FilterPath(s"massive/sensors/$g/$n/#"), s"massive-$g-$n")
-      }
-    }
-
-    val random = Random.javaRandomToRandom(new java.util.Random())
-    time(s"random matches filter $repeats times") {
-      1 to repeats foreach { _ =>
-        val g = random.nextInt(groupRange) + 1
-        val n = random.nextInt(filterRange) + 1
-        trie.matches(TopicPath(s"massive/sensors/$g/$n/temp"))
-      }
-    }
-
-    time(s"insert filters ${groupRange * filterRange}") {
-      1 to filterRange * groupRange foreach { i =>
-        trie.add(FilterPath(s"massive/devices/$i/#"), s"device-$i")
-      }
-    }
-
-    time("one time filter") {
-      val m1 = trie.matches(TopicPath(s"massive/devices/100/temp"))
-      assert(m1.toSet == Set("#", s"device-100"))
-    }
-
-    time(s"random matches filter $repeats times") {
-      1 to repeats foreach { _ =>
-        val n = random.nextInt(filterRange) + 1
-        val m1 = trie.matches(TopicPath(s"massive/devices/$n/temp"))
-        assert(m1.toSet == Set("#", s"device-$n"))
-      }
-    }
-  }
-
-  it should "count snapshot" in {
-    time("count total filters with snapshot") {
-      val s = trie.snapshot
-      assert(s.length == (groupRange * filterRange)*2 + initialCount)
-      //logger.info(s"===========+> ${s.length}")
-    }
-  }
-
-  it should "handle massive removes" in {
-    time(s"remove $groupRange topics that have $filterRange filters") {
-      for {
-        g <- 1 to groupRange
-        n <- 1 to filterRange
-      } {
-        trie.remove(FilterPath(s"massive/sensors/$g/$n/#"), s"massive-$g-$n")
-      }
-    }
-
-    time(s"remove filters ${groupRange * filterRange}") {
-      1 to filterRange * groupRange foreach { i =>
-        trie.remove(FilterPath(s"massive/devices/$i/#"), s"device-$i")
-      }
-    }
-
-    val s = trie.snapshot
-    assert(s.length == initialCount)
-
-    sbuilder.clear()
-    trie.dump(sbuilder)
-    val currentShape = sbuilder.toString
-    //logger.info(s"\n{}", currentShape)
-    assert(savedShape == currentShape)
-  }
-
-  it should "take snapshot" in {
-    trie.snapshot
+    m1 = trie.matches(TopicPath("$SYS/protocols"))
+    assert(m1.toSet == Set("#", "protocol"))
   }
 }

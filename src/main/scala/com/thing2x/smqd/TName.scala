@@ -389,7 +389,13 @@ class TPathTrie[T] {
     /** this method is the key point of performance for delivering published message to subscribers */
     final def matches(des: Seq[TName]): Seq[T] = {
       if (des.isEmpty || this.token == TNameMultiWildcard) {
-        contexts
+        children.get(TNameMultiWildcard) match {
+          case Some(multi) =>
+            // filter that ends with '#'. e.g) filter 'sensor/#' should match with topic 'sensor'
+            multi.contexts ++ contexts
+          case None =>
+            contexts
+        }
       }
       else {
         val current = des.head

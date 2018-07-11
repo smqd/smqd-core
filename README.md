@@ -66,13 +66,13 @@ SMQD will not make cluster ranged routes for local subscription, and only delive
 * how to subscribe to smqd via mqtt
 
 ```
-mosquitto_sub -t sensor/1/# -h 127.0.0.1 -p 1883 -u user -P user -d -V mqttv311
+mosquitto_sub -t sensor/1/# -h 127.0.0.1 -p 1883 -i client_sub -u user -P user -d -V mqttv311
 ```
 
 * how to publish to smqd via mqtt
 
 ```
-mosquitto_pub -t sensor/1/temp -h 127.0.0.1 -p 1883 -m "test message" -u user -P user -d -V mqttv311 -q 2
+mosquitto_pub -t sensor/1/temp -h 127.0.0.1 -p 1883 -i client_pub -m "test message" -u user -P user -d -V mqttv311 -q 2
 ```
 
 #### Mqtt over WebSocket

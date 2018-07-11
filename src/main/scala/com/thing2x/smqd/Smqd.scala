@@ -73,8 +73,7 @@ class Smqd(val config: Config,
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
   val pluginManager  = PluginManager(config.getConfig("smqd.plugin"), version)
 
-  private val registry       = new HashMapRegistry(this, config.getBoolean("smqd.registry.verbose"))
-  //private val registry       = new TrieRegistry(this, config.getBoolean("smqd.registry.verbose"))
+  private val registry       = new TrieRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)
   private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
   private val sessionStore   = new SessionStore(sessionStoreDelegate)
