@@ -51,7 +51,8 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
   val localSecureBindAddress: String = config.getOptionString("local.secure.address").getOrElse("0.0.0.0")
   val localSecureBindPort: Int = config.getOptionInt("local.secure.port").getOrElse(localSecurePort)
 
-  private var bindingFuture: Future[ServerBinding] = _
+  private var binding: Option[ServerBinding] = None
+  private var tlsBinding: Option[ServerBinding] = None
   private var finalRoutes: Route = _
 
   override def start(): Unit = {
@@ -89,12 +90,13 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
     if (localEnabled) {
       val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(system), logAdapter)
-      bindingFuture = serverSource.to(Sink.foreach{ connection =>
+      val bindingFuture = serverSource.to(Sink.foreach{ connection =>
         connection.handleWithAsyncHandler(httpRequest => handler(httpRequest))
       }).run()
 
       bindingFuture.onComplete {
         case Success(b) =>
+          binding = Some(b)
           logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
         case Failure(e) =>
           logger.error(s"Http Service [$name] Failed", e)
@@ -108,12 +110,13 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
           case Some(sslContext) =>
             val connectionContext = ConnectionContext.https(sslContext)
             val serverSource = Http().bind(localSecureBindAddress, localSecureBindPort, connectionContext, ServerSettings(system), logAdapter)
-            bindingFuture = serverSource.to(Sink.foreach{ connection =>
+            val tlsBindingFuture = serverSource.to(Sink.foreach{ connection =>
               connection.handleWithAsyncHandler(httpRequest => handler(httpRequest))
             }).run()
 
-            bindingFuture.onComplete {
+            tlsBindingFuture.onComplete {
               case Success(b) =>
+                tlsBinding = Some(b)
                 logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
               case Failure(e) =>
                 logger.error(s"Http Service [$name] Failed", e)
@@ -127,9 +130,8 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
   override def stop(): Unit = {
     logger.info(s"Http Service [$name] Stopping...")
-
-    import smqd.Implicit._
-    bindingFuture.flatMap(_.unbind()) // trigger unbinding from the port
+    binding.map(_.unbind()) // trigger unbinding from the port
+    tlsBinding.map(_.unbind()) // trigger unbinding from the port
     logger.info(s"Http Service [$name] Stopped.")
   }
 
