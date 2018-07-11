@@ -28,14 +28,14 @@ object InstanceDefinition extends StrictLogging {
   def apply[T <: Plugin](instance: T, pluginDef: PluginDefinition, autoStart: Boolean) = new InstanceDefinition(instance, pluginDef, autoStart)
 
   private def pluginCategoryOf(clazz: Class[_]): String = {
-    if (clazz.isAssignableFrom(classOf[Service])) "Service"
-    else if (clazz.isAssignableFrom(classOf[BridgeDriver])) "BirdgeDriver"
+    if (classOf[Service].isAssignableFrom(clazz)) "Service"
+    else if (classOf[BridgeDriver].isAssignableFrom(clazz)) "BirdgeDriver"
     else "Unknown type"
   }
 
   def defineInstance(smqd: Smqd, instName: String, instConf: Config): Option[InstanceDefinition[Plugin]] = {
     var category = "Unknown type"
-    logger.info(s"$category '$instName' loading...")
+    logger.info(s"Plugin '$instName' loading...")
     instConf.getOptionString("entry.class") match {
       case Some(className) =>
         try {
@@ -46,7 +46,7 @@ object InstanceDefinition extends StrictLogging {
           val pdef = PluginDefinition.nonPluggablePlugin(instName, clazz)
           val idef = InstanceDefinition(inst, pdef, autoStart)
           category = pluginCategoryOf(clazz)
-          logger.info(s"$category '$instName' loaded")
+          logger.info(s"Plugin '$instName' loaded as $category")
           Some(idef)
         }
         catch {
@@ -61,7 +61,7 @@ object InstanceDefinition extends StrictLogging {
           case Some(pdef) =>
             val idef: InstanceDefinition[Plugin] = pdef.createInstance(instName, smqd, instConf.getOptionConfig("config"), autoStart)
             category = pluginCategoryOf(pdef.clazz)
-            logger.info(s"$category '$instName' loaded")
+            logger.info(s"Plugin '$instName' loaded as $category")
             Some(idef)
           case None =>
             logger.error(s"Plugin not found '$plugin' '$instName'")

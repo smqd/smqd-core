@@ -37,7 +37,7 @@ trait Registry {
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef
   def subscribe(filterPath: FilterPath)(callback: PartialFunction[(TopicPath, Any), Unit]): ActorRef
 
-  def snapshot: Set[Registration]
+  def snapshot: Seq[Registration]
 }
 
 case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, clientId: Option[ClientId]) extends Ordered[Registration] {
@@ -186,7 +186,63 @@ final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegi
     }
   }
 
-  def snapshot: Set[Registration] = {
-    registry.values.flatten.toSet
+  def snapshot: Seq[Registration] = {
+    registry.values.flatten.toSeq
+  }
+}
+
+final class TrieRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegistry(smqd) {
+  private val trie: TPathTrie[Registration] = TPathTrie()
+
+  def subscribe0(reg: Registration): QoS ={
+    logger.debug("subscribe0 {}{}", reg.actor.path, if (reg.filterPath == null) "" else ": "+reg.filterPath.toString)
+
+    val noRemains = trie.add(reg.filterPath, reg)
+    if (noRemains == 1) { // if it's a new
+      smqd.addRoute(reg.filterPath)
+    }
+    if (debugDump)
+      logger.debug(s"\n{}", dump)
+    reg.qos
+  }
+
+  def unsubscribe0(actor: ActorRef, filterPath: FilterPath = null): Boolean = {
+    logger.debug("unsubscribe0 {}{}", actor.path, if (filterPath == null) "" else ": "+filterPath.toString)
+
+    var result = false
+    if (filterPath != null) { // filter based unregister
+      val noRemains = trie.remove(filterPath){r => r.actor.path == actor.path}
+      if (noRemains == 0)
+        smqd.removeRoute(filterPath)
+
+      if (noRemains >= 0) // negative number means non-existing filter path
+        result = true
+    }
+    else { // actor based registration
+      val rs = trie.filter(r => r.actor.path == actor.path)
+      rs.foreach { r =>
+        val noRemains = trie.remove(r.filterPath, r)
+        if (noRemains == 0)
+          smqd.removeRoute(filterPath)
+      }
+      result = true
+    }
+
+    if (debugDump)
+      logger.debug(s"\n{}", dump)
+    result
+  }
+
+  private def dump: String = {
+    val sb = new mutable.StringBuilder()
+    trie.dump(sb)
+    sb.toString()
+  }
+
+  def filter(topicPath: TopicPath): Seq[Registration] =
+    trie.matches(topicPath)
+
+  def snapshot: Seq[Registration] = {
+    trie.snapshot
   }
 }

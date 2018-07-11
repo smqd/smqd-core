@@ -311,10 +311,14 @@ class TPathTrie[T] {
     private val children: TrieMap[TName, Node] = TrieMap.empty
     private val contexts: mutable.ListBuffer[T] = mutable.ListBuffer()
 
+    /**
+      * @return number of current number of contexts
+      */
     @tailrec
-    final def addDescendants(des: Seq[TName], context: T): Unit = {
+    final def addDescendants(des: Seq[TName], context: T): Int = {
       if (des.isEmpty) {
         contexts += context
+        contexts.length
       }
       else {
         val current = des.head
@@ -330,23 +334,55 @@ class TPathTrie[T] {
       }
     }
 
-    final def removeDescendants(des: Seq[TName], context: T): Int = {
+    final def removeDescendants(des: Seq[TName])(contextMatcher: T => Boolean): Int = {
       if (des.isEmpty) {
-        contexts -= context
-        contexts.size
+        contexts.find(contextMatcher) match {
+          case Some(ctx) => contexts -= ctx
+          case _ =>
+        }
+        contexts.length
       }
       else {
         val current = des.head
         children.get(current) match {
           case Some(child) =>
-            if (child.removeDescendants(des.tail, context) == 0) {
+            val noOfContextsChildHas = child.removeDescendants(des.tail)(contextMatcher)
+            if (noOfContextsChildHas == 0) {
               children.remove(current)
             }
-          case _ =>
-            // Question: can we silently ignore?
+            noOfContextsChildHas
+          case _ => // Question: can we silently ignore?
+            if (children.isEmpty)
+              contexts.length * -1 // ask parent not to remove me, i still have contexts
+            else
+              children.size * -1  // ask parent not to remove me, i still have children
         }
-        // ask parent not to remove my self, i have still have children
-        children.size
+      }
+    }
+
+    /**
+      * @return 0 >= number of remaining contexts, < 0 means non-existing path
+      */
+    final def removeDescendants(des: Seq[TName], context: T): Int = {
+      if (des.isEmpty) {
+        contexts -= context
+        contexts.length
+      }
+      else {
+        val current = des.head
+        children.get(current) match {
+          case Some(child) =>
+            val noOfContextsChildHas = child.removeDescendants(des.tail, context)
+            if (noOfContextsChildHas == 0) {
+              children.remove(current)
+            }
+            noOfContextsChildHas
+          case _ => // Question: can we silently ignore?
+            if (children.isEmpty)
+              contexts.length * -1 // ask parent not to remove me, i still have contexts
+            else
+              children.size * -1  // ask parent not to remove me, i still have children
+        }
       }
     }
 
@@ -391,17 +427,23 @@ class TPathTrie[T] {
 
   private val root = new Node(TName(""))
 
-  def add(path: TPath, context: T): Unit =
+  def add(path: TPath, context: T): Int =
     add(path.tokens, context)
 
-  def add(tokens: Seq[TName], context: T): Unit =
+  def add(tokens: Seq[TName], context: T): Int =
     root.addDescendants(tokens, context)
 
-  def remove(path: TPath, context: T): Unit =
+  def remove(path: TPath, context: T): Int =
     remove(path.tokens, context)
 
-  def remove(tokens: Seq[TName], context: T): Unit =
+  def remove(tokens: Seq[TName], context: T): Int =
     root.removeDescendants(tokens, context)
+
+  def remove(path: TPath)(contextMatcher: T => Boolean): Int =
+    remove(path.tokens)(contextMatcher)
+
+  def remove(tokens: Seq[TName])(contextMatcher: T => Boolean): Int =
+    root.removeDescendants(tokens)(contextMatcher)
 
   def matches(path: TPath): Seq[T] =
     matches(path.tokens)
@@ -411,6 +453,9 @@ class TPathTrie[T] {
 
   def snapshot: Seq[T] =
     root.snapshot
+
+  def filter(matcher: T => Boolean): Seq[T] =
+    snapshot.filter(matcher)
 
   /** only for debugging purpose */
   def dump(sb: StringBuilder): Unit = {

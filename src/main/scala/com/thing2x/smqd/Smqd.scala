@@ -59,7 +59,7 @@ class Smqd(val config: Config,
 
   import Implicit._
 
-  logger.trace("Origin of configuration: {}", config.origin.description())
+  //logger.trace("Origin of configuration: {}", config.origin.description())
 
   val version: String = config.getString("smqd.version")
   val commitVersion: String = config.getString("smqd.commit-version")
@@ -74,6 +74,7 @@ class Smqd(val config: Config,
   val pluginManager  = PluginManager(config.getConfig("smqd.plugin"), version)
 
   private val registry       = new HashMapRegistry(this, config.getBoolean("smqd.registry.verbose"))
+  //private val registry       = new TrieRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)
   private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
   private val sessionStore   = new SessionStore(sessionStoreDelegate)
@@ -213,7 +214,7 @@ class Smqd(val config: Config,
   private lazy val protocolManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+ProtocolNotificationManager.actorName)(system)
   def notifyProtocol(proto: ProtocolNotification): Unit = protocolManager ! proto
 
-  def snapshotRegistrations: Set[Registration] =
+  def snapshotRegistrations: Seq[Registration] =
     registry.snapshot
 
   def subscribe(filterPath: FilterPath, actor: ActorRef): Unit =

@@ -40,7 +40,7 @@ object PluginManager extends StrictLogging {
         config.getString("conf")
       }
       else {
-        logger.trace("origin of plugin config", config.origin.filename)
+        logger.trace("origin of plugin config: {}", config.origin.filename)
         val configFilePath = config.origin.filename
         if (configFilePath != null) {
           val file = new File(configFilePath)
