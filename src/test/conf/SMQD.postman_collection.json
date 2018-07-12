@@ -1095,7 +1095,7 @@
 							"response": []
 						},
 						{
-							"name": "packages query=core",
+							"name": "packages query=smqd",
 							"event": [
 								{
 									"listen": "test",
@@ -1121,7 +1121,7 @@
 								"header": [],
 								"body": {},
 								"url": {
-									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages?query=core",
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages?query=smqd",
 									"protocol": "http",
 									"host": [
 										"{{smqd_hostport}}"
@@ -1134,7 +1134,7 @@
 									"query": [
 										{
 											"key": "query",
-											"value": "core"
+											"value": "smqd"
 										}
 									]
 								}
@@ -1221,6 +1221,49 @@
 										"management",
 										"packages",
 										"smqd-bridge-http"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "package reload",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-bridge-http/reload",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages",
+										"smqd-bridge-http",
+										"reload"
 									]
 								}
 							},
@@ -1313,7 +1356,7 @@
 					},
 					"response": [
 						{
-							"id": "dc2d01a4-d70a-45d2-95c9-3d4f932ac144",
+							"id": "71594b98-386b-4a2c-a643-1b7c1121ea38",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1364,7 +1407,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "7e588f51-91f4-426a-9c79-a66529a4d332",
+							"id": "8749ad41-a817-40a0-9055-4d0869bd2dfd",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1446,7 +1489,7 @@
 					},
 					"response": [
 						{
-							"id": "75b72642-8e3f-4380-a0dd-30edbf30c83b",
+							"id": "be57a611-f1cc-48c1-8dd0-77dddd3fdad4",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1519,7 +1562,7 @@
 					},
 					"response": [
 						{
-							"id": "3ab7b43b-7a60-4e84-9045-e96b8d400fc6",
+							"id": "5ef6e3f0-a5f6-4ea2-9777-e5d4b7bc18b7",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1597,7 +1640,412 @@
 					},
 					"response": [
 						{
-							"id": "e06c2516-2dfb-4274-ae6f-c7bb23354721",
+							"id": "d285553d-4032-4ac9-a037-2dfb2569231d",
+							"name": "GET clients",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"clients"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "415",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 06 Jul 2018 09:01:22 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Server",
+									"value": "akka-http/10.1.3",
+									"name": "Server",
+									"description": "A name for the server"
+								}
+							],
+							"cookie": [],
+							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "subscriptions",
+			"description": "",
+			"item": [
+				{
+					"name": "subscriptions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/subscriptions",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"subscriptions"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "8a7fff10-34f6-4d7c-a4fc-780b29ec6b4a",
+							"name": "GET clients",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"clients"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "415",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 06 Jul 2018 09:01:22 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Server",
+									"value": "akka-http/10.1.3",
+									"name": "Server",
+									"description": "A name for the server"
+								}
+							],
+							"cookie": [],
+							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
+						},
+						{
+							"id": "7610af16-389c-46c2-87b7-2a2653c81aaa",
+							"name": "GET clients",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"clients"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "582",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 06 Jul 2018 12:50:46 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Server",
+									"value": "akka-http/10.1.3",
+									"name": "Server",
+									"description": "A name for the server"
+								}
+							],
+							"cookie": [],
+							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
+						}
+					]
+				},
+				{
+					"name": "subscriptions sensor/+",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/subscriptions/sensor/+?curr_page=1&page_size=20",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"subscriptions",
+								"sensor",
+								"+"
+							],
+							"query": [
+								{
+									"key": "curr_page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								},
+								{
+									"key": null,
+									"value": null
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "5411474d-0fb8-445e-b026-e11846d639f5",
+							"name": "GET clients",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"clients"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "415",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 06 Jul 2018 09:01:22 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Server",
+									"value": "akka-http/10.1.3",
+									"name": "Server",
+									"description": "A name for the server"
+								}
+							],
+							"cookie": [],
+							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
+						},
+						{
+							"id": "2fad05e5-7b00-4ca5-9dcc-41b3dd1d91e9",
+							"name": "GET clients",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"clients"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "582",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 06 Jul 2018 12:50:46 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Server",
+									"value": "akka-http/10.1.3",
+									"name": "Server",
+									"description": "A name for the server"
+								}
+							],
+							"cookie": [],
+							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
+						}
+					]
+				},
+				{
+					"name": "subscriptions query by topic",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/subscriptions?curr_page=1&page_size=20&query=sensor",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"subscriptions"
+							],
+							"query": [
+								{
+									"key": "curr_page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								},
+								{
+									"key": "query",
+									"value": "sensor"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "3a5a3dae-8089-4d18-a559-8bb2d00cc023",
+							"name": "GET clients",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/clients",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"clients"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "582",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 06 Jul 2018 12:50:46 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Server",
+									"value": "akka-http/10.1.3",
+									"name": "Server",
+									"description": "A name for the server"
+								}
+							],
+							"cookie": [],
+							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
+						},
+						{
+							"id": "6a32bea7-16b5-4d52-860d-1e833a754914",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
