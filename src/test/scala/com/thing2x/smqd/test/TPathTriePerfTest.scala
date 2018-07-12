@@ -88,7 +88,7 @@ class TPathTriePerfTest extends FlatSpec with StrictLogging{
   /* exclude perf test case it is deadly slower when you run it by 'sbt run', but it works fine on intellij */
 //  val groupRange = 1000
 //  val filterRange = 1000
-//  val repeats = 10000
+//  val repeats = 1000000
   val groupRange = 10
   val filterRange = 100
   val repeats = 100
