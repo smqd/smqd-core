@@ -27,9 +27,7 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
-/**
-  * 2018. 6. 18. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 18. - Created by Kwon, Yeong Eon
 
 object PublishTest {
 
@@ -56,7 +54,7 @@ object PublishTest {
   }
 }
 
-class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
+class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseString(
   """
     |akka.actor.provider=local
     |akka.cluster.seed-nodes=["akka.tcp://smqd@127.0.0.1:2551"]
@@ -78,6 +76,7 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
 
   override def afterAll(): Unit = {
     smqd.stop()
+    TestKit.shutdownActorSystem(system)
   }
 
   "Callback Subscription" must {
@@ -173,7 +172,7 @@ class PublishTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
     "timeout case" in {
       intercept[Throwable] {
         val f3 = smqd.request("request/func", classOf[String], msg = "Timeout")
-        Await.result(f3, 3 seconds)
+        Await.result(f3, 1 seconds)
         f3.onComplete {
           case Success(_) =>
             logger.info("fail for waiting failure case")

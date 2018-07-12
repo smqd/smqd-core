@@ -17,9 +17,8 @@ package com.thing2x.smqd.plugin
 import com.thing2x.smqd.{LifeCycle, Smqd}
 import com.typesafe.config.Config
 
-/**
-  * 2018. 7. 4. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 4. - Created by Kwon, Yeong Eon
+
 trait Plugin extends LifeCycle {
   def name: String
   def status: InstanceStatus

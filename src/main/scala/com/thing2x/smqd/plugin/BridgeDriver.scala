@@ -22,9 +22,7 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.{SortedSet, mutable}
 
-/**
-  * 2018. 7. 7. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 7. - Created by Kwon, Yeong Eon
 
 abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends AbstractPlugin(name, smqd, config) with StrictLogging {
   private val indexes: AtomicLong = new AtomicLong()

@@ -14,7 +14,7 @@
 
 package com.thing2x.smqd.util
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef, Cancellable}
 import com.codahale.metrics.{Gauge, MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.util.JvmMonitoringActor.Tick
@@ -31,43 +31,85 @@ object JvmMonitoringActor {
   val actorName = "jvm_monitor"
 
   case object Tick
+
+  trait Provider {
+    def heapTotal: Long
+    def heapEdenSpace: Long
+    def heapSurvivorSpace: Long
+    def heapOldGen: Long
+    def heapUsed: Long
+    def cpuLoad: Double
+  }
+
+  private var provider: Option[Provider] = None
+
+  def setProvider(p: Provider): Boolean = this.synchronized {
+    if (provider.isDefined) {
+      // do nothing, this happens when multiple smqd instances exist in a JVM.
+      // but no need to run multiple jvm metrics collector in a vm
+      // so only take caore of the first provider.
+      false
+    }
+    else {
+      provider = Option(p)
+
+      val registry = SharedMetricRegistries.getDefault
+
+      registry.register(MetricRegistry.name("jvm.heap.total"), new Gauge[Long]{
+        override def getValue: Long = if (provider.isDefined) provider.get.heapTotal else 0
+      })
+      registry.register(MetricRegistry.name("jvm.heap.eden_space"), new Gauge[Long]{
+        override def getValue: Long = if (provider.isDefined) provider.get.heapEdenSpace else 0
+      })
+      registry.register(MetricRegistry.name("jvm.heap.survivor_space"), new Gauge[Long]{
+        override def getValue: Long = if (provider.isDefined) provider.get.heapSurvivorSpace else 0
+      })
+      registry.register(MetricRegistry.name("jvm.heap.old_gen"), new Gauge[Long]{
+        override def getValue: Long = if (provider.isDefined) provider.get.heapOldGen else 0
+      })
+      registry.register(MetricRegistry.name("jvm.heap.used"), new Gauge[Long]{
+        override def getValue: Long = if (provider.isDefined) provider.get.heapUsed else 0
+      })
+      registry.register(MetricRegistry.name("jvm.cpu.load"), new Gauge[Double]{
+        override def getValue: Double = if (provider.isDefined) provider.get.cpuLoad else 0
+      })
+
+      true
+    }
+  }
 }
 
-class JvmMonitoringActor extends Actor with StrictLogging with JvmAware {
-  private val registry = SharedMetricRegistries.getDefault
+class JvmMonitoringActor extends Actor with StrictLogging with JvmAware with JvmMonitoringActor.Provider {
 
-  registry.register(MetricRegistry.name("jvm.heap.total"), new Gauge[Long]{
-    override def getValue: Long = heapTotal
-  })
-  registry.register(MetricRegistry.name("jvm.heap.eden_space"), new Gauge[Long]{
-    override def getValue: Long = heapEdenSpace
-  })
-  registry.register(MetricRegistry.name("jvm.heap.survivor_space"), new Gauge[Long]{
-    override def getValue: Long = heapSurvivorSpace
-  })
-  registry.register(MetricRegistry.name("jvm.heap.old_gen"), new Gauge[Long]{
-    override def getValue: Long = heapOldGen
-  })
-  registry.register(MetricRegistry.name("jvm.heap.used"), new Gauge[Long]{
-    override def getValue: Long = heapUsed
-  })
-  registry.register(MetricRegistry.name("jvm.cpu.load"), new Gauge[Double]{
-    override def getValue: Double = cpuLoad
-  })
+  var heapTotal: Long = 0
+  var heapEdenSpace: Long = 0
+  var heapSurvivorSpace: Long = 0
+  var heapOldGen: Long = 0
+  var heapUsed: Long = 0
+  var cpuLoad: Double = 0
 
-  private var heapTotal: Long = 0
-  private var heapEdenSpace: Long = 0
-  private var heapSurvivorSpace: Long = 0
-  private var heapOldGen: Long = 0
-  private var heapUsed: Long = 0
-  private var cpuLoad: Double = 0
+  private var schedule: Option[Cancellable] = None
+
+  override def preStart(): Unit = {
+    if (JvmMonitoringActor.setProvider(this)) { // schedulre is registered only when 'provider' is accepted
+      import context.dispatcher
+      val sc = context.system.scheduler.schedule(5.second, 10.second, self, Tick)
+      schedule = Option(sc)
+    }
+  }
+
+  override def postStop(): Unit = {
+    schedule.map(_.cancel())
+    schedule = None
+  }
 
   override def receive: Receive = {
     case Ready =>
-      import context.dispatcher
-      context.system.scheduler.schedule(5.second, 10.second, self, Tick)
-      context.become(receive0)
+      if (schedule.isDefined) // become is working only the scheduler is registered
+        context.become(receive0)
       sender ! ReadyAck
+    case Tick =>
+      // ignore
   }
 
   def receive0: Receive = {

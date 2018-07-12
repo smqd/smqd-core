@@ -18,9 +18,8 @@ import akka.actor.ActorRef
 import com.thing2x.smqd.{FilterPath, LifeCycle, TopicPath}
 import com.typesafe.scalalogging.StrictLogging
 
-/**
-  * 2018. 7. 7. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 7. - Created by Kwon, Yeong Eon
+
 trait Bridge extends LifeCycle with StrictLogging with Ordered[Bridge] {
   def filterPath: FilterPath
   def driver: BridgeDriver

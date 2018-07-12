@@ -33,10 +33,9 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
-/**
-  * 2018. 6. 19. - Created by Kwon, Yeong Eon
-  */
-class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging with CORSHandler {
+// 2018. 6. 19. - Created by Kwon, Yeong Eon
+
+class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Service(name, smqdInstance, config) with StrictLogging with CORSHandler {
 
   val corsEnabled: Boolean = config.getOptionBoolean("cors.enabled").getOrElse(true)
   val localEnabled: Boolean = config.getOptionBoolean("local.enabled").getOrElse(true)
@@ -104,7 +103,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
       }
     }
 
-    smqd.tlsProvider match {
+    smqdInstance.tlsProvider match {
       case Some(tlsProvider) if localSecureEnabled =>
         tlsProvider.sslContext match {
           case Some(sslContext) =>
@@ -130,8 +129,40 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
 
   override def stop(): Unit = {
     logger.info(s"Http Service [$name] Stopping...")
-    binding.map(_.unbind()) // trigger unbinding from the port
-    tlsBinding.map(_.unbind()) // trigger unbinding from the port
+    import smqdInstance.Implicit._
+
+    binding match {
+      case Some(b) =>
+        try {
+          b.unbind().onComplete { // trigger unbinding from the port
+            n => logger.info(s"=========++> ${n}")
+          }
+        }
+        catch {
+          case ex: java.util.NoSuchElementException =>
+            logger.warn("Binding was unbound before it was completely finished")
+          case ex: Throwable =>
+            logger.warn("plain tcp port unbind failed.", ex)
+        }
+      case None =>
+    }
+
+    tlsBinding match {
+      case Some(b) =>
+      try {
+        b.unbind().onComplete { // trigger unbinding from the port
+          n => logger.info(s"=========++> ${n}")
+        }
+      }
+      catch {
+        case ex: java.util.NoSuchElementException =>
+          logger.warn("Binding was unbound before it was completely finished")
+        case ex: Throwable =>
+          logger.warn("tls tcp port unbind failed.", ex)
+      }
+      case None =>
+    }
+
     logger.info(s"Http Service [$name] Stopped.")
   }
 
@@ -150,7 +181,7 @@ class HttpService(name: String, smqd: Smqd, config: Config) extends Service(name
       val tokens = prefix.split(Array('/', '"')).filterNot( _ == "") // split prefix into token array
       val clazz = getClass.getClassLoader.loadClass(className)    // load a class that inherits RestController
       val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
-      val ctrl = cons.newInstance(rname, smqd, conf).asInstanceOf[RestController] // create instance of RestController
+      val ctrl = cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
 
       logger.debug(s"[$name] add route $rname: $prefix = $className")
 

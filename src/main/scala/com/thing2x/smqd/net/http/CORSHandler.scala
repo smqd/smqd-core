@@ -20,9 +20,8 @@ import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 
-/**
-  * 2018. 7. 9. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 9. - Created by Kwon, Yeong Eon
+
 trait CORSHandler{
 
   private val corsResponseHeaders = List(

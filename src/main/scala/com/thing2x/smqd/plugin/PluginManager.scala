@@ -23,9 +23,9 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
-/**
-  * 2018. 7. 4. - Created by Kwon, Yeong Eon
-  */
+
+// 2018. 7. 4. - Created by Kwon, Yeong Eon
+
 object PluginManager extends StrictLogging {
   val STATIC_PKG = "smqd-static"
   val CORE_PKG = "smqd-core"
@@ -239,7 +239,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
   def findInstanceConfigs: Seq[Config] = {
     if (libDirectory.isEmpty) {
-      logger.error("Root directory of plugin manager is not defined")
+      logger.warn("Root directory of plugin manager is not defined")
       Nil
     }
     else {

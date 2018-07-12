@@ -24,9 +24,8 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.JavaConverters._
 
-/**
-  * 2018. 7. 10. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 10. - Created by Kwon, Yeong Eon
+
 private[plugin] object PackageLoader {
   def apply(pm: PluginManager, file: File): PackageLoader = {
     if (file.isDirectory) {

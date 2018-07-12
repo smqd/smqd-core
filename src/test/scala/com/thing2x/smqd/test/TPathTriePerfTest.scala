@@ -20,9 +20,8 @@ import org.scalatest.FlatSpec
 
 import scala.util.Random
 
-/**
-  * 2018. 7. 11. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 11. - Created by Kwon, Yeong Eon
+
 class TPathTriePerfTest extends FlatSpec with StrictLogging{
   val trie = TPathTrie[String]()
   val sbuilder = new StringBuilder()
@@ -89,9 +88,9 @@ class TPathTriePerfTest extends FlatSpec with StrictLogging{
 //  val groupRange = 1000
 //  val filterRange = 1000
 //  val repeats = 1000000
-  val groupRange = 10
+  val groupRange = 100
   val filterRange = 100
-  val repeats = 100
+  val repeats = 10000
 
   it should "handle massive filters" in {
 

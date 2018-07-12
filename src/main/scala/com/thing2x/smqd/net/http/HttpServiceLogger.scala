@@ -19,9 +19,8 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.server.RouteResult.{Complete, Rejected}
 import com.typesafe.scalalogging.Logger
 
-/**
-  * 2018. 6. 21. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 21. - Created by Kwon, Yeong Eon
+
 class HttpServiceLogger(logger: Logger, name: String = "-") extends LoggingAdapter {
 
   override def isErrorEnabled: Boolean = true

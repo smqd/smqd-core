@@ -17,9 +17,8 @@ package com.thing2x.smqd.test
 import com.typesafe.config.ConfigFactory
 import org.scalatest.FlatSpec
 
-/**
-  * 2018. 6. 1. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 1. - Created by Kwon, Yeong Eon
+
 class IdentiiferFormatTest extends FlatSpec {
 
   "Client Identifier" should "match" in {

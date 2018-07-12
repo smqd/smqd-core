@@ -20,9 +20,8 @@ import com.thing2x.smqd._
 
 import scala.language.implicitConversions
 
-/**
-  * 2018. 6. 25. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 25. - Created by Kwon, Yeong Eon
+
 class OptionalConfigTest extends FlatSpec {
   val config: Config = ConfigFactory.parseString("""
     smqd {

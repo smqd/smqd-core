@@ -17,9 +17,8 @@ package com.thing2x.smqd.test
 import org.scalatest.FlatSpec
 import com.thing2x.smqd.{FilterPath, FilterPathPrefix, TName, TNameInvalid, TNameMultiWildcard, TNameSingleWildcard, TPath, TopicPath}
 
-/**
-  * 2018. 5. 31. - Created by Kwon, Yeong Eon
-  */
+// 2018. 5. 31. - Created by Kwon, Yeong Eon
+
 class TNameTest extends FlatSpec {
 
   "TName and TPath" should "empty" in {

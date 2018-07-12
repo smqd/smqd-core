@@ -22,15 +22,18 @@ import io.netty.buffer.ByteBuf
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import com.thing2x.smqd.{RoutableMessage, TopicPath}
 
-/**
-  * 2018. 6. 15. - Created by Kwon, Yeong Eon
-  */
-class SmqdSerializerTest extends TestKit(ActorSystem("RegistryPerf", ConfigFactory.load("smqd-ref.conf")))
+// 2018. 6. 15. - Created by Kwon, Yeong Eon
+
+class SmqdSerializerTest extends TestKit(ActorSystem("serializer", ConfigFactory.load("smqd-ref.conf")))
   with ImplicitSender
   with WordSpecLike
   with Matchers
   with BeforeAndAfterAll {
 
+
+  override def afterAll: Unit = {
+    TestKit.shutdownActorSystem(system)
+  }
 
   val actor = system.actorOf(TestActors.blackholeProps)
 

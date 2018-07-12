@@ -34,9 +34,8 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.util.Try
 
-/**
-  * 2018. 7. 10. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 10. - Created by Kwon, Yeong Eon
+
 class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) extends StrictLogging {
   //////////////////////////////////////////////////
   // repository definitions

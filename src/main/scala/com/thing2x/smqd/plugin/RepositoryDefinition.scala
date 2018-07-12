@@ -21,9 +21,8 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * 2018. 7. 8. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 8. - Created by Kwon, Yeong Eon
+
 object RepositoryDefinition {
   def apply(name: String, provider: String, location: URI, installable: Boolean, description: String) =
     new RepositoryDefinition(name, provider, Some(location), None, installable, description: String)

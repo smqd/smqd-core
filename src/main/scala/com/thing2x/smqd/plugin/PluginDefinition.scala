@@ -20,9 +20,8 @@ import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.collection.mutable
 
-/**
-  * 2018. 7. 5. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 5. - Created by Kwon, Yeong Eon
+
 object PluginDefinition{
   def apply(name: String, clazz: Class[Plugin], packageName: String, version: String, multiInstantiable: Boolean, defaultConfig: Config, configSchema: Config) =
     new PluginDefinition(name, clazz, packageName, version, multiInstantiable, defaultConfig, configSchema)

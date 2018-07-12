@@ -14,9 +14,8 @@
 
 package com.thing2x.smqd.plugin
 
-/**
-  * 2018. 7. 9. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 9. - Created by Kwon, Yeong Eon
+
 class PackageDefinition(val name: String, val vendor: String, val description: String,
                         val plugins: Seq[PluginDefinition],
                         val repository: RepositoryDefinition)

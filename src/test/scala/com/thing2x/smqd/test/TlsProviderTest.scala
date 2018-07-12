@@ -18,9 +18,8 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.FlatSpec
 import com.thing2x.smqd._
 
-/**
-  * 2018. 6. 26. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 26. - Created by Kwon, Yeong Eon
+
 class TlsProviderTest extends FlatSpec{
 
   "tsl provider" should "create from file" in {

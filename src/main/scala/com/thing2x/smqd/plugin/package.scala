@@ -21,9 +21,8 @@ import spray.json.{DefaultJsonProtocol, JsArray, JsBoolean, JsObject, JsString, 
 
 import scala.collection.JavaConverters._
 
-/**
-  * 2018. 7. 7. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 7. - Created by Kwon, Yeong Eon
+
 package object plugin extends DefaultJsonProtocol {
 
   implicit object PluginInstanceOrdering extends Ordering[InstanceDefinition[Plugin]] {

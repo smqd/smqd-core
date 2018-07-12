@@ -20,9 +20,8 @@ import org.scalatest.FlatSpec
 
 import scala.util.Random
 
-/**
-  * 2018. 7. 11. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 11. - Created by Kwon, Yeong Eon
+
 class TPathTrieTest extends FlatSpec with StrictLogging{
   val trie = TPathTrie[String]()
 

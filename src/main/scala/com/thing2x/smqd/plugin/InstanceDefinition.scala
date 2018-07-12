@@ -21,9 +21,8 @@ import com.typesafe.scalalogging.StrictLogging
 import scala.concurrent.{ExecutionContext, Future}
 import com.thing2x.smqd._
 
-/**
-  * 2018. 7. 9. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 9. - Created by Kwon, Yeong Eon
+
 object InstanceDefinition extends StrictLogging {
   def apply[T <: Plugin](instance: T, pluginDef: PluginDefinition, autoStart: Boolean) = new InstanceDefinition(instance, pluginDef, autoStart)
 

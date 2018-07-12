@@ -16,21 +16,21 @@ package com.thing2x.smqd.test
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
+import com.thing2x.smqd.SmqdBuilder
+import com.thing2x.smqd.fault.DefaultFaultListener
+import com.thing2x.smqd.protocol.DefaultProtocolListener
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import com.thing2x.smqd.SmqdBuilder
-import com.thing2x.smqd.net.http.HttpService
 
-/**
-  * 2018. 6. 28. - Created by Kwon, Yeong Eon
-  */
-class ServiceLookupTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseString(
+// 2018. 6. 28. - Created by Kwon, Yeong Eon
+
+class ServiceLookupTest extends TestKit(ActorSystem("service_lookup", ConfigFactory.parseString(
   """
     |akka.actor.provider=local
     |akka.cluster.seed-nodes=["akka.tcp://smqd@127.0.0.1:2551"]
     |
-    |smqd.services=["core-api", "core-fault"]
+    |smqd.services=["core-protocol", "core-fault"]
   """.stripMargin).withFallback(ConfigFactory.load("smqd-ref.conf"))))
   with ImplicitSender
   with WordSpecLike
@@ -48,15 +48,24 @@ class ServiceLookupTest extends TestKit(ActorSystem("smqd", ConfigFactory.parseS
 
   override def afterAll(): Unit = {
     smqd.stop()
+    TestKit.shutdownActorSystem(system)
   }
 
   "Service lookup" must {
     "find core-api" in {
-      smqd.service("core-api") match {
-        case Some(httpService: HttpService) =>
-          assert(httpService.routes != null)
+      smqd.service("core-protocol") match {
+        case Some(s: DefaultProtocolListener) =>
+          assert(s.name == "core-protocol")
         case _ =>
           fail("Service core-api not found")
+      }
+    }
+    "find core-fault" in {
+      smqd.service("core-fault") match {
+        case Some(s: DefaultFaultListener) =>
+          assert(s.name == "core-fault")
+        case _ =>
+          fail("service core-fault not found")
       }
     }
   }
