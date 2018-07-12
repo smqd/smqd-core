@@ -15,7 +15,8 @@
 package com.thing2x.smqd.net.mqtt
 
 import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.plugin.{InstanceStatus, Service}
+import com.thing2x.smqd.plugin.Service
+import com.thing2x.smqd._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
@@ -29,7 +30,7 @@ import scala.util.matching.Regex
 /**
   * 2018. 5. 29. - Created by Kwon, Yeong Eon
   */
-class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
+class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Service(name, smqdInstance, config) with StrictLogging {
 
   private var channels: List[Channel] = Nil
   private var groups: List[EventLoopGroup] = Nil
@@ -46,9 +47,7 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name
   private val defaultKeepAliveTime: Int = math.min(config.getDuration("keepalive.time").toMillis/1000, 65536).toInt
   private val messageMaxSize: Int = config.getBytes("message.max.size").toInt
 
-  private val clientIdentifierFormat: Regex = smqd.config.getString("smqd.registry.client.identifier.format").r
-
-  private val metrics = new MqttMetrics(name)
+  private val clientIdentifierFormat: Regex = smqdInstance.config.getString("smqd.registry.client.identifier.format").r
 
   override def start(): Unit = {
     logger.info(s"Mqtt Service [$name] Starting...")
@@ -120,10 +119,11 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name
   }
 
   private def createMqttInitializer(listenerName: String, secure: Boolean): ChannelHandler = {
+    val metrics = new MqttMetrics(listenerName.replace(":", "."))
     new MqttChannelInitializer(
-      smqd,
+      smqdInstance,
       listenerName,
-      if (secure) smqd.tlsProvider else None,
+      if (secure) smqdInstance.tlsProvider else None,
       channelBpsCounter,
       channelTpsCounter,
       messageMaxSize,
@@ -134,10 +134,11 @@ class MqttService(name: String, smqd: Smqd, config: Config) extends Service(name
   }
 
   private def createMqttWsInitializer(listenerName: String, secure: Boolean): ChannelHandler = {
+    val metrics = new MqttMetrics(listenerName.replace(":", "."))
     new MqttWsChannelInitializer(
-      smqd,
+      smqdInstance,
       listenerName,
-      if (secure) smqd.tlsProvider else None,
+      if (secure) smqdInstance.tlsProvider else None,
       channelBpsCounter,
       channelTpsCounter,
       messageMaxSize,

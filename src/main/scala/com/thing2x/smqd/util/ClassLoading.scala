@@ -16,9 +16,8 @@ package com.thing2x.smqd.util
 
 import com.typesafe.scalalogging.StrictLogging
 
-/**
-  * 2018. 6. 3. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 3. - Created by Kwon, Yeong Eon
+
 trait ClassLoading extends StrictLogging {
   def loadCustomClass[A](className: String): A = {
     try {

@@ -26,7 +26,7 @@ import spray.json.{RootJsonFormat, _}
 
 // 2018. 7. 12. - Created by Kwon, Yeong Eon
 
-class SubscriptionController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging  {
+class SubscriptionController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging  {
   override def routes: Route = clients
 
   private def clients: Route = {
@@ -43,7 +43,7 @@ class SubscriptionController(name: String, smqd: Smqd, config: Config) extends R
 
   private def getSubscriptions(topic: Option[String], search: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
 
-    val rt = smqd.snapshotRegistrations
+    val rt = smqdInstance.snapshotRegistrations
 
     val result = topic match {
       case Some(t) if t.length > 0 => // exact match

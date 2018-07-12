@@ -23,11 +23,9 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
 
+// 2018. 7. 6. - Created by Kwon, Yeong Eon
 
-/**
-  * 2018. 7. 6. - Created by Kwon, Yeong Eon
-  */
-class ClientController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging  {
+class ClientController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging  {
   override def routes: Route = clients
 
   private def clients: Route = {
@@ -52,7 +50,7 @@ class ClientController(name: String, smqd: Smqd, config: Config) extends RestCon
         }.toVector)
     }
 
-    val rt = smqd.snapshotRegistrations
+    val rt = smqdInstance.snapshotRegistrations
 
     clientId match {
       case Some(cid) => // exact match

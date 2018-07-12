@@ -20,10 +20,9 @@ import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
-/**
-  * 2018. 6. 20. - Created by Kwon, Yeong Eon
-  */
-class AdminController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging {
+// 2018. 6. 20. - Created by Kwon, Yeong Eon
+
+class AdminController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging {
   val routes: Route = get {
     getFromResource("admin")
   }

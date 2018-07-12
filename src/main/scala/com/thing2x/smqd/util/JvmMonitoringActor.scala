@@ -1,0 +1,107 @@
+// Copyright 2018 UANGEL
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package com.thing2x.smqd.util
+
+import akka.actor.Actor
+import com.codahale.metrics.{Gauge, MetricRegistry, SharedMetricRegistries}
+import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
+import com.thing2x.smqd.util.JvmMonitoringActor.Tick
+import com.typesafe.scalalogging.StrictLogging
+
+import scala.concurrent.duration._
+
+// 2018. 7. 12. - Created by Kwon, Yeong Eon
+
+/**
+  *
+  */
+object JvmMonitoringActor {
+  val actorName = "jvm_monitor"
+
+  case object Tick
+}
+
+class JvmMonitoringActor extends Actor with StrictLogging with JvmAware {
+  private val registry = SharedMetricRegistries.getDefault
+
+  registry.register(MetricRegistry.name("jvm.heap.total"), new Gauge[Long]{
+    override def getValue: Long = heapTotal
+  })
+  registry.register(MetricRegistry.name("jvm.heap.eden_space"), new Gauge[Long]{
+    override def getValue: Long = heapEdenSpace
+  })
+  registry.register(MetricRegistry.name("jvm.heap.survivor_space"), new Gauge[Long]{
+    override def getValue: Long = heapSurvivorSpace
+  })
+  registry.register(MetricRegistry.name("jvm.heap.old_gen"), new Gauge[Long]{
+    override def getValue: Long = heapOldGen
+  })
+  registry.register(MetricRegistry.name("jvm.heap.used"), new Gauge[Long]{
+    override def getValue: Long = heapUsed
+  })
+  registry.register(MetricRegistry.name("jvm.cpu.load"), new Gauge[Double]{
+    override def getValue: Double = cpuLoad
+  })
+
+  private var heapTotal: Long = 0
+  private var heapEdenSpace: Long = 0
+  private var heapSurvivorSpace: Long = 0
+  private var heapOldGen: Long = 0
+  private var heapUsed: Long = 0
+  private var cpuLoad: Double = 0
+
+  override def receive: Receive = {
+    case Ready =>
+      import context.dispatcher
+      context.system.scheduler.schedule(5.second, 10.second, self, Tick)
+      context.become(receive0)
+      sender ! ReadyAck
+  }
+
+  def receive0: Receive = {
+    case Tick =>
+      var total: Long = 0
+      var eden: Long = 0
+      var suvivor: Long = 0
+      var oldgen: Long = 0
+      var used: Long = 0
+
+      javaMemoryPoolUsage.foreach { usage =>
+        usage.`type` match {
+          case "Heap memory" =>
+            used += usage.used
+            if (usage.max > 0)
+              total += usage.max
+
+            val ln = usage.name.toLowerCase
+            if (ln.contains("eden"))
+              eden = usage.used
+            else if (ln.contains("survivor"))
+              suvivor = usage.used
+            else if (ln.contains("old"))
+              oldgen = usage.used
+          case _ => // ignore
+        }
+      }
+
+      this.heapTotal = total
+      this.heapEdenSpace = eden
+      this.heapSurvivorSpace = suvivor
+      this.heapOldGen = oldgen
+      this.heapUsed = used
+
+      this.cpuLoad = javaCpuUsage
+  }
+}

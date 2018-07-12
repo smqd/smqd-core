@@ -14,9 +14,8 @@
 
 package com.thing2x.smqd.util
 
-/**
-  * 2018. 7. 10. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 10. - Created by Kwon, Yeong Eon
+
 object FigletFormat {
   def figlet(text: String): String = {
     try {

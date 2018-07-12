@@ -22,6 +22,7 @@ import com.thing2x.smqd.delivery.DeliveryManagerActor
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.protocol.ProtocolNotificationManager
 import com.thing2x.smqd.session.{ClusterModeSessionManagerActor, LocalModeSessionManagerActor, SessionManagerActor}
+import com.thing2x.smqd.util.JvmMonitoringActor
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -63,6 +64,8 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
     else {
       context.actorOf(Props(classOf[LocalModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
     }
+
+    context.actorOf(Props(classOf[JvmMonitoringActor]), JvmMonitoringActor.actorName)
 
     context.children.foreach{ child =>
       try {

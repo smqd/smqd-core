@@ -21,9 +21,8 @@ import org.bouncycastle.crypto.digests.{SHA1Digest, SHA3Digest}
 import org.bouncycastle.pqc.math.linearalgebra.ByteUtils
 import sun.misc.BASE64Encoder
 
-/**
-  * 2018. 5. 30. - Created by Kwon, Yeong Eon
-  */
+// 2018. 5. 30. - Created by Kwon, Yeong Eon
+
 object SslUtil {
   def trimNewLines(input: String): String =
     input.replaceAll("-----BEGIN CERTIFICATE-----", "")

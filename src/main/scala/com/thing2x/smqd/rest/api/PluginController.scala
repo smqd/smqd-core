@@ -27,10 +27,9 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
 
-/**
-  * 2018. 7. 6. - Created by Kwon, Yeong Eon
-  */
-class PluginController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging {
+// 2018. 7. 6. - Created by Kwon, Yeong Eon
+
+class PluginController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging {
 
   override def routes: Route = packages ~ plugins
 
@@ -93,7 +92,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def getPackages(packageName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     packageName match {
       case Some(pn) => // exact match
         val rt = pm.packageDefinitions
@@ -137,14 +136,14 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def putPackage(packageName: String, cmd: String): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     pm.repositoryDefinition(packageName) match {
       case Some(rdef) =>
-        import smqd.Implicit._
+        import smqdInstance.Implicit._
         cmd.toLowerCase match {
           case "install" =>
             val jval = for {
-              rt <- pm.installPackage(smqd, rdef)
+              rt <- pm.installPackage(smqdInstance, rdef)
               result = rt match {
                 case _: InstallSuccess => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
                 case e: InstallResult => restError(500, e.msg)
@@ -153,7 +152,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
             complete(StatusCodes.OK, jval)
           case "reload" =>
             val jval = for {
-              rt <- pm.reloadPackage(smqd, rdef)
+              rt <- pm.reloadPackage(smqdInstance, rdef)
               result = rt match {
                 case _: ReloadSuccess => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
                 case e: ReloadResult => restError(500, e.msg)
@@ -174,11 +173,11 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def putPlugin(pluginName: String, instanceName: String, command: String): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     val instanceOpt = pm.instance(pluginName, instanceName)
     instanceOpt match {
       case Some(instance) =>
-        import smqd.Implicit._
+        import smqdInstance.Implicit._
         val result = instance.exec(command.toLowerCase) map {
           case ExecSuccess(_) => restSuccess(0, PluginInstanceFormat.write(instance))
           case rt => execResult(rt)
@@ -190,7 +189,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def getPlugins(pluginName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     pluginName match {
       case Some(pname) => // exact match
         pm.pluginDefinition(pname) match {
@@ -215,7 +214,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def getPluginInstances(pluginName: String, instanceName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     instanceName match {
       case Some(instName) => // exact match
         pm.instance(pluginName, instName) match {
@@ -240,7 +239,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def getPluginConfig(pluginName: String): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     pm.pluginDefinition(pluginName) match {
       case Some(pdef) =>
         val result = JsObject(
@@ -254,7 +253,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def getPluginInstanceConfig(pluginName:String, instanceName: String): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     pm.instance(pluginName, instanceName) match {
       case Some(inst) =>
         val autoStart = inst.autoStart
@@ -278,7 +277,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def createPluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
-    smqd.pluginManager.configDirectory match {
+    smqdInstance.pluginManager.configDirectory match {
       case Some(confDir) =>
         val file = new File(confDir, s"$pluginName-$instanceName.conf")
         if (file.exists()) {
@@ -288,7 +287,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
           complete(StatusCodes.PreconditionFailed, restError(412, s"access denied. can't write the instance '$pluginName-$instanceName'"))
         }
         else {
-          smqd.pluginManager.createInstanceConfigFile(smqd, pluginName, instanceName, file, conf) match {
+          smqdInstance.pluginManager.createInstanceConfigFile(smqdInstance, pluginName, instanceName, file, conf) match {
             case Some(_) =>
               getPluginInstanceConfig(pluginName, instanceName)
             case None =>
@@ -302,7 +301,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def updatePluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     pm.configDirectory match {
       case Some(confDir) =>
         val file = new File(confDir, s"$pluginName-$instanceName.conf")
@@ -313,7 +312,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
               case InstanceStatus.RUNNING | InstanceStatus.STARTING | InstanceStatus.STOPPING =>
                 complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
               case InstanceStatus.STOPPED | InstanceStatus.UNKNOWN =>
-                if (pm.updateInstanceConfigFile(smqd, pluginName, instanceName, file, conf)) {
+                if (pm.updateInstanceConfigFile(smqdInstance, pluginName, instanceName, file, conf)) {
                   getPluginInstanceConfig(pluginName, instanceName)
                 }
                 else {
@@ -330,7 +329,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
   }
 
   private def deletePluginInstance(pluginName: String, instanceName: String): Route = {
-    val pm = smqd.pluginManager
+    val pm = smqdInstance.pluginManager
     pm.configDirectory match {
       case Some(confDir) =>
         val file = new File(confDir, s"$pluginName-$instanceName.conf")
@@ -341,7 +340,7 @@ class PluginController(name: String, smqd: Smqd, config: Config) extends RestCon
               case InstanceStatus.RUNNING | InstanceStatus.STARTING | InstanceStatus.STOPPING =>
                 complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
               case InstanceStatus.STOPPED | InstanceStatus.UNKNOWN =>
-                if (pm.deleteInstanceConfigFile(smqd, pluginName, instanceName, file))
+                if (pm.deleteInstanceConfigFile(smqdInstance, pluginName, instanceName, file))
                   complete(StatusCodes.OK, restSuccess(0, JsObject("success" -> JsString("plugin instance deleted"))))
                 else
                   complete(StatusCodes.InternalServerError, restError(500, s"Fail to delete instance '$pluginName' '$instanceName'"))

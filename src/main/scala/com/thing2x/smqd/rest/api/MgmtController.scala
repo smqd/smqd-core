@@ -23,10 +23,9 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
 
-/**
-  * 2018. 6. 20. - Created by Kwon, Yeong Eon
-  */
-class MgmtController(name: String, smqd: Smqd, config: Config) extends RestController(name, smqd, config) with Directives with StrictLogging {
+// 2018. 6. 20. - Created by Kwon, Yeong Eon
+
+class MgmtController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging {
 
   val routes: Route = version ~ nodes
 
@@ -35,16 +34,21 @@ class MgmtController(name: String, smqd: Smqd, config: Config) extends RestContr
       get {
         parameters('fmt.?) {
           case Some("version") =>
-            complete(StatusCodes.OK, restSuccess(0, JsObject("version" -> JsString(smqd.version))))
+            complete(StatusCodes.OK, restSuccess(0, JsObject("version" -> JsString(smqdInstance.version))))
           case Some("commit") =>
-            complete(StatusCodes.OK, restSuccess(0, JsObject("commitVersion" -> JsString(smqd.commitVersion))))
+            complete(StatusCodes.OK, restSuccess(0, JsObject("commitVersion" -> JsString(smqdInstance.commitVersion))))
           case _ =>
+            val os = smqdInstance.javaOperatingSystem
+            val osjs = JsString(s"${os.name}/${os.version}/${os.arch} (${os.processors} cores)")
+
             complete(StatusCodes.OK, restSuccess(0,
               JsObject(
-                "version" -> JsString(smqd.version),
-                "commitVersion" -> JsString(smqd.commitVersion),
-                "nodename" -> JsString(smqd.nodeName),
-                "jvm" -> JsString(smqd.javaVersionString))))
+                "version" -> JsString(smqdInstance.version),
+                "commitVersion" -> JsString(smqdInstance.commitVersion),
+                "nodename" -> JsString(smqdInstance.nodeName),
+                "jvm" -> JsString(smqdInstance.javaVersionString),
+                "os" -> osjs
+              )))
         }
       }
     }
@@ -62,19 +66,19 @@ class MgmtController(name: String, smqd: Smqd, config: Config) extends RestContr
   }
 
   private def getNodes(nodeName: Option[String]): Route = {
-    import smqd.Implicit._
+    import smqdInstance.Implicit._
     implicit val apiInfoFormat: RootJsonFormat[EndpointInfo] = jsonFormat2(EndpointInfo)
     implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat7(NodeInfo)
     nodeName match {
       case Some(node) =>
         val jsval = for {
-          result <- smqd.node(node)
+          result <- smqdInstance.node(node)
           resonse = restSuccess(0, result.toJson)
         } yield resonse
         complete(StatusCodes.OK, jsval)
       case None =>
         val jsval = for {
-          result <- smqd.nodes
+          result <- smqdInstance.nodes
           resonse = restSuccess(0, result.toJson)
         } yield resonse
         complete(StatusCodes.OK, jsval)

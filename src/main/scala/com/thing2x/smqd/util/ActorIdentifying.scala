@@ -24,9 +24,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-/**
-  * 2018. 6. 12. - Created by Kwon, Yeong Eon
-  */
+// 2018. 6. 12. - Created by Kwon, Yeong Eon
+
 trait ActorIdentifying extends StrictLogging {
 
   def identifyActor(path: String)(implicit system: ActorSystem, timeout: Timeout = 2 second): ActorRef = {

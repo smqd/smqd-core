@@ -19,9 +19,8 @@ import akka.cluster.Cluster
 
 import scala.concurrent.duration._
 
-/**
-  * 2018. 7. 1. - Created by Kwon, Yeong Eon
-  */
+// 2018. 7. 1. - Created by Kwon, Yeong Eon
+
 trait AkkaSystemAware {
   def isClusterMode(implicit system: ActorSystem): Boolean = {
     system.settings.ProviderClass match {

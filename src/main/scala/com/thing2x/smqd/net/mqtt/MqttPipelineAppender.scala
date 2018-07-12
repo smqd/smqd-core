@@ -34,7 +34,7 @@ trait MqttPipelineAppender {
                          messageMaxSize: Int,
                          clientIdentifierFormat: Regex): Unit = {
 
-    //pipeline.addLast(CHANNEL_BPS_HANDLER, channelBpsCounter)
+    pipeline.addLast(CHANNEL_BPS_HANDLER, channelBpsCounter)
 
     if (sslEngine.isDefined) {
       pipeline.addLast(SSL_HANDLER, new SslHandler(sslEngine.get))
