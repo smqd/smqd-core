@@ -1356,7 +1356,7 @@
 					},
 					"response": [
 						{
-							"id": "71594b98-386b-4a2c-a643-1b7c1121ea38",
+							"id": "247a4704-900e-4694-8c41-204cdc74512f",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1407,7 +1407,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "8749ad41-a817-40a0-9055-4d0869bd2dfd",
+							"id": "a1c5d977-f88a-4bb1-952d-22521400fd27",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1489,7 +1489,7 @@
 					},
 					"response": [
 						{
-							"id": "be57a611-f1cc-48c1-8dd0-77dddd3fdad4",
+							"id": "2937ccd0-7ba9-4926-abc5-fa09b99f414d",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1562,7 +1562,7 @@
 					},
 					"response": [
 						{
-							"id": "5ef6e3f0-a5f6-4ea2-9777-e5d4b7bc18b7",
+							"id": "cef983a5-128d-429e-812e-da22c95486dd",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1640,7 +1640,7 @@
 					},
 					"response": [
 						{
-							"id": "d285553d-4032-4ac9-a037-2dfb2569231d",
+							"id": "1746a5dc-1723-4fd7-814a-9e4587c93485",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1718,7 +1718,7 @@
 					},
 					"response": [
 						{
-							"id": "8a7fff10-34f6-4d7c-a4fc-780b29ec6b4a",
+							"id": "685283a2-2eed-457f-8312-db450cbf29fd",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1769,7 +1769,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "7610af16-389c-46c2-87b7-2a2653c81aaa",
+							"id": "a11940ef-fc8a-4574-bc07-286ddb2e724a",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1822,13 +1822,30 @@
 					]
 				},
 				{
-					"name": "subscriptions sensor/+",
+					"name": "subscriptions sensor/+/#",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "6cd9b841-a5d3-4946-8558-92eaf7aaad89",
+								"type": "text/javascript",
+								"exec": [
+									"var wild_single = encodeURIComponent(\"+\")",
+									"",
+									"var wild_all = encodeURIComponent(\"#\")",
+									"",
+									"postman.setEnvironmentVariable(\"wild_single\", wild_single)",
+									"postman.setEnvironmentVariable(\"wild_all\", wild_all)"
+								]
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
 						"body": {},
 						"url": {
-							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/subscriptions/sensor/+?curr_page=1&page_size=20",
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/subscriptions/sensor/{{wild_single}}/{{wild_all}}?curr_page=1&page_size=20&test={{wild_all}}",
 							"protocol": "http",
 							"host": [
 								"{{smqd_hostport}}"
@@ -1837,7 +1854,8 @@
 								"{{smqd_api}}",
 								"subscriptions",
 								"sensor",
-								"+"
+								"{{wild_single}}",
+								"{{wild_all}}"
 							],
 							"query": [
 								{
@@ -1849,6 +1867,10 @@
 									"value": "20"
 								},
 								{
+									"key": "test",
+									"value": "{{wild_all}}"
+								},
+								{
 									"key": null,
 									"value": null
 								}
@@ -1857,7 +1879,7 @@
 					},
 					"response": [
 						{
-							"id": "5411474d-0fb8-445e-b026-e11846d639f5",
+							"id": "b0c7549a-d4ae-4e9c-95f6-912593983fa0",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1908,7 +1930,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "2fad05e5-7b00-4ca5-9dcc-41b3dd1d91e9",
+							"id": "c1c1142a-2e3c-4d74-a3c1-eac8d653f009",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1961,13 +1983,31 @@
 					]
 				},
 				{
-					"name": "subscriptions query by topic",
+					"name": "subscriptions query: sensor/+/#",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "7e09451b-d2b6-4a5a-bcbf-7fae68035c4e",
+								"type": "text/javascript",
+								"exec": [
+									"var wild_single = encodeURIComponent(\"+\")",
+									"",
+									"var wild_all = encodeURIComponent(\"#\")",
+									"",
+									"postman.setEnvironmentVariable(\"wild_single\", wild_single)",
+									"postman.setEnvironmentVariable(\"wild_all\", wild_all)",
+									""
+								]
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
 						"body": {},
 						"url": {
-							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/subscriptions?curr_page=1&page_size=20&query=sensor",
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/subscriptions?curr_page=1&page_size=20&query=sensor/{{wild_single}}/{{wild_all}}",
 							"protocol": "http",
 							"host": [
 								"{{smqd_hostport}}"
@@ -1987,14 +2027,14 @@
 								},
 								{
 									"key": "query",
-									"value": "sensor"
+									"value": "sensor/{{wild_single}}/{{wild_all}}"
 								}
 							]
 						}
 					},
 					"response": [
 						{
-							"id": "3a5a3dae-8089-4d18-a559-8bb2d00cc023",
+							"id": "4cb359b3-a647-4a6e-b9c8-e76e27474ba1",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2045,7 +2085,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "6a32bea7-16b5-4d52-860d-1e833a754914",
+							"id": "5087d026-ecea-460a-a028-9184284a2563",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
