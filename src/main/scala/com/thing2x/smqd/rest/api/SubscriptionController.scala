@@ -15,7 +15,7 @@
 package com.thing2x.smqd.rest.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd._
 import com.thing2x.smqd.rest.RestController
@@ -43,17 +43,19 @@ class SubscriptionController(name: String, smqd: Smqd, config: Config) extends R
 
   private def getSubscriptions(topic: Option[String], search: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
 
-    //logger.debug(s"=========> ${topic}, ${search}, ${currPage}, ${pageSize}")
-
     val rt = smqd.snapshotRegistrations
 
     val result = topic match {
-      case Some(t) if t.length > 0 => // exact match  // TODO: +, # escaping
-        rt.filter(r => r.filterPath.toString == t).groupBy(r => r.filterPath).toSeq
+      case Some(t) if t.length > 0 => // exact match
+        // there might be a bug in akka http to unescape %23 (#) properly, %2B (+) is ok
+        val topicPath = t.replaceAll("%23", "#")
+        rt.filter(r => r.filterPath.toString == topicPath).groupBy(r => r.filterPath).toSeq
       case _ => // search
         search match {
           case Some(q) => // query
-            rt.filter(r => r.filterPath.toString.contains(q)).groupBy(r => r.filterPath).toSeq.sortWith{ case ((lf, _), (rf, _)) => lf.compare(rf) < 0 }
+            // there might be a bug in akka http to unescape %23 (#) properly, %2B (+) is ok
+            val query = q.replaceAll("%23", "#")
+            rt.filter(r => r.filterPath.toString.contains(query)).groupBy(r => r.filterPath).toSeq.sortWith{ case ((lf, _), (rf, _)) => lf.compare(rf) < 0 }
           case None => // all
             rt.groupBy(r => r.filterPath).toSeq.sortWith{ case ((lf, _), (rf, _)) => lf.compare(rf) < 0 }
         }
