@@ -78,19 +78,17 @@ class TPathTriePerfTest extends FlatSpec with StrictLogging{
   }
 
   def time[T](str: String)(thunk: => T): T = {
-    logger.info(str + "... ")
     val t1 = System.currentTimeMillis
     val x = thunk
     val t2 = System.currentTimeMillis
-    logger.info((t2 - t1) + " ms.")
+    logger.info(str + "... " + (t2 - t1) + " ms.")
     x
   }
 
-  /* exclude perf test case it is deadly slower when you run it by 'sbt run', but it works fine on intellij
-  val groupRange = 1000
-  val filterRange = 1000
-    val repeats = 10000
-   */
+  /* exclude perf test case it is deadly slower when you run it by 'sbt run', but it works fine on intellij */
+//  val groupRange = 1000
+//  val filterRange = 1000
+//  val repeats = 10000
   val groupRange = 10
   val filterRange = 100
   val repeats = 100

@@ -318,18 +318,22 @@ class TPathTrie[T] {
     @tailrec
     final def addDescendants(des: Seq[TName], context: T): Int = {
       if (des.isEmpty) {
-        contexts += context
-        contexts.length
+        contexts.synchronized {
+          contexts += context
+          contexts.length
+        }
       }
       else {
         val current = des.head
-        val child = children.get(current) match {
-          case Some(kid) =>
-            kid
-          case _ =>
-            val kid = new Node(current)
-            children.put(current, kid)
-            kid
+        val child = children.synchronized {
+          children.get(current) match {
+            case Some(kid) =>
+              kid
+            case _ =>
+              val kid = new Node(current)
+              children.put(current, kid)
+              kid
+          }
         }
         child.addDescendants(des.tail, context)
       }
@@ -337,26 +341,30 @@ class TPathTrie[T] {
 
     final def removeDescendants(des: Seq[TName])(contextMatcher: T => Boolean): Int = {
       if (des.isEmpty) {
-        contexts.find(contextMatcher) match {
-          case Some(ctx) => contexts -= ctx
-          case _ =>
+        contexts.synchronized {
+          contexts.find(contextMatcher) match {
+            case Some(ctx) => contexts -= ctx
+            case _ =>
+          }
+          contexts.length
         }
-        contexts.length
       }
       else {
-        val current = des.head
-        children.get(current) match {
-          case Some(child) =>
-            val noOfContextsChildHas = child.removeDescendants(des.tail)(contextMatcher)
-            if (noOfContextsChildHas == 0) {
-              children.remove(current)
-            }
-            noOfContextsChildHas
-          case _ => // Question: can we silently ignore?
-            if (children.isEmpty)
-              contexts.length * -1 // ask parent not to remove me, i still have contexts
-            else
-              children.size * -1  // ask parent not to remove me, i still have children
+        children.synchronized {
+          val current = des.head
+          children.get(current) match {
+            case Some(child) =>
+              val noOfContextsChildHas = child.removeDescendants(des.tail)(contextMatcher)
+              if (noOfContextsChildHas == 0) {
+                children.remove(current)
+              }
+              noOfContextsChildHas
+            case _ => // Question: can we silently ignore?
+              if (children.isEmpty)
+                contexts.length * -1 // ask parent not to remove me, i still have contexts
+              else
+                children.size * -1  // ask parent not to remove me, i still have children
+          }
         }
       }
     }
@@ -366,23 +374,27 @@ class TPathTrie[T] {
       */
     final def removeDescendants(des: Seq[TName], context: T): Int = {
       if (des.isEmpty) {
-        contexts -= context
-        contexts.length
+        contexts.synchronized {
+          contexts -= context
+          contexts.length
+        }
       }
       else {
-        val current = des.head
-        children.get(current) match {
-          case Some(child) =>
-            val noOfContextsChildHas = child.removeDescendants(des.tail, context)
-            if (noOfContextsChildHas == 0) {
-              children.remove(current)
-            }
-            noOfContextsChildHas
-          case _ => // Question: can we silently ignore?
-            if (children.isEmpty)
-              contexts.length * -1 // ask parent not to remove me, i still have contexts
-            else
-              children.size * -1  // ask parent not to remove me, i still have children
+        children.synchronized {
+          val current = des.head
+          children.get(current) match {
+            case Some(child) =>
+              val noOfContextsChildHas = child.removeDescendants(des.tail, context)
+              if (noOfContextsChildHas == 0) {
+                children.remove(current)
+              }
+              noOfContextsChildHas
+            case _ => // Question: can we silently ignore?
+              if (children.isEmpty)
+                contexts.length * -1 // ask parent not to remove me, i still have contexts
+              else
+                children.size * -1  // ask parent not to remove me, i still have children
+          }
         }
       }
     }

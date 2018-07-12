@@ -6,26 +6,23 @@ smqd manages topics of subscribers with a Trie structure.
 
 The below result shows the performance of the data structure that network interactions is not involved
 
-### Test #1 (2018-Jul-11)
+> environment:  MacBook 15-inch 2017 (2.9GHz i7) 4 cores, 16G RAM
 
-environment:  MacBook 15-inch 2017 (2.9GHz i7) 4 cores, 16G RAM
+1) scenario **1K x 1K** : each client subscribes to a topic `massive/sensors/<g>/<n>/#` (g: 1 ~ 1,000, n: 1 ~ 1,000)
 
-#### 1,000 x 1,000 topics
+2) scenario **1M** : each client subscribe to a topic `massive/devices/<n>/temp` (n: 1 ~ 1,000,000)
 
-scenario: each client subscribes to a topic `massive/sensors/<g>/<n>/#` (g: 1 ~ 1,000, n: 1 ~ 1,000)
+3) snapshot&count all **2M** filters: 
 
-- all registrations: 9,567 ms.
-- random topic filtering 10,000 times: 92 ms.
-- removing all registrations: 10,193 ms.
+#### Test: 2018-Jul-11
+| Scenario     | Registration | Filtering | Unregistration | Snapshot&Count |
+|--------------|--------------|-----------|----------------|----------------|
+|  1K x 1K     |  9,567 ms.   |  92 ms.   |   10,193 ms.   |                |
+|  1M          |  14,804 ms.  |  108 ms.  |   12,210 ms.   |   2,334 ms.    |
 
-#### 1,000,000 topics
+#### Test: 2018-Jul-12
 
-scenario: each client subscribe to a topic `massive/devices/<n>/temp` (n: 1 ~ 1,000,000)
-
-- all registrations: 14,804 ms.
-- random topic filtering 10,000 times: 108 ms.
-- removing all registrations: 12,210 ms.
-
-#### counting
-
-snapshot Trie, counts all 2M filters: 2334 ms.
+| Scenario      | Registration | Filtering | Unregistration | Snapshot&Count |
+|---------------|--------------|-----------|----------------|----------------|
+| 1K x 1K       |  9,953 ms.   |  217 ms.  |    5,466 ms.   |                |
+| 1M            |  14,103 ms   |  121 ms.  |    4,820 ms.   |  2,404 ms.     |
