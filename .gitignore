@@ -26,6 +26,7 @@ package-lock.json
 .sbtopts
 src/main/resources/smqd-core-version.conf
 src/test/plugins/*
+src/test/conf/plugins/*
 
 # macOS
 .DS_Store

@@ -16,12 +16,12 @@ package com.thing2x.smqd.plugin
 
 import java.util.concurrent.atomic.AtomicLong
 
-import com.thing2x.smqd.{FilterPath, Smqd, _}
+import com.thing2x.smqd.{Smqd, _}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.collection.{SortedSet, mutable}
 import scala.collection.JavaConverters._
+import scala.collection.{SortedSet, mutable}
 
 // 2018. 7. 7. - Created by Kwon, Yeong Eon
 
@@ -100,7 +100,7 @@ abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends Ab
             addBridge(bconf)
           }
           catch {
-            case ex: Throwable => logger.error(s"BridgeDriver '$name' fail to create bridge\n{}", bconf.toString)
+            case ex: Throwable => logger.error(s"BridgeDriver '$name' fail to create bridge\n{bconf.toString}\n", ex)
           }
         }
       case None =>
