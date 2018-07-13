@@ -170,9 +170,9 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
 
     val module =
       if (isSnapshot)
-        moduleDef.group % moduleDef.artifact % moduleDef.version excludeAll(exclusionRules:_*) force()
-      else
         moduleDef.group % moduleDef.artifact % moduleDef.version changing() excludeAll(exclusionRules:_*) force()
+      else
+        moduleDef.group % moduleDef.artifact % moduleDef.version excludeAll(exclusionRules:_*) force()
 
     lm.retrieve(module, scalaModuleInfo = None, fileRetrieve, ivyLogger) match {
       case Left(w: UnresolvedWarning) =>
