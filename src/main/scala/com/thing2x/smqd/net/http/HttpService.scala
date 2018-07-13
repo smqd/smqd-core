@@ -135,7 +135,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       case Some(b) =>
         try {
           b.unbind().onComplete { // trigger unbinding from the port
-            n => logger.info(s"=========++> ${n}")
+            _ => logger.debug(s"unbind ${b.localAddress.toString} done.")
           }
         }
         catch {
@@ -151,7 +151,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       case Some(b) =>
       try {
         b.unbind().onComplete { // trigger unbinding from the port
-          n => logger.info(s"=========++> ${n}")
+          _ => logger.info(s"unbind ${b.localAddress.toString} done.")
         }
       }
       catch {

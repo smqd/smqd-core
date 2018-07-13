@@ -80,6 +80,14 @@ package object smqd extends DefaultJsonProtocol {
         None
       }
 
+    def getOptionConfigList(path: String): Option[java.util.List[_ <: Config]] =
+      if (base.hasPath(path)) {
+        Some(base.getConfigList(path))
+      }
+      else {
+        None
+      }
+
     def getOptionDuration(path: String): Option[FiniteDuration] =
       if (base.hasPath(path)) {
         Some(FiniteDuration(base.getDuration(path).toMillis, MILLISECONDS))

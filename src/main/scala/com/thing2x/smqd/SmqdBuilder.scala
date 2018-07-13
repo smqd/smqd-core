@@ -111,10 +111,6 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     if (sessionStoreDelegate == null)
       sessionStoreDelegate = loadCustomClass[SessionStoreDelegate](config.getString("smqd.delegates.sessionstore"))
 
-    //// load bridge settings
-    val bridgeDriverDefs = config.getObjectList("smqd.bridge.drivers").asScala.map(_.toConfig).map{c => c.getString("name") -> c}.toMap
-    val bridgeDefs = config.getObjectList("smqd.bridge.bridges").asScala.map(_.toConfig).toList
-
     //// load services
     serviceDefs = if (this.serviceDefs == null || serviceDefs.isEmpty) {
       val serviceNames = if (this.serviceDefs == null) config.getStringList("smqd.services").asScala else Nil
@@ -132,8 +128,6 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     //// create an instance
     new Smqd(config,
       system,
-      bridgeDriverDefs,
-      bridgeDefs,
       serviceDefs,
       authDelegate,
       registryDelegate,

@@ -16,11 +16,12 @@ package com.thing2x.smqd.plugin
 
 import java.util.concurrent.atomic.AtomicLong
 
-import com.thing2x.smqd.{FilterPath, LifeCycle, Smqd}
+import com.thing2x.smqd.{FilterPath, Smqd, _}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.{SortedSet, mutable}
+import scala.collection.JavaConverters._
 
 // 2018. 7. 7. - Created by Kwon, Yeong Eon
 
@@ -31,8 +32,8 @@ abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends Ab
 
   def bridges: SortedSet[Bridge] = bridgeSet
 
-  def addBridge(filterPath: FilterPath, config: Config): Bridge = {
-    val b = createBridge(filterPath, config)
+  def addBridge(config: Config): Bridge = {
+    val b = createBridge(config)
     b.start()
     bridgeSet.add(b)
     b
@@ -76,7 +77,7 @@ abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends Ab
       None
   }
 
-  protected def createBridge(filterPath: FilterPath, config: Config, index: Long = indexes.getAndIncrement()): Bridge
+  protected def createBridge(config: Config, index: Long = indexes.getAndIncrement()): Bridge
 
   override def toString: String = new StringBuilder("BridgeDriver '")
     .append(name).append("' ")
@@ -91,11 +92,26 @@ abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends Ab
   override def start(): Unit = {
     logger.info(s"BridgeDriver '$name' starting...")
     connect()
-    logger.info(s"BridgeDriver '$name' started.")
+
+    config.getOptionConfigList("bridges") match {
+      case Some(bridgeConfigs) =>
+        bridgeConfigs.asScala.foreach { bconf =>
+          try {
+            addBridge(bconf)
+          }
+          catch {
+            case ex: Throwable => logger.error(s"BridgeDriver '$name' fail to create bridge\n{}", bconf.toString)
+          }
+        }
+      case None =>
+        logger.info(s"BridgeDriver '$name' has no 'bridges' config")
+    }
+
+    logger.info(s"BridgeDriver '$name' with ${bridgeSet.size} bridge(s) started.")
   }
 
   override def stop(): Unit = {
-    logger.info(s"BridgeDrive '$name' stopping...")
+    logger.info(s"BridgeDrive '$name' with ${bridgeSet.size} bridge(s) stopping...")
     _isClosed = true
     removeAllBridges()
     disconnect()
@@ -104,5 +120,4 @@ abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends Ab
 
   protected def connect(): Unit
   protected def disconnect(): Unit
-
 }

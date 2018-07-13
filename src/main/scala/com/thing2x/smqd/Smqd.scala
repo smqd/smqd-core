@@ -40,8 +40,6 @@ import scala.language.postfixOps
   */
 class Smqd(val config: Config,
            _system: ActorSystem,
-           bridgeDriverDefs: Map[String, Config],
-           bridgeDefs: List[Config],
            serviceDefs: Map[String, Config],
            authDelegate: AuthDelegate,
            registryDelegate: RegistryDelegate,
@@ -135,33 +133,6 @@ class Smqd(val config: Config,
     catch {
       case ex: Throwable =>
         logger.error("Initialization failed", ex)
-        System.exit(1)
-    }
-
-    //// bridge drivers
-    try {
-      bridgeDriverDefs.foreach { case (dname, dconf) =>
-        InstanceDefinition.defineInstance(this, dname, dconf) match {
-          case Some(idef) =>
-            if (idef.autoStart)
-              idef.instance.execStart()
-          case None =>
-            logger.error(s"Service not found: $dname")
-        }
-      }
-
-      bridgeDefs.foreach { bconf =>
-        val driverName = bconf.getString("driver")
-        val topic = bconf.getString("topic")
-        pluginManager.bridgePluginDefinitions.flatMap(pd => pd.instances).find(drv => drv.name == driverName).map(_.instance) match {
-          case Some(drv : BridgeDriver) => drv.addBridge(FilterPath(topic), bconf)
-          case _ => throw new IllegalArgumentException(s"driver[$driverName] not found")
-        }
-      }
-    }
-    catch {
-      case ex: Throwable =>
-        logger.error("Loading bridge drivers failed", ex)
         System.exit(1)
     }
 

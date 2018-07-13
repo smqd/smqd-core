@@ -36,5 +36,5 @@ class TakeTwoPlugin(name: String, smqd: Smqd, config: Config) extends BridgeDriv
 
   override protected def disconnect(): Unit = ???
 
-  override protected def createBridge(filterPath: FilterPath, config: Config, index: Long): Bridge = ???
+  override protected def createBridge(config: Config, index: Long): Bridge = ???
 }
