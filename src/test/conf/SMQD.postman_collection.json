@@ -1271,6 +1271,381 @@
 						}
 					],
 					"_postman_isSubFolder": true
+				},
+				{
+					"name": "test -bridge plugins",
+					"description": "",
+					"item": [
+						{
+							"name": "package install smqd-bridge-http",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-bridge-http/install",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages",
+										"smqd-bridge-http",
+										"install"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "package status smqd-bridge-http",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/packages/smqd-bridge-http",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"packages",
+										"smqd-bridge-http"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "create \"httpbridge\"",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"auto-start\": false,\n    \"config\": {\n    \t\"parallelism\": 2,\n    \t\"queue\": 20,\n    \t\"overflow-strategy\": \"drop-buffer\",\n    \t\"bridges\": [\n    \t\t{\n    \t\t\t\"topic\": \"sensor/+/temperature\",\n    \t\t\t\"method\": \"POST\",\n    \t\t\t\"path\": \"http://127.0.0.1:8080/api/v1/blackhole\"\n    \t\t},\n    \t\t{\n\t\t\t\t\"topic\": \"sensor/+/humidity\",\n\t\t\t\t\"method\": \"POST\",\n\t\t\t\t\"content-type\": \"text/plain\",\n\t\t\t\t\"prefix\": \"http://127.0.0.1:8080/api/v1/blackhole/\",\n\t\t\t\t\"suffix\": \"?from=smqd01\"\n    \t\t}\n\t\t]\n   }\n}"
+								},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-bridge-http/instances/httpbridge",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-bridge-http",
+										"instances",
+										"httpbridge"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete \"httpbridge\"",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"auto-start\": false,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 8888,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"address\": \"127.0.0.1\",\n                \"bind\": {\n                    \"address\": \"0.0.0.0\"\n                },\n                \"enabled\": false,\n                \"port\": 443\n            }\n        }\n    }\n}"
+								},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/smqd-bridge-http/instances/httpbridge",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"smqd-bridge-http",
+										"instances",
+										"httpbridge"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "config \"httpbridge\"",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-bridge-http/instances/httpbridge/config",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-bridge-http",
+										"instances",
+										"httpbridge",
+										"config"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "status \"httpbridge\"",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-bridge-http/instances/httpbridge",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-bridge-http",
+										"instances",
+										"httpbridge"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "start \"httpbridge\"",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-bridge-http/instances/httpbridge/start",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-bridge-http",
+										"instances",
+										"httpbridge",
+										"start"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "stop \"httpbridge\"",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"id": "c1fc2849-05f4-4afe-82f0-8d96e4a52777",
+										"type": "text/javascript",
+										"exec": [
+											"pm.test(\"response code\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.code).to.eql(0);",
+											"});",
+											"",
+											"pm.test(\"api endpoint\", function () {",
+											"    var jsonData = pm.response.json()",
+											"    pm.expect(jsonData.result[0].api.address).to.eql(\"http://127.0.0.1:8080/api/v1\")",
+											"})"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-bridge-http/instances/httpbridge/stop",
+									"protocol": "http",
+									"host": [
+										"{{smqd_hostport}}"
+									],
+									"path": [
+										"{{smqd_api}}",
+										"management",
+										"plugins",
+										"thing2x-bridge-http",
+										"instances",
+										"httpbridge",
+										"stop"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"_postman_isSubFolder": true
 				}
 			]
 		},
@@ -1356,7 +1731,7 @@
 					},
 					"response": [
 						{
-							"id": "247a4704-900e-4694-8c41-204cdc74512f",
+							"id": "3ad97981-6abf-47e8-ac6f-736415fdd6d5",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1407,7 +1782,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "a1c5d977-f88a-4bb1-952d-22521400fd27",
+							"id": "7abe6326-520b-4ee1-a46d-655fdd40119d",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1489,7 +1864,7 @@
 					},
 					"response": [
 						{
-							"id": "2937ccd0-7ba9-4926-abc5-fa09b99f414d",
+							"id": "fffae401-6c6d-4a4c-8972-bcc4043d12bf",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1562,7 +1937,7 @@
 					},
 					"response": [
 						{
-							"id": "cef983a5-128d-429e-812e-da22c95486dd",
+							"id": "835d8701-fa85-4e06-980d-f651aa13c8d4",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1640,7 +2015,7 @@
 					},
 					"response": [
 						{
-							"id": "1746a5dc-1723-4fd7-814a-9e4587c93485",
+							"id": "b534b0eb-3079-4f62-bcd3-134dddd12c81",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1718,7 +2093,7 @@
 					},
 					"response": [
 						{
-							"id": "685283a2-2eed-457f-8312-db450cbf29fd",
+							"id": "ddcef04c-0224-4dcc-8323-de993ae907f9",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1769,7 +2144,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "a11940ef-fc8a-4574-bc07-286ddb2e724a",
+							"id": "5945f97b-288b-4c03-9338-8c5df0712ff1",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1879,7 +2254,7 @@
 					},
 					"response": [
 						{
-							"id": "b0c7549a-d4ae-4e9c-95f6-912593983fa0",
+							"id": "8b530e9c-0d94-49ce-b610-d86129b0487f",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1930,7 +2305,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "c1c1142a-2e3c-4d74-a3c1-eac8d653f009",
+							"id": "81707fe1-3099-4008-8557-6191d147594a",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2034,7 +2409,7 @@
 					},
 					"response": [
 						{
-							"id": "4cb359b3-a647-4a6e-b9c8-e76e27474ba1",
+							"id": "c89882e2-9bb8-4b1b-a48c-cbdff7107d58",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2085,7 +2460,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "5087d026-ecea-460a-a028-9184284a2563",
+							"id": "1d8ecd42-e311-4222-ac8b-49625d2c905f",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",

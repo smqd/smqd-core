@@ -163,11 +163,16 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
 
     val ivyConfig = InlineIvyConfiguration().withLog(ivyLogger).withResolutionCacheDir(fileCache).withResolvers(ivyResolvers)
     val lm = IvyDependencyResolution(ivyConfig)
-
-    val module = moduleDef.group % moduleDef.artifact % moduleDef.version excludeAll(
+    val isSnapshot = moduleDef.artifact.toUpperCase.endsWith("-SNAPSHOT")
+    val exclusionRules = Array(
       ExclusionRule("com.thing2x", "smqd-core_2.12"),
-      ExclusionRule("org.scala-lang", "scala-library"),
-    ) force()
+      ExclusionRule("org.scala-lang", "scala-library"))
+
+    val module =
+      if (isSnapshot)
+        moduleDef.group % moduleDef.artifact % moduleDef.version excludeAll(exclusionRules:_*) force()
+      else
+        moduleDef.group % moduleDef.artifact % moduleDef.version changing() excludeAll(exclusionRules:_*) force()
 
     lm.retrieve(module, scalaModuleInfo = None, fileRetrieve, ivyLogger) match {
       case Left(w: UnresolvedWarning) =>
