@@ -701,7 +701,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"auto-start\": false,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 8888,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"address\": \"127.0.0.1\",\n                \"bind\": {\n                    \"address\": \"0.0.0.0\"\n                },\n                \"enabled\": false,\n                \"port\": 443\n            }\n        }\n    }\n}"
+									"raw": "{\n    \"auto-start\": true,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 8888,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"address\": \"127.0.0.1\",\n                \"bind\": {\n                    \"address\": \"0.0.0.0\"\n                },\n                \"enabled\": false,\n                \"port\": 443\n            }\n        },\n        \"routes\": {\n\t\t\t\"test\": {\n\t\t\t\t\"prefix\": \"test\",\n\t\t\t\t\"class\": \"com.thing2x.smqd.rest.TestController\"\n\t\t\t}\n    \t}\n    }\n}"
 								},
 								"url": {
 									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/instances/portal",
@@ -753,7 +753,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"auto-start\": false,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 9876,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"enabled\": false\n            }\n        }\n    }\n}"
+									"raw": "{\n    \"auto-start\": true,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 9876,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"enabled\": false\n            }\n        },\n        \"routes\": {\n\t\t\t\"test\": {\n\t\t\t\t\"prefix\": \"test\",\n\t\t\t\t\"class\": \"com.thing2x.smqd.rest.TestController\"\n\t\t\t}\n    \t}\n    }\n}"
 								},
 								"url": {
 									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/instances/portal",
@@ -1731,7 +1731,7 @@
 					},
 					"response": [
 						{
-							"id": "3ad97981-6abf-47e8-ac6f-736415fdd6d5",
+							"id": "503082d0-b8c9-4d00-a137-46d83e1e34dd",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1782,7 +1782,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "7abe6326-520b-4ee1-a46d-655fdd40119d",
+							"id": "5e800778-3ee9-484b-9b05-954d51a7e448",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1864,7 +1864,7 @@
 					},
 					"response": [
 						{
-							"id": "fffae401-6c6d-4a4c-8972-bcc4043d12bf",
+							"id": "30e28dc5-4c67-4483-ad2a-7a19c4e1bc13",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1937,7 +1937,7 @@
 					},
 					"response": [
 						{
-							"id": "835d8701-fa85-4e06-980d-f651aa13c8d4",
+							"id": "18f856c2-bfd8-47df-8744-a83f863a6c05",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2015,7 +2015,7 @@
 					},
 					"response": [
 						{
-							"id": "b534b0eb-3079-4f62-bcd3-134dddd12c81",
+							"id": "228ffdaf-3b3c-4ba4-a07d-5d507a8611d4",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2093,7 +2093,7 @@
 					},
 					"response": [
 						{
-							"id": "ddcef04c-0224-4dcc-8323-de993ae907f9",
+							"id": "e4fa4da4-d050-44dd-9610-111c455c05b3",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2144,7 +2144,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "5945f97b-288b-4c03-9338-8c5df0712ff1",
+							"id": "542847e8-edc4-435d-a61d-29cc19cd02ff",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2254,7 +2254,7 @@
 					},
 					"response": [
 						{
-							"id": "8b530e9c-0d94-49ce-b610-d86129b0487f",
+							"id": "5e8a25d0-7b02-499a-8087-ce3705300ae3",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2305,7 +2305,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "81707fe1-3099-4008-8557-6191d147594a",
+							"id": "84649944-4ee7-4ffd-bcce-fe11145c2fef",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2409,7 +2409,7 @@
 					},
 					"response": [
 						{
-							"id": "c89882e2-9bb8-4b1b-a48c-cbdff7107d58",
+							"id": "d1eb213a-070c-415e-9902-dfd9e7c486b0",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2460,7 +2460,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "1d8ecd42-e311-4222-ac8b-49625d2c905f",
+							"id": "9274941d-8695-4d6b-b1d0-7c3dfacaf42a",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2533,6 +2533,149 @@
 							"path": [
 								"{{smqd_api}}",
 								"metrics"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "login",
+			"description": "",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "a1f4dfc1-fba4-4507-afc4-4a24b205cb34",
+								"type": "text/javascript",
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"token_type\", jsonData.result.token_type)",
+									"pm.environment.set(\"access_token\", jsonData.result.access_token)",
+									"pm.environment.set(\"refresh_token\", jsonData.result.refresh_token)",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"user\": \"admin\",\n\t\"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8888/test/oauth/login",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8888",
+							"path": [
+								"test",
+								"oauth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sanity check",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "{{token_type}} {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"user\": \"admin\",\n\t\"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8888/test/oauth/sanity",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8888",
+							"path": [
+								"test",
+								"oauth",
+								"sanity"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "464bf9d4-6d61-49a5-b981-1666486fe267",
+								"type": "text/javascript",
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"access_token\", jsonData.result.access_token)",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "{{token_type}} {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"refresh_token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE1MzE1MzY3MTQsImlhdCI6MTUzMTUyMjMxNCwidXNlciI6ImFkbWluIiwiYWxsb3dSZWZyZXNoIjp0cnVlfQ.2CzDiwWE99CD57iHkeMPqKne0U57h9tnfTD_nipxP-l3wCcK7M7Ld30kQ_ZAOpfqJtdblHTcVil4rNJaTygSTg\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8888/test/oauth/refresh",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8888",
+							"path": [
+								"test",
+								"oauth",
+								"refresh"
 							]
 						}
 					},

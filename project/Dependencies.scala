@@ -74,4 +74,8 @@ object Dependencies {
     "io.dropwizard.metrics" % "metrics-logback" % metricsVersion,
     "io.dropwizard.metrics" % "metrics-jvm" % metricsVersion
   )
+
+  val jwt: Seq[ModuleID] = Seq(
+    "com.pauldijou" %% "jwt-core" % "0.16.0"
+  )
 }

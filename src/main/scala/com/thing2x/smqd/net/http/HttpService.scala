@@ -57,11 +57,15 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   override def start(): Unit = {
     logger.info(s"Http Service [$name] Starting...")
     logger.debug(s"Http Service [$name] local enabled : $localEnabled")
-    logger.debug(s"Http Service [$name] local address : $localAddress:$localPort")
-    logger.debug(s"Http Service [$name] local bind    : $localBindAddress:$localBindPort")
+    if (localEnabled) {
+      logger.debug(s"Http Service [$name] local address : $localAddress:$localPort")
+      logger.debug(s"Http Service [$name] local bind    : $localBindAddress:$localBindPort")
+    }
     logger.debug(s"Http Service [$name] secure enabled: $localSecureEnabled")
-    logger.debug(s"Http Service [$name] secure address: $localSecureAddress:$localSecurePort")
-    logger.debug(s"Http Service [$name] secure bind   : $localSecureBindAddress:$localSecureBindPort")
+    if (localSecureEnabled) {
+      logger.debug(s"Http Service [$name] secure address: $localSecureAddress:$localSecurePort")
+      logger.debug(s"Http Service [$name] secure bind   : $localSecureBindAddress:$localSecureBindPort")
+    }
 
     import smqd.Implicit._
 
