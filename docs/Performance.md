@@ -6,7 +6,7 @@ smqd manages topics of subscribers with a Trie structure.
 
 The below result shows the performance of the data structure that network interactions is not involved
 
-> environment:  MacBook 15-inch 2017 (2.9GHz i7) 4 cores, 16G RAM
+> environment:  MacBook 15-inch 2017 (2.9GHz i7) 4 cores (8 cores w/ hyperthreading), 16G RAM
 
 - scenario **1K x 1K** : each client subscribes to a topic `massive/sensors/<g>/<n>/#` (g: 1 ~ 1,000, n: 1 ~ 1,000)
 

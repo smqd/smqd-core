@@ -53,4 +53,9 @@ trait JvmAware {
     val osMXBean = ManagementFactory.getOperatingSystemMXBean
     osMXBean.getSystemLoadAverage
   }
+
+  def javaThreadCount: Int = {
+    val threadMXBean = ManagementFactory.getThreadMXBean
+    threadMXBean.getThreadCount
+  }
 }

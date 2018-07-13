@@ -78,6 +78,7 @@ class MetricController(name: String, smqdInstance: Smqd, config: Config) extends
 
     merged ++= gauges.map { case (key: String, gauge) =>
         gauge.getValue match {
+          case n: Int => (key.substring(prefixLen), JsNumber(n))
           case n: Long => (key.substring(prefixLen), JsNumber(n))
           case n: Double => (key.substring(prefixLen), JsNumber(n))
         }
