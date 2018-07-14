@@ -8,12 +8,8 @@
     </encoder>
   </appender>
 
-  <appender name="asyncConsoleAppender" class="ch.qos.logback.classic.AsyncAppender">
-    <appender-ref ref="consoleAppender" />
-  </appender>
-
   <root level="INFO">
-    <appender-ref ref="asyncConsoleAppender"/>
+    <appender-ref ref="consoleAppender"/>
   </root>
 
   <logger name="io.netty" level="INFO"/>
