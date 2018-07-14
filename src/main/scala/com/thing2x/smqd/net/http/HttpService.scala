@@ -29,7 +29,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
@@ -50,27 +50,35 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   val localSecureBindAddress: String = config.getOptionString("local.secure.address").getOrElse("0.0.0.0")
   val localSecureBindPort: Int = config.getOptionInt("local.secure.port").getOrElse(localSecurePort)
 
+  private val oauth2SecretKey: String = config.getOptionString("oauth2.secret_key").getOrElse("default_key")
+  val oauth2TokenExpire: Duration = config.getOptionDuration("oauth2.token_expire").getOrElse(30.minutes)
+  val oauth2RefreshTokenExpire: Duration = config.getOptionDuration("oauth2.refresh_token_expire").getOrElse(4.hours)
+  val oauth2Algorithm: String = config.getOptionString("oauth2.algorithm").getOrElse("HS256")
+
+  val oauth2 = OAuth2(oauth2SecretKey, oauth2Algorithm, oauth2TokenExpire, oauth2RefreshTokenExpire)
+
   private var binding: Option[ServerBinding] = None
   private var tlsBinding: Option[ServerBinding] = None
   private var finalRoutes: Route = _
 
   override def start(): Unit = {
-    logger.info(s"Http Service [$name] Starting...")
-    logger.debug(s"Http Service [$name] local enabled : $localEnabled")
+    logger.info(s"[$name] Starting...")
+    logger.debug(s"[$name] local enabled : $localEnabled")
     if (localEnabled) {
-      logger.debug(s"Http Service [$name] local address : $localAddress:$localPort")
-      logger.debug(s"Http Service [$name] local bind    : $localBindAddress:$localBindPort")
+      logger.debug(s"[$name] local address : $localAddress:$localPort")
+      logger.debug(s"[$name] local bind    : $localBindAddress:$localBindPort")
     }
-    logger.debug(s"Http Service [$name] secure enabled: $localSecureEnabled")
+    logger.debug(s"[$name] secure enabled: $localSecureEnabled")
     if (localSecureEnabled) {
-      logger.debug(s"Http Service [$name] secure address: $localSecureAddress:$localSecurePort")
-      logger.debug(s"Http Service [$name] secure bind   : $localSecureBindAddress:$localSecureBindPort")
+      logger.debug(s"[$name] secure address: $localSecureAddress:$localSecurePort")
+      logger.debug(s"[$name] secure bind   : $localSecureBindAddress:$localSecureBindPort")
     }
 
     import smqd.Implicit._
 
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 
+    val oauth2 = OAuth2(oauth2SecretKey, oauth2Algorithm, oauth2TokenExpire, oauth2RefreshTokenExpire)
     // load routes configuration
     val routes = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfig("routes")) else Set(emptyRoute)
 
@@ -100,9 +108,9 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       bindingFuture.onComplete {
         case Success(b) =>
           binding = Some(b)
-          logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
+          logger.info(s"[$name] Started. listening ${b.localAddress}")
         case Failure(e) =>
-          logger.error(s"Http Service [$name] Failed", e)
+          logger.error(s"[$name] Failed", e)
           scala.sys.exit(-1)
       }
     }
@@ -120,9 +128,9 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
             tlsBindingFuture.onComplete {
               case Success(b) =>
                 tlsBinding = Some(b)
-                logger.info(s"Http Service [$name] Started. listening ${b.localAddress}")
+                logger.info(s"[$name] Started. listening ${b.localAddress}")
               case Failure(e) =>
-                logger.error(s"Http Service [$name] Failed", e)
+                logger.error(s"[$name] Failed", e)
                 scala.sys.exit(-1)
             }
           case _ =>
@@ -132,21 +140,21 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   }
 
   override def stop(): Unit = {
-    logger.info(s"Http Service [$name] Stopping...")
+    logger.info(s"[$name] Stopping...")
     import smqdInstance.Implicit._
 
     binding match {
       case Some(b) =>
         try {
           b.unbind().onComplete { // trigger unbinding from the port
-            _ => logger.debug(s"unbind ${b.localAddress.toString} done.")
+            _ => logger.debug(s"[$name] unbind ${b.localAddress.toString} done.")
           }
         }
         catch {
           case ex: java.util.NoSuchElementException =>
-            logger.warn("Binding was unbound before it was completely finished")
+            logger.warn(s"[$name] Binding was unbound before it was completely finished")
           case ex: Throwable =>
-            logger.warn("plain tcp port unbind failed.", ex)
+            logger.warn(s"[$name] plain tcp port unbind failed.", ex)
         }
       case None =>
     }
@@ -155,19 +163,19 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       case Some(b) =>
       try {
         b.unbind().onComplete { // trigger unbinding from the port
-          _ => logger.info(s"unbind ${b.localAddress.toString} done.")
+          _ => logger.info(s"[$name] unbind ${b.localAddress.toString} done.")
         }
       }
       catch {
         case ex: java.util.NoSuchElementException =>
-          logger.warn("Binding was unbound before it was completely finished")
+          logger.warn(s"[$name] Binding was unbound before it was completely finished")
         case ex: Throwable =>
-          logger.warn("tls tcp port unbind failed.", ex)
+          logger.warn(s"[$name] tls tcp port unbind failed.", ex)
       }
       case None =>
     }
 
-    logger.info(s"Http Service [$name] Stopped.")
+    logger.info(s"[$name] Stopped.")
   }
 
   def routes: Route = finalRoutes
@@ -184,8 +192,17 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       val prefix = conf.getString("prefix")
       val tokens = prefix.split(Array('/', '"')).filterNot( _ == "") // split prefix into token array
       val clazz = getClass.getClassLoader.loadClass(className)    // load a class that inherits RestController
-      val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
-      val ctrl = cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
+
+      val ctrl = try {
+        val context = new HttpServiceContext(this, oauth2, smqdInstance, conf)
+        val cons = clazz.getConstructor(classOf[String], classOf[HttpServiceContext]) // find construct that has parameters(String, HttpServiceContext)
+        cons.newInstance(rname, context).asInstanceOf[RestController]
+      } catch {
+        case _: NoSuchMethodException =>
+          val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
+          logger.warn("!!Warning!! controller has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
+          cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
+      }
 
       logger.debug(s"[$name] add route $rname: $prefix = $className")
 

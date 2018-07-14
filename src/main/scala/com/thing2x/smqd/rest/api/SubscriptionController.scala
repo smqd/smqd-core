@@ -15,18 +15,18 @@
 package com.thing2x.smqd.rest.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.{StatusCodes, Uri}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd._
+import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.rest.RestController
-import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json.{RootJsonFormat, _}
 
 
 // 2018. 7. 12. - Created by Kwon, Yeong Eon
 
-class SubscriptionController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging  {
+class SubscriptionController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging  {
   override def routes: Route = clients
 
   private def clients: Route = {
@@ -43,7 +43,7 @@ class SubscriptionController(name: String, smqdInstance: Smqd, config: Config) e
 
   private def getSubscriptions(topic: Option[String], search: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
 
-    val rt = smqdInstance.snapshotRegistrations
+    val rt = context.smqdInstance.snapshotRegistrations
 
     val result = topic match {
       case Some(t) if t.length > 0 => // exact match

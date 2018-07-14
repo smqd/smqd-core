@@ -18,18 +18,19 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
 import com.thing2x.smqd._
+import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.rest.RestController
-import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
 
 // 2018. 6. 20. - Created by Kwon, Yeong Eon
 
-class MgmtController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging {
+class MgmtController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
 
   val routes: Route = version ~ nodes
 
   private def version: Route = {
+    val smqdInstance = context.smqdInstance
     path("version") {
       get {
         parameters('fmt.?) {
@@ -66,6 +67,7 @@ class MgmtController(name: String, smqdInstance: Smqd, config: Config) extends R
   }
 
   private def getNodes(nodeName: Option[String]): Route = {
+    val smqdInstance = context.smqdInstance
     import smqdInstance.Implicit._
     implicit val apiInfoFormat: RootJsonFormat[EndpointInfo] = jsonFormat2(EndpointInfo)
     implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat7(NodeInfo)

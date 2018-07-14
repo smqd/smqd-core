@@ -1731,7 +1731,7 @@
 					},
 					"response": [
 						{
-							"id": "503082d0-b8c9-4d00-a137-46d83e1e34dd",
+							"id": "a14a3cd6-0996-43bf-8660-4c5819e44e52",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1782,7 +1782,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "5e800778-3ee9-484b-9b05-954d51a7e448",
+							"id": "9c99c796-9e18-4160-8129-cc8dc38381fd",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1864,7 +1864,7 @@
 					},
 					"response": [
 						{
-							"id": "30e28dc5-4c67-4483-ad2a-7a19c4e1bc13",
+							"id": "f2d6aa13-5260-409f-9965-f6a21956134f",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1937,7 +1937,7 @@
 					},
 					"response": [
 						{
-							"id": "18f856c2-bfd8-47df-8744-a83f863a6c05",
+							"id": "37ae1033-f528-47d0-9cba-159a7e5ad686",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2015,7 +2015,7 @@
 					},
 					"response": [
 						{
-							"id": "228ffdaf-3b3c-4ba4-a07d-5d507a8611d4",
+							"id": "57f7bb3c-d6be-4d94-a591-d1e5579f6bcd",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2093,7 +2093,7 @@
 					},
 					"response": [
 						{
-							"id": "e4fa4da4-d050-44dd-9610-111c455c05b3",
+							"id": "acf3d3f9-f14f-47b7-bbf0-55500480e281",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2144,7 +2144,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "542847e8-edc4-435d-a61d-29cc19cd02ff",
+							"id": "15ad40e7-e7ea-4391-aeda-a1073991e5d4",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2254,7 +2254,7 @@
 					},
 					"response": [
 						{
-							"id": "5e8a25d0-7b02-499a-8087-ce3705300ae3",
+							"id": "58797b2d-3e3e-4a2b-95cb-4af53595698a",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2305,7 +2305,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "84649944-4ee7-4ffd-bcce-fe11145c2fef",
+							"id": "0de4c778-16ac-4bd0-a3b8-9f60f74a6e33",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2409,7 +2409,7 @@
 					},
 					"response": [
 						{
-							"id": "d1eb213a-070c-415e-9902-dfd9e7c486b0",
+							"id": "18c6ba02-2b3c-46a1-a85c-0206a319e918",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2460,7 +2460,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "9274941d-8695-4d6b-b1d0-7c3dfacaf42a",
+							"id": "c91fa105-bd7e-40ef-9f51-ec50a2a6f4eb",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2550,7 +2550,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "a1f4dfc1-fba4-4507-afc4-4a24b205cb34",
+								"id": "2c5ddfe5-dc13-4f35-a365-439f7b64d66a",
 								"type": "text/javascript",
 								"exec": [
 									"var jsonData = pm.response.json();",
@@ -2575,7 +2575,7 @@
 							"raw": "{\n\t\"user\": \"admin\",\n\t\"password\": \"password\"\n}"
 						},
 						"url": {
-							"raw": "http://127.0.0.1:8888/test/oauth/login",
+							"raw": "http://127.0.0.1:8888/test/oauth2/login",
 							"protocol": "http",
 							"host": [
 								"127",
@@ -2586,7 +2586,7 @@
 							"port": "8888",
 							"path": [
 								"test",
-								"oauth",
+								"oauth2",
 								"login"
 							]
 						}
@@ -2612,7 +2612,7 @@
 							"raw": "{\n\t\"user\": \"admin\",\n\t\"password\": \"password\"\n}"
 						},
 						"url": {
-							"raw": "http://127.0.0.1:8888/test/oauth/sanity",
+							"raw": "http://127.0.0.1:8888/test/oauth2/sanity",
 							"protocol": "http",
 							"host": [
 								"127",
@@ -2623,7 +2623,7 @@
 							"port": "8888",
 							"path": [
 								"test",
-								"oauth",
+								"oauth2",
 								"sanity"
 							]
 						}
@@ -2644,6 +2644,16 @@
 									""
 								]
 							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "de737fe4-7a2c-4649-a26f-67ada7870ec3",
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
 						}
 					],
 					"request": {
@@ -2660,10 +2670,10 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"refresh_token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE1MzE1MzY3MTQsImlhdCI6MTUzMTUyMjMxNCwidXNlciI6ImFkbWluIiwiYWxsb3dSZWZyZXNoIjp0cnVlfQ.2CzDiwWE99CD57iHkeMPqKne0U57h9tnfTD_nipxP-l3wCcK7M7Ld30kQ_ZAOpfqJtdblHTcVil4rNJaTygSTg\"\n}"
+							"raw": "{\n\t\"refresh_token\": \"{{refresh_token}}\"\n}"
 						},
 						"url": {
-							"raw": "http://127.0.0.1:8888/test/oauth/refresh",
+							"raw": "http://127.0.0.1:8888/test/oauth2/refresh",
 							"protocol": "http",
 							"host": [
 								"127",
@@ -2674,7 +2684,7 @@
 							"port": "8888",
 							"path": [
 								"test",
-								"oauth",
+								"oauth2",
 								"refresh"
 							]
 						}

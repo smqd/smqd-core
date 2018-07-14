@@ -20,6 +20,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd._
+import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.plugin.PluginManager._
 import com.thing2x.smqd.plugin._
 import com.thing2x.smqd.rest.RestController
@@ -29,7 +30,7 @@ import spray.json._
 
 // 2018. 7. 6. - Created by Kwon, Yeong Eon
 
-class PluginController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging {
+class PluginController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
 
   override def routes: Route = packages ~ plugins
 
@@ -92,7 +93,7 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def getPackages(packageName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
-    val pm = smqdInstance.pluginManager
+    val pm = context.smqdInstance.pluginManager
     packageName match {
       case Some(pn) => // exact match
         val rt = pm.packageDefinitions
@@ -136,10 +137,12 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def putPackage(packageName: String, cmd: String): Route = {
-    val pm = smqdInstance.pluginManager
+    val smqdInstance = context.smqdInstance
+    val pm = context.smqdInstance.pluginManager
+    import smqdInstance.Implicit._
     pm.repositoryDefinition(packageName) match {
       case Some(rdef) =>
-        import smqdInstance.Implicit._
+
         cmd.toLowerCase match {
           case "install" =>
             val jval = for {
@@ -173,11 +176,12 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def putPlugin(pluginName: String, instanceName: String, command: String): Route = {
-    val pm = smqdInstance.pluginManager
+    val smqdInstance = context.smqdInstance
+    val pm = context.smqdInstance.pluginManager
     val instanceOpt = pm.instance(pluginName, instanceName)
+    import smqdInstance.Implicit._
     instanceOpt match {
       case Some(instance) =>
-        import smqdInstance.Implicit._
         val result = instance.exec(command.toLowerCase) map {
           case ExecSuccess(_) => restSuccess(0, PluginInstanceFormat.write(instance))
           case rt => execResult(rt)
@@ -189,7 +193,7 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def getPlugins(pluginName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
-    val pm = smqdInstance.pluginManager
+    val pm = context.smqdInstance.pluginManager
     pluginName match {
       case Some(pname) => // exact match
         pm.pluginDefinition(pname) match {
@@ -214,7 +218,7 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def getPluginInstances(pluginName: String, instanceName: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
-    val pm = smqdInstance.pluginManager
+    val pm = context.smqdInstance.pluginManager
     instanceName match {
       case Some(instName) => // exact match
         pm.instance(pluginName, instName) match {
@@ -239,7 +243,7 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def getPluginConfig(pluginName: String): Route = {
-    val pm = smqdInstance.pluginManager
+    val pm = context.smqdInstance.pluginManager
     pm.pluginDefinition(pluginName) match {
       case Some(pdef) =>
         val result = JsObject(
@@ -253,7 +257,7 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def getPluginInstanceConfig(pluginName:String, instanceName: String): Route = {
-    val pm = smqdInstance.pluginManager
+    val pm = context.smqdInstance.pluginManager
     pm.instance(pluginName, instanceName) match {
       case Some(inst) =>
         val autoStart = inst.autoStart
@@ -277,6 +281,7 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def createPluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
+    val smqdInstance = context.smqdInstance
     smqdInstance.pluginManager.configDirectory match {
       case Some(confDir) =>
         val file = new File(confDir, s"$pluginName-$instanceName.conf")
@@ -301,7 +306,8 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def updatePluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
-    val pm = smqdInstance.pluginManager
+    val smqdInstance = context.smqdInstance
+    val pm = context.smqdInstance.pluginManager
     pm.configDirectory match {
       case Some(confDir) =>
         val file = new File(confDir, s"$pluginName-$instanceName.conf")
@@ -329,7 +335,8 @@ class PluginController(name: String, smqdInstance: Smqd, config: Config) extends
   }
 
   private def deletePluginInstance(pluginName: String, instanceName: String): Route = {
-    val pm = smqdInstance.pluginManager
+    val smqdInstance = context.smqdInstance
+    val pm = context.smqdInstance.pluginManager
     pm.configDirectory match {
       case Some(confDir) =>
         val file = new File(confDir, s"$pluginName-$instanceName.conf")

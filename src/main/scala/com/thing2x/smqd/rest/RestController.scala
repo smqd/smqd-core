@@ -17,13 +17,20 @@ package com.thing2x.smqd.rest
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Route
 import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.net.http.HttpServiceContext
 import com.typesafe.config.Config
 import spray.json._
 
-/**
-  * 2018. 6. 20. - Created by Kwon, Yeong Eon
-  */
-abstract class RestController(name: String, smqd: Smqd, config: Config) extends RestResult with DefaultJsonProtocol {
+// 2018. 6. 20. - Created by Kwon, Yeong Eon
+
+abstract class RestController(name: String, context: HttpServiceContext) extends RestResult with DefaultJsonProtocol {
+
+  /**
+    * Deprecated, use [[RestController]]'s new Constructor
+    */
+  @deprecated("use new constructor (name: String, context: HttpServiceContext)", since="0.4.0")
+  def this(name: String, smqd: Smqd, config: Config) = this(name, new HttpServiceContext(null, null, smqd, config))
+
   def routes: Route
 
   def pagenate[T](objects: Iterable[T], currPageOpt: Option[Int], pageSizeOpt: Option[Int])(implicit jsonWriter: JsonWriter[Iterable[T]]): JsValue = {

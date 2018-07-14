@@ -12,20 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd.rest
+package com.thing2x.smqd.net.http
 
-import spray.json.{JsNumber, JsObject, JsString, JsValue}
+import com.thing2x.smqd.Smqd
+import com.typesafe.config.Config
 
-// 2018. 6. 20. - Created by Kwon, Yeong Eon
+// 2018. 7. 14. - Created by Kwon, Yeong Eon
 
-trait RestResult {
-  def restSuccess(code: Int, result: JsValue): JsValue = JsObject(
-    "code" -> JsNumber(code),
-    "result" -> result
-  )
-  def restError(code: Int, message: String): JsValue = JsObject(
-    "code" -> JsNumber(code),
-    "error" -> JsString(message)
-  )
+/**
+  *
+  */
+class HttpServiceContext(val http: HttpService, val oauth2: OAuth2, val smqdInstance: Smqd, val config: Config) {
+
 }
-

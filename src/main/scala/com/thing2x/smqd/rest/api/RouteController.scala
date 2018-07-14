@@ -17,15 +17,15 @@ package com.thing2x.smqd.rest.api
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
+import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.rest.RestController
-import com.thing2x.smqd.{FilterPath, Smqd, SmqdRoute, TopicPath}
-import com.typesafe.config.Config
+import com.thing2x.smqd.{FilterPath, SmqdRoute, TopicPath}
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
 
 // 2018. 6. 21. - Created by Kwon, Yeong Eon
 
-class RouteController(name: String, smqdInstance: Smqd, config: Config) extends RestController(name, smqdInstance, config) with Directives with StrictLogging {
+class RouteController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
   override def routes: Route = routes0
 
   private def routes0: Route = {
@@ -34,7 +34,7 @@ class RouteController(name: String, smqdInstance: Smqd, config: Config) extends 
         path(Remaining) { topicStr =>
           // GET api/v1/routes/{topic}
           val topicPath = TopicPath(topicStr)
-          val result = smqdInstance.snapshotRoutes.filter( _._1.matchFor(topicPath) )
+          val result = context.smqdInstance.snapshotRoutes.filter( _._1.matchFor(topicPath) )
 
           if (result.isEmpty) {
             complete(StatusCodes.NotFound, restError(404, s"Not Found - $topicStr"))
@@ -62,7 +62,7 @@ class RouteController(name: String, smqdInstance: Smqd, config: Config) extends 
               }
             }
 
-            val result = smqdInstance.snapshotRoutes
+            val result = context.smqdInstance.snapshotRoutes
             complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
           }
         }
