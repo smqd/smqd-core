@@ -14,81 +14,21 @@
 
 package com.thing2x.smqd.rest.api.test
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.testkit.ScalatestRouteTest
-import akka.testkit.TestKit
-import com.thing2x.smqd.net.http.HttpService
-import com.thing2x.smqd.{Smqd, SmqdBuilder}
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
-import org.scalatest.{WordSpec, _}
-import spray.json._
-
-import scala.concurrent.Promise
 
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
 
 /**
   *
   */
-class MetricControllerTest extends WordSpec
-  with BeforeAndAfterAll
-  with Matchers
-  with ScalatestRouteTest
-  with CoreApiResponseAware
-  with StrictLogging {
-
-  private val config = ConfigFactory.parseString(
-    """
-      |akka.actor.provider=local
-      |smqd {
-      |  services=["api-test"]
-      |
-      |  api-test {
-      |    entry.plugin="thing2x-core-api"
-      |    config: {
-      |      "cors" : {
-      |        "enabled" : true
-      |      },
-      |      "local" : {
-      |        "port" : 0
-      |        "address" : "127.0.0.1"
-      |      }
-      |    }
-      |  }
-      |}
-    """.stripMargin).withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
-
-  override def createActorSystem(): ActorSystem = ActorSystem(actorSystemNameFrom(getClass), config)
-
-  var smqdInstance: Smqd = _
-  var routes: Route = _
-  val shutdownPromise = Promise[Boolean]
-
-  override def beforeAll(): Unit = {
-
-    smqdInstance = new SmqdBuilder(config)
-      .setActorSystem(system)
-      .build()
-
-    smqdInstance.start()
-    routes = smqdInstance.service("api-test").get.asInstanceOf[HttpService].routes
-  }
-
-  override def afterAll(): Unit = {
-    shutdownPromise.future.onComplete { _ =>
-      smqdInstance.stop()
-      TestKit.shutdownActorSystem(system)
-    }
-  }
+class MetricControllerTest extends CoreApiTesting with StrictLogging {
 
   "Metrics" should {
     "get-all" in {
       Get("/api/v1/metrics") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val rsp = asCoreApiResponse(entityAs[String])
+        val rsp = asCoreApiResponseAsMap(entityAs[String])
         assert(rsp.code == 0)
         assert(rsp.result.nonEmpty)
       }
@@ -97,16 +37,11 @@ class MetricControllerTest extends WordSpec
     "get-jvm/cpu" in {
       Get("/api/v1/metrics/jvm/cpu") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val rsp = asCoreApiResponse(entityAs[String])
+        val rsp = asCoreApiResponseAsMap(entityAs[String])
         assert(rsp.code == 0)
         assert(rsp.result.nonEmpty)
       }
     }
   }
 
-  "done" can {
-    "terminate" in {
-      shutdownPromise.success(true)
-    }
-  }
 }

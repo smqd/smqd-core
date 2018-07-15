@@ -14,6 +14,8 @@
 
 package com.thing2x.smqd.net.http
 
+import java.net.InetSocketAddress
+
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
@@ -61,6 +63,11 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   private var tlsBinding: Option[ServerBinding] = None
   private var finalRoutes: Route = _
 
+  private var localEndpoint: Option[String] = None
+  private var secureEndpoint: Option[String] = None
+  // Endpoint address of this http server
+  def endpoint: EndpointInfo = EndpointInfo(localEndpoint, secureEndpoint)
+
   override def start(): Unit = {
     logger.info(s"[$name] Starting...")
     logger.debug(s"[$name] local enabled : $localEnabled")
@@ -78,7 +85,6 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 
-    val oauth2 = OAuth2(oauth2SecretKey, oauth2Algorithm, oauth2TokenExpire, oauth2RefreshTokenExpire)
     // load routes configuration
     val routes = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfig("routes")) else Set(emptyRoute)
 
@@ -108,6 +114,8 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       bindingFuture.onComplete {
         case Success(b) =>
           binding = Some(b)
+          localEndpoint = Some(s"http://$localAddress:${b.localAddress.getPort}")
+          localBound(b.localAddress)
           logger.info(s"[$name] Started. listening ${b.localAddress}")
         case Failure(e) =>
           logger.error(s"[$name] Failed", e)
@@ -128,6 +136,8 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
             tlsBindingFuture.onComplete {
               case Success(b) =>
                 tlsBinding = Some(b)
+                secureEndpoint = Some(s"https://$localSecureAddress:${b.localAddress.getPort}")
+                localSecureBound(b.localAddress)
                 logger.info(s"[$name] Started. listening ${b.localAddress}")
               case Failure(e) =>
                 logger.error(s"[$name] Failed", e)
@@ -176,6 +186,16 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     }
 
     logger.info(s"[$name] Stopped.")
+  }
+
+  protected def trimSlash(p: String): String = rtrimSlash(ltrimSlash(p))
+  protected def ltrimSlash(p: String): String = if (p.startsWith("/")) p.substring(1) else p
+  protected def rtrimSlash(p: String): String = if (p.endsWith("/")) p.substring(0, p.length - 1) else p
+
+  def localBound(address: InetSocketAddress): Unit = {
+  }
+
+  def localSecureBound(address: InetSocketAddress): Unit = {
   }
 
   def routes: Route = finalRoutes

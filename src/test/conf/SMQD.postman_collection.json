@@ -1731,7 +1731,7 @@
 					},
 					"response": [
 						{
-							"id": "a14a3cd6-0996-43bf-8660-4c5819e44e52",
+							"id": "bcd92b35-d67d-480f-b363-4325a45a2252",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1782,7 +1782,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "9c99c796-9e18-4160-8129-cc8dc38381fd",
+							"id": "76d5b68b-f1bb-41b9-8b60-6a46ac03af81",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1864,7 +1864,7 @@
 					},
 					"response": [
 						{
-							"id": "f2d6aa13-5260-409f-9965-f6a21956134f",
+							"id": "42061851-5e96-4f1e-aee9-beccc5de98e2",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -1937,7 +1937,7 @@
 					},
 					"response": [
 						{
-							"id": "37ae1033-f528-47d0-9cba-159a7e5ad686",
+							"id": "d7d123a5-71aa-4b0e-bd3a-35b9d4481dc8",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2015,7 +2015,7 @@
 					},
 					"response": [
 						{
-							"id": "57f7bb3c-d6be-4d94-a591-d1e5579f6bcd",
+							"id": "af680bb6-0b52-42f9-980f-d4da0d202b0d",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2093,7 +2093,7 @@
 					},
 					"response": [
 						{
-							"id": "acf3d3f9-f14f-47b7-bbf0-55500480e281",
+							"id": "20f2ceb0-939b-49ae-8115-6e1e839e0cbf",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2144,7 +2144,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "15ad40e7-e7ea-4391-aeda-a1073991e5d4",
+							"id": "9e1b041d-8fa0-4d41-972a-00cba40024ee",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2254,7 +2254,7 @@
 					},
 					"response": [
 						{
-							"id": "58797b2d-3e3e-4a2b-95cb-4af53595698a",
+							"id": "35f7d984-8e75-4a0b-b672-7f8c3aa704eb",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2305,7 +2305,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "0de4c778-16ac-4bd0-a3b8-9f60f74a6e33",
+							"id": "df31b074-34e4-41c2-a4f8-e052c011cdeb",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2409,7 +2409,7 @@
 					},
 					"response": [
 						{
-							"id": "18c6ba02-2b3c-46a1-a85c-0206a319e918",
+							"id": "5f2c47be-0ea1-4f4e-8cca-29b4f4e35c9e",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2460,7 +2460,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "c91fa105-bd7e-40ef-9f51-ec50a2a6f4eb",
+							"id": "3b1e8524-1559-404f-87aa-015a614d18d9",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2575,18 +2575,14 @@
 							"raw": "{\n\t\"user\": \"admin\",\n\t\"password\": \"password\"\n}"
 						},
 						"url": {
-							"raw": "http://127.0.0.1:8888/test/oauth2/login",
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/auth/login",
 							"protocol": "http",
 							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
+								"{{smqd_hostport}}"
 							],
-							"port": "8888",
 							"path": [
-								"test",
-								"oauth2",
+								"{{smqd_api}}",
+								"auth",
 								"login"
 							]
 						}
@@ -2612,18 +2608,14 @@
 							"raw": "{\n\t\"user\": \"admin\",\n\t\"password\": \"password\"\n}"
 						},
 						"url": {
-							"raw": "http://127.0.0.1:8888/test/oauth2/sanity",
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/auth/sanity",
 							"protocol": "http",
 							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
+								"{{smqd_hostport}}"
 							],
-							"port": "8888",
 							"path": [
-								"test",
-								"oauth2",
+								"{{smqd_api}}",
+								"auth",
 								"sanity"
 							]
 						}
@@ -2673,18 +2665,14 @@
 							"raw": "{\n\t\"refresh_token\": \"{{refresh_token}}\"\n}"
 						},
 						"url": {
-							"raw": "http://127.0.0.1:8888/test/oauth2/refresh",
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/auth/refresh",
 							"protocol": "http",
 							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
+								"{{smqd_hostport}}"
 							],
-							"port": "8888",
 							"path": [
-								"test",
-								"oauth2",
+								"{{smqd_api}}",
+								"auth",
 								"refresh"
 							]
 						}

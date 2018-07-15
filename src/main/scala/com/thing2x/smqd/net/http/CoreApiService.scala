@@ -14,6 +14,8 @@
 
 package com.thing2x.smqd.net.http
 
+import java.net.InetSocketAddress
+
 import com.thing2x.smqd._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
@@ -25,22 +27,16 @@ class CoreApiService(name: String, smqdInstance: Smqd, config: Config) extends H
 
   private var localEndpoint: Option[String] = None
   private var secureEndpoint: Option[String] = None
-  def endpoint: EndpointInfo = EndpointInfo(localEndpoint, secureEndpoint)
+  override def endpoint: EndpointInfo = EndpointInfo(localEndpoint, secureEndpoint)
 
-  override def start(): Unit = {
-    super.start()
-
-    def trimSlash(p: String): String = rtrimSlash(ltrimSlash(p))
-
-    def ltrimSlash(p: String): String = if (p.startsWith("/")) p.substring(1) else p
-    def rtrimSlash(p: String): String = if (p.endsWith("/")) p.substring(0, p.length - 1) else p
-
-    localEndpoint = Some(s"http://$localAddress:$localPort/${trimSlash(smqdPrefix)}")
+  override def localBound(address: InetSocketAddress): Unit = {
+    localEndpoint = Some(s"http://$localAddress:${address.getPort}/${trimSlash(smqdPrefix)}")
     smqdInstance.setApiEndpoint(EndpointInfo(localEndpoint, secureEndpoint))
-
-    if (localSecureEnabled) {
-      secureEndpoint = Some(s"https://$localSecureAddress:$localSecurePort/${trimSlash(smqdPrefix)}")
-      smqdInstance.setApiEndpoint(EndpointInfo(localEndpoint, secureEndpoint))
-    }
   }
+
+  override def localSecureBound(address: InetSocketAddress): Unit = {
+    secureEndpoint = Some(s"https://$localSecureAddress:${address.getPort}/${trimSlash(smqdPrefix)}")
+    smqdInstance.setApiEndpoint(EndpointInfo(localEndpoint, secureEndpoint))
+  }
+
 }
