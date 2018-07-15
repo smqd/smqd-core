@@ -26,7 +26,7 @@ import spray.json._
 // 2018. 6. 21. - Created by Kwon, Yeong Eon
 
 class RouteController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
-  override def routes: Route = routes0
+  override def routes: Route = context.oauth2.authorized{ _ => routes0 }
 
   private def routes0: Route = {
     ignoreTrailingSlash {

@@ -32,7 +32,7 @@ import spray.json._
 
 class PluginController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
 
-  override def routes: Route = packages ~ plugins
+  override def routes: Route = context.oauth2.authorized{ _ => packages ~ plugins }
 
   private def packages: Route = {
     ignoreTrailingSlash {

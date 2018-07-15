@@ -17,7 +17,7 @@ package com.thing2x.smqd.net.http
 import java.net.InetSocketAddress
 
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.LoggingMagnet
@@ -31,6 +31,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.JavaConverters._
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
@@ -58,6 +59,8 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   val oauth2Algorithm: String = config.getOptionString("oauth2.algorithm").getOrElse("HS256")
 
   val oauth2 = OAuth2(oauth2SecretKey, oauth2Algorithm, oauth2TokenExpire, oauth2RefreshTokenExpire)
+  setAuthSimulationMode(config.getOptionBoolean("oauth2.simulation_mode").getOrElse(false),
+    config.getOptionString("oauth2.simulation_identifier").getOrElse("admin"))
 
   private var binding: Option[ServerBinding] = None
   private var tlsBinding: Option[ServerBinding] = None
@@ -90,25 +93,25 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
     // merge all routes into a single route value
     // then encapsulate with log directives
-    finalRoutes = logRequestResult(LoggingMagnet(_ => logAdapter.accessLog(System.nanoTime))) {
-      val rs = if (routes.isEmpty) {
-        emptyRoute
-      }
-      else if (routes.size == 1)
-        routes.head
-      else {
-        routes.tail.foldLeft(routes.head)((prev, r) => prev ~ r)
-      }
+    finalRoutes = {
+      val rs = if (routes.isEmpty) emptyRoute
+      else if (routes.size == 1) routes.head
+      else routes.tail.foldLeft(routes.head)((prev, r) => prev ~ r)
 
       if (corsEnabled) corsHandler(rs) else rs
     }
 
-    val handler = Route.asyncHandler(finalRoutes)
+    def handler(remoteAddress: InetSocketAddress): HttpRequest => Future[HttpResponse] = {
+      val routes = logRequestResult(LoggingMagnet(_ => logAdapter.accessLog(System.nanoTime, remoteAddress))) {
+        finalRoutes
+      }
+      Route.asyncHandler(routes)
+    }
 
     if (localEnabled) {
       val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(system), logAdapter)
       val bindingFuture = serverSource.to(Sink.foreach{ connection =>
-        connection.handleWithAsyncHandler(httpRequest => handler(httpRequest))
+        connection.handleWithAsyncHandler(handler(connection.remoteAddress))
       }).run()
 
       bindingFuture.onComplete {
@@ -130,7 +133,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
             val connectionContext = ConnectionContext.https(sslContext)
             val serverSource = Http().bind(localSecureBindAddress, localSecureBindPort, connectionContext, ServerSettings(system), logAdapter)
             val tlsBindingFuture = serverSource.to(Sink.foreach{ connection =>
-              connection.handleWithAsyncHandler(httpRequest => handler(httpRequest))
+              connection.handleWithAsyncHandler(handler(connection.remoteAddress))
             }).run()
 
             tlsBindingFuture.onComplete {
@@ -186,6 +189,10 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     }
 
     logger.info(s"[$name] Stopped.")
+  }
+
+  def setAuthSimulationMode(isSimulationMode: Boolean, simulationIdentifier: String): Unit = {
+    oauth2.setSimulationMode(isSimulationMode, simulationIdentifier)
   }
 
   protected def trimSlash(p: String): String = rtrimSlash(ltrimSlash(p))

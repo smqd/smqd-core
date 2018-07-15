@@ -19,6 +19,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd._
 import com.thing2x.smqd.net.http.HttpServiceContext
+import com.thing2x.smqd.net.http.OAuth2.OAuth2Claim
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
@@ -26,9 +27,9 @@ import spray.json._
 // 2018. 7. 6. - Created by Kwon, Yeong Eon
 
 class ClientController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging  {
-  override def routes: Route = clients
+  override def routes: Route = context.oauth2.authorized{ claim => clients(claim) }
 
-  private def clients: Route = {
+  private def clients(claim: OAuth2Claim): Route = {
     ignoreTrailingSlash {
       get {
         parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>

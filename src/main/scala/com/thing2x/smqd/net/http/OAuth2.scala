@@ -56,6 +56,14 @@ object OAuth2 extends DefaultJsonProtocol {
 
 class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Duration, algorithm: JwtAlgorithm) extends StrictLogging {
 
+  private var isSimulation = false
+  private var simulationIdentifier = ""
+
+  private[http] def setSimulationMode(isSimulation: Boolean, simulationIdentifier: String): Unit = {
+    this.isSimulation = isSimulation
+    this.simulationIdentifier = simulationIdentifier
+  }
+
   private def verifyToken(token: String): Option[OAuth2Claim] = {
     Jwt.decode(token, secretKey, JwtAlgorithm.allHmac()) match {
       case Success(claim) =>
@@ -78,15 +86,22 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
       case _ => None
     }
 
-  def authorized: Directive1[OAuth2Claim] =
-    bearerToken.flatMap {
-      case Some(token) =>
-        verifyToken(token) match {
-          case Some(claim: OAuth2Claim) => provide(claim)
-          case None => reject(AuthorizationFailedRejection)
-        }
-      case _ =>  reject(AuthorizationFailedRejection)
+  def authorized: Directive1[OAuth2Claim] = {
+    if (isSimulation) {
+      val claim = OAuth2Claim(simulationIdentifier)
+      provide(claim)
     }
+    else {
+      bearerToken.flatMap {
+        case Some(token) =>
+          verifyToken(token) match {
+            case Some(claim: OAuth2Claim) => provide(claim)
+            case None => reject(AuthorizationFailedRejection)
+          }
+        case _ =>  reject(AuthorizationFailedRejection)
+      }
+    }
+  }
 
   private def issueJwt0(claim: OAuth2Claim): OAuth2JwtToken = {
     val tokenJson = claim.toJson.toString

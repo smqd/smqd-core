@@ -14,8 +14,11 @@
 
 package com.thing2x.smqd.net.http
 
+import java.net.InetSocketAddress
+
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.RouteResult.{Complete, Rejected}
 import com.typesafe.scalalogging.Logger
 
@@ -51,7 +54,12 @@ class HttpServiceLogger(logger: Logger, name: String = "-") extends LoggingAdapt
     logger.debug("---{}", message)
   }
 
-  def accessLog(requestTime: Long)(req: HttpRequest)(rsp: Any): Unit = {
+  def accessLog(requestTime: Long, remoteAddress: InetSocketAddress)(req: HttpRequest)(rsp: Any): Unit = {
+
+    val clientIp = remoteAddress.getHostString +":" + remoteAddress.getPort
+
+    val protocol = req.protocol.value
+
     val path = req.uri.rawQueryString match {
       case Some(str) => req.getUri.path+"?"+str
       case _ => req.getUri.path
@@ -61,14 +69,18 @@ class HttpServiceLogger(logger: Logger, name: String = "-") extends LoggingAdapt
 
     val result = rsp match {
       case Complete(rsp: HttpResponse) =>
-        s";${rsp.status.intValue} ${rsp.status.reason}"
+        val length = rsp.entity.contentLengthOption match {
+          case Some(len) => com.thing2x.smqd.util.humanReadableSize(len)
+          case None => "- B"
+        }
+        s"$length ;${rsp.status.intValue} ${rsp.status.reason}"
       case Rejected(_) =>
-        s";400 Rejected"
+        s"- ;400 Rejected"
       case m =>
-        s"-${m.toString}"
+        s"- ;- ${m.toString}"
     }
 
-    info(f"${req.method.name} $path $time%.3f ms $result")
+    info(f"$clientIp $protocol ${req.method.name} $path $time%.3f ms $result")
   }
 }
 

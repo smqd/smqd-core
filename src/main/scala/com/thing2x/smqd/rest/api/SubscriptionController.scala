@@ -27,7 +27,7 @@ import spray.json.{RootJsonFormat, _}
 // 2018. 7. 12. - Created by Kwon, Yeong Eon
 
 class SubscriptionController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging  {
-  override def routes: Route = clients
+  override def routes: Route = context.oauth2.authorized { _ => clients }
 
   private def clients: Route = {
     ignoreTrailingSlash {

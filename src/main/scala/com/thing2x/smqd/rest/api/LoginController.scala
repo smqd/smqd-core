@@ -44,9 +44,7 @@ object LoginController extends DefaultJsonProtocol {
 import com.thing2x.smqd.rest.api.LoginController._
 
 class LoginController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging   {
-  override def routes: Route = login ~ sanity ~ refresh
-
-  private val oauth2 = context.oauth2
+  override def routes: Route = login ~ context.oauth2.authorized{ claim => sanity(claim) ~ refresh(claim) }
 
   def login: Route = {
     path("login") {
@@ -54,7 +52,7 @@ class LoginController(name: String, context: HttpServiceContext) extends RestCon
         entity(as[LoginRequest]) { loginReq =>
           if (loginReq.user == "admin" && loginReq.password == "password") {
             val claim = OAuth2Claim(loginReq.user, Map("allow-refresh" -> "true"))
-            oauth2.issueJwt(claim) { jwt =>
+            context.oauth2.issueJwt(claim) { jwt =>
               val response = LoginResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
               complete(StatusCodes.OK, restSuccess(0, response.toJson))
             }
@@ -67,34 +65,27 @@ class LoginController(name: String, context: HttpServiceContext) extends RestCon
     }
   }
 
-  def sanity: Route = {
+  def sanity(claim: OAuth2Claim): Route = {
     path("sanity") {
-      oauth2.authorized {
-        case claim: OAuth2Claim =>
-          complete(StatusCodes.OK, restSuccess(0, JsObject(
-              "identifier" -> JsString(claim.identifier)
-            )))
-        case _ =>
-          complete(StatusCodes.Unauthorized, restError(401, "Unauthorized"))
-      }
+      complete(StatusCodes.OK, restSuccess(0, JsObject(
+        "identifier" -> JsString(claim.identifier)
+      )))
     }
   }
 
-  def refresh: Route = {
+  def refresh(claim: OAuth2Claim): Route = {
     path("refresh") {
-      oauth2.authorized { claim =>
-        post {
-          entity(as[LoginRefreshRequest]) { refreshReq =>
-            if (claim.getBoolean("allow-refresh").getOrElse(false)) {
-              val newClaim = OAuth2Claim(claim.identifier, claim.attributes)
-              oauth2.reissueJwt(newClaim, refreshReq.refresh_token) { jwt =>
-                val response = LoginRefreshResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
-                complete(StatusCodes.OK, restSuccess(0, response.toJson))
-              }
+      post {
+        entity(as[LoginRefreshRequest]) { refreshReq =>
+          if (claim.getBoolean("allow-refresh").getOrElse(false)) {
+            val newClaim = OAuth2Claim(claim.identifier, claim.attributes)
+            context.oauth2.reissueJwt(newClaim, refreshReq.refresh_token) { jwt =>
+              val response = LoginRefreshResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
+              complete(StatusCodes.OK, restSuccess(0, response.toJson))
             }
-            else {
-              complete(StatusCodes.Unauthorized, restError(401, "Token refresh is not allowed"))
-            }
+          }
+          else {
+            complete(StatusCodes.Unauthorized, restError(401, "Token refresh is not allowed"))
           }
         }
       }

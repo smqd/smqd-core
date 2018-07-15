@@ -67,12 +67,16 @@ abstract class CoreApiTesting extends WordSpec
       |  api-test {
       |    entry.plugin="thing2x-core-api"
       |    config: {
-      |      "cors" : {
-      |        "enabled" : true
+      |      cors : {
+      |        enabled : true
       |      },
-      |      "local" : {
-      |        "port" : 0
-      |        "address" : "127.0.0.1"
+      |      oauth2 {
+      |        simulation_mode = true
+      |        simulation_identifier = admin
+      |      },
+      |      local : {
+      |        port : 0
+      |        address : "127.0.0.1"
       |      }
       |    }
       |  }

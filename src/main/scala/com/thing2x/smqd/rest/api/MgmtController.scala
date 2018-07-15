@@ -27,7 +27,7 @@ import spray.json._
 
 class MgmtController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
 
-  val routes: Route = version ~ nodes
+  val routes: Route = context.oauth2.authorized { _ => version ~ nodes }
 
   private def version: Route = {
     val smqdInstance = context.smqdInstance

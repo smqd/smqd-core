@@ -19,6 +19,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.codahale.metrics.{Counter, Metric, SharedMetricRegistries}
 import com.thing2x.smqd.net.http.HttpServiceContext
+import com.thing2x.smqd.net.http.OAuth2.OAuth2Claim
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.scalalogging.StrictLogging
 import spray.json.{JsObject, _}
@@ -28,7 +29,7 @@ import scala.collection.JavaConverters._
 // 2018. 6. 21. - Created by Kwon, Yeong Eon
 
 class MetricController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging  {
-  override def routes: Route = metrics
+  override def routes: Route = context.oauth2.authorized { _ => metrics }
 
   def metrics: Route = {
     ignoreTrailingSlash {
