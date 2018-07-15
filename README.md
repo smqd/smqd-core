@@ -13,10 +13,20 @@ SMQD :: Scala MQtt Daemon
     libraryDependencies += "com.thing2x" %% "smqd-core" % "x.y.z"
 ```
 
-If you want to try snapshot version, add a resolver for soatype repository
+If you want to try snapshot version, add a resolver for soatype repository.
+Since snapshot version can be updated in any time,
+it would be better to mark `changing()` on the dependency
+so that sbt will check if there is updated snapshot version in the repository
 
 ```scala
     resolvers += Resolver.sonatypeRepo("public")
+
+    val smqdVersion = "x.y.z-SNAPSHOT"
+
+    if (smqdVersion.endsWith("-SNAPSHOT"))
+        libraryDependencies += "com.thing2x" %% "smqd-core" % smqdVersion changing()
+    else
+        libraryDependencies += "com.thing2x" %% "smqd-core" % smqdVersion
 ```
 
 ## Features
