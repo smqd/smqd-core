@@ -76,7 +76,13 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
     msg match {
       case m: ProtocolNotification =>
         val channelId = m.channelId
-        val clientId = if (m.clientId.contains("@")) m.clientId else channelId + "@" + m.clientId
+        val clientId =
+          if (m.clientId.length == 0) {
+            channelId
+          }
+          else {
+            if (m.clientId.contains("@")) m.clientId else channelId + "@" + m.clientId
+          }
         val dirType = s"${if(m.direction == Recv) "Recv" else if(m.direction == Send) "Send" else "---" }"
         val msg = s"${colored(s"[$clientId] $dirType ${m.messageType}", channelId.hashCode)} ${m.message}"
         this.level(msg)
