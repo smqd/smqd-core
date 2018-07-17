@@ -117,6 +117,16 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
     provide(issueJwt0(claim))
   }
 
+  def refreshTokenIdentifier(refreshTokenString: String): Option[String] = {
+    Jwt.decode(refreshTokenString, secretKey, JwtAlgorithm.allHmac) match {
+      case Success(tokenString) =>
+        val refreshToken = tokenString.parseJson.convertTo[OAuth2JwtRefreshToken]
+        Option(refreshToken.username)
+      case _ =>
+        None
+    }
+  }
+
   def reissueJwt(claim: OAuth2Claim, refreshTokenString: String): Directive1[OAuth2JwtToken] = {
     Jwt.decode(refreshTokenString, secretKey, JwtAlgorithm.allHmac) match {
       case Success(tokenString) =>

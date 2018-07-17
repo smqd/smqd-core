@@ -44,14 +44,14 @@ object LoginController extends DefaultJsonProtocol {
 import com.thing2x.smqd.rest.api.LoginController._
 
 class LoginController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging   {
-  override def routes: Route = login ~ context.oauth2.authorized{ claim => sanity(claim) ~ refresh(claim) }
+  override def routes: Route = login ~ refresh ~ context.oauth2.authorized{ claim => sanity(claim) }
 
   def login: Route = {
     path("login") {
       post {
         entity(as[LoginRequest]) { loginReq =>
           if (loginReq.user == "admin" && loginReq.password == "password") {
-            val claim = OAuth2Claim(loginReq.user, Map("allow-refresh" -> "true"))
+            val claim = OAuth2Claim(loginReq.user, Map("issuer" -> "smqd-core"))
             context.oauth2.issueJwt(claim) { jwt =>
               val response = LoginResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
               complete(StatusCodes.OK, restSuccess(0, response.toJson))
@@ -73,19 +73,19 @@ class LoginController(name: String, context: HttpServiceContext) extends RestCon
     }
   }
 
-  def refresh(claim: OAuth2Claim): Route = {
+  def refresh: Route = {
     path("refresh") {
       post {
         entity(as[LoginRefreshRequest]) { refreshReq =>
-          if (claim.getBoolean("allow-refresh").getOrElse(false)) {
-            val newClaim = OAuth2Claim(claim.identifier, claim.attributes)
-            context.oauth2.reissueJwt(newClaim, refreshReq.refresh_token) { jwt =>
-              val response = LoginRefreshResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
-              complete(StatusCodes.OK, restSuccess(0, response.toJson))
-            }
-          }
-          else {
-            complete(StatusCodes.Unauthorized, restError(401, "Token refresh is not allowed"))
+          context.oauth2.refreshTokenIdentifier(refreshReq.refresh_token) match {
+            case Some(identifier) =>
+              val newClaim = OAuth2Claim(identifier, Map("issuer"-> "smqd-core"))
+              context.oauth2.reissueJwt(newClaim, refreshReq.refresh_token) { jwt =>
+                val response = LoginRefreshResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
+                complete(StatusCodes.OK, restSuccess(0, response.toJson))
+              }
+            case _ =>
+              complete(StatusCodes.Unauthorized, restError(401, s"Invalid refresh token"))
           }
         }
       }
