@@ -48,7 +48,10 @@ class LoginControllerTest extends CoreApiTesting with StrictLogging {
         logger.info(s"refresh_token_expires_in = {}", rsp.result("refresh_token_expires_in").convertTo[Long])
       }
     }
+  }
 
+  "done" in {
+    shutdown()
   }
 
 }

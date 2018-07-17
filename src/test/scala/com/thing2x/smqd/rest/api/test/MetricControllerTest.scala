@@ -44,4 +44,8 @@ class MetricControllerTest extends CoreApiTesting with StrictLogging {
     }
   }
 
+  "done" in {
+    shutdown()
+  }
+
 }

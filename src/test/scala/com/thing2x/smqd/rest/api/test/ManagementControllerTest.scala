@@ -89,4 +89,8 @@ class ManagementControllerTest extends CoreApiTesting with StrictLogging {
       }
     }
   }
+
+  "done" in {
+    shutdown()
+  }
 }

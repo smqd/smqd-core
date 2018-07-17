@@ -100,9 +100,13 @@ abstract class CoreApiTesting extends WordSpec
   }
 
   override def afterAll(): Unit = {
-   // shutdownPromise.future.onComplete { _ =>
+   shutdownPromise.future.onComplete { _ =>
       smqdInstance.stop()
       TestKit.shutdownActorSystem(system)
     }
-  //}
+  }
+
+  def shutdown(): Unit = {
+    shutdownPromise.success(true)
+  }
 }
