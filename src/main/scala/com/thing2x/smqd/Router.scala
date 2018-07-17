@@ -248,15 +248,15 @@ class ClusterAwareLocalRouter(registry: Registry) extends Actor with SendingOutb
 
 class LocalModeRouter(registry: Registry) extends Router with SendingOutboundPublish with StrictLogging {
 
-  override def snapshot: Map[FilterPath, Set[SmqdRoute]] = ???
+  override def snapshot: Map[FilterPath, Set[SmqdRoute]] = Map.empty
 
-  override def filter(topicPath: TopicPath): Seq[SmqdRoute] = ???
+  override def filter(topicPath: TopicPath): Seq[SmqdRoute] = Nil
 
-  override def routes(topicPath: TopicPath): Seq[ActorRef] = ???
+  override def routes(topicPath: TopicPath): Seq[ActorRef] = Nil
 
-  override private[smqd] def addRoute(filterPath: FilterPath): Unit = ???
+  override private[smqd] def addRoute(filterPath: FilterPath): Unit = { } // do nothing
 
-  override private[smqd] def removeRoute(filterPath: FilterPath): Unit = ???
+  override private[smqd] def removeRoute(filterPath: FilterPath): Unit = { } // do nothing
 
   override def routes(rm: RoutableMessage): Unit = {
     registry.filter(rm.topicPath).foreach{ reg => sendOutboundPubish(reg, rm) }
