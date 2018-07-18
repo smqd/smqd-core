@@ -14,10 +14,16 @@
 
 package com.thing2x.smqd.impl
 
-import com.thing2x.smqd.fault.BadUserPassword
+import java.io._
+import java.util.Properties
+
+import com.thing2x.smqd.UserDelegate.User
+import com.thing2x.smqd.fault.{UserAlreadyExists, UserNotExists, UserWrongPassword}
+import com.thing2x.smqd.util.SslUtil
 import com.thing2x.smqd.{SmqResult, SmqSuccess, UserDelegate}
 import com.typesafe.scalalogging.StrictLogging
 
+import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 // 2018. 7. 18. - Created by Kwon, Yeong Eon
@@ -25,44 +31,100 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
   *
   */
-class DefaultUserDelegate extends UserDelegate with StrictLogging {
+class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogging {
+
+  logger.info(s"passwd file: ${passwdFile.getPath}")
+
+  val lock = new Object()
+
+  if (!passwdFile.exists) {
+    val default = new Properties()
+    default.setProperty("admin", SslUtil.getSha1Hash("password")) // echo -n "password" | openssl sha1
+    store(default)
+  }
+
+  private def load: Properties = {
+    val p = new Properties()
+    val r = new InputStreamReader(new FileInputStream(passwdFile))
+    p.load(r)
+    r.close()
+    p
+  }
+
+  private def store(p: Properties): Unit = {
+    val w = new OutputStreamWriter(new FileOutputStream(passwdFile))
+    p.store(w, "--passwords--")
+    w.close()
+  }
 
   override def userLogin(username: String, password: String)(implicit ec: ExecutionContext): Future[SmqResult] = {
     Future {
-      if (username == "admin" && password == "password") {
-        SmqSuccess
-      }
-      else {
-        BadUserPassword("Bad username or password ")
+      lock.synchronized {
+        val pw = load.getProperty(username)
+        //logger.trace(s"stored pw=${pw} vs. user pw=${SslUtil.getSha1Hash(password)}")
+        if (pw != null && pw == SslUtil.getSha1Hash(password)) {
+          SmqSuccess
+        }
+        else {
+          UserWrongPassword("Bad username or password ")
+        }
       }
     }
   }
 
   override def userList(implicit ec: ExecutionContext): Future[Seq[UserDelegate.User]] = {
-    logger.info("--userList")
     Future {
-      Nil
+      val props = load
+      val us = props.stringPropertyNames().asScala
+      us.map( k => (k, props.getProperty(k)) ).map(u => User(u._1, u._2)).toSeq
     }
   }
 
   override def userCreate(user: UserDelegate.User)(implicit ec: ExecutionContext): Future[SmqResult] = {
-    logger.info("--userCreate")
     Future {
-      SmqSuccess
+      lock.synchronized {
+        val props = load
+        if (props.getProperty(user.username) != null) {
+          UserAlreadyExists(user.username)
+        }
+        else {
+          props.setProperty(user.username, SslUtil.getSha1Hash(user.password))
+          store(props)
+          SmqSuccess
+        }
+      }
     }
   }
 
   override def userUpdate(user: UserDelegate.User)(implicit ec: ExecutionContext): Future[SmqResult] = {
-    logger.info("--userUpdate")
     Future {
-      SmqSuccess
+      lock.synchronized {
+        val props = load
+        if (props.getProperty(user.username) == null) {
+          UserNotExists(user.username)
+        }
+        else {
+          props.setProperty(user.username, SslUtil.getSha1Hash(user.password))
+          store(props)
+          SmqSuccess
+        }
+      }
     }
   }
 
   override def userDelete(username: String)(implicit ec: ExecutionContext): Future[SmqResult] = {
-    logger.info("--userDelete")
     Future {
-      SmqSuccess
+      lock.synchronized {
+        val props = load
+        if (props.getProperty(username) == null) {
+          SmqSuccess
+        }
+        else {
+          props.remove(username)
+          store(props)
+          SmqSuccess
+        }
+      }
     }
   }
 }

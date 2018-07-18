@@ -66,4 +66,6 @@ case class UnknownErrorToSubscribe(override val sessionId: String, topicName: St
 case class InvalidTopicToPublish(override val sessionId: String, topicName: String) extends SessionFault(sessionId, topicName)
 
 // User
-case class BadUserPassword(reason: String) extends GeneralFault(reason)
+case class UserWrongPassword(reason: String) extends GeneralFault(reason)
+case class UserAlreadyExists(username: String) extends GeneralFault(s"User $username already exists")
+case class UserNotExists(username: String) extends GeneralFault(s"User $username does not exist")

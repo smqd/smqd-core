@@ -110,13 +110,13 @@ class SmqdBuilder(config: Config) extends ClassLoading {
       logger.info("Clustering is disabled")
     }
 
-    if (userDelegate == null)
+    if (userDelegate == null && config.hasPath("smqd.delegates.user"))
       userDelegate = loadCustomClass[UserDelegate](config.getString("smqd.delegates.user"))
-    if (clientDelegate == null)
+    if (clientDelegate == null && config.hasPath("smqd.delegates.client"))
       clientDelegate = loadCustomClass[ClientDelegate](config.getString("smqd.delegates.client"))
-    if (registryDelegate == null)
+    if (registryDelegate == null && config.hasPath("smqd.delegates.registry"))
       registryDelegate = loadCustomClass[RegistryDelegate](config.getString("smqd.delegates.registry"))
-    if (sessionStoreDelegate == null)
+    if (sessionStoreDelegate == null && config.hasPath("smqd.delegates.sessionstore"))
       sessionStoreDelegate = loadCustomClass[SessionStoreDelegate](config.getString("smqd.delegates.sessionstore"))
 
     //// load services
@@ -137,10 +137,10 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     new Smqd(config,
       system,
       serviceDefs,
-      userDelegate,
-      clientDelegate,
-      registryDelegate,
-      sessionStoreDelegate)
+      Option(userDelegate),
+      Option(clientDelegate),
+      Option(registryDelegate),
+      Option(sessionStoreDelegate))
   }
 
   // cluster discovery is blocking operation as intended

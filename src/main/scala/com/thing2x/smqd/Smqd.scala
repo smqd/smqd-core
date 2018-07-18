@@ -14,6 +14,8 @@
 
 package com.thing2x.smqd
 
+import java.io.File
+
 import akka.actor.{ActorRef, ActorSystem, Address, Props}
 import akka.cluster.Cluster
 import akka.dispatch.MessageDispatcher
@@ -24,6 +26,7 @@ import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
+import com.thing2x.smqd.impl.{DefaultClientDelegate, DefaultRegistryDelegate, DefaultSessionStoreDelegate, DefaultUserDelegate}
 import com.thing2x.smqd.plugin.{BridgeDriver, InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util._
@@ -42,10 +45,10 @@ import scala.language.postfixOps
 class Smqd(val config: Config,
            _system: ActorSystem,
            serviceDefs: Map[String, Config],
-           userDelegate: UserDelegate,
-           clientDelegate: ClientDelegate,
-           registryDelegate: RegistryDelegate,
-           sessionStoreDelegate: SessionStoreDelegate)
+           userDelegateOption: Option[UserDelegate] = None,
+           clientDelegateOption: Option[ClientDelegate] = None,
+           registryDelegateOption: Option[RegistryDelegate] = None,
+           sessionStoreDelegateOption: Option[SessionStoreDelegate] = None)
   extends LifeCycle
     with ActorIdentifying
     with JvmAware
@@ -73,7 +76,18 @@ class Smqd(val config: Config,
   def uptime: Duration = super.uptime
   def uptimeString: String = super.uptimeString
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
-  val pluginManager  = PluginManager(config.getConfig("smqd.plugin"), version)
+  val pluginManager = PluginManager(config.getConfig("smqd.plugin"), version)
+
+  private val configDirectory = {
+    val confFile = System.getProperty("config.file")
+    if (confFile == null) new File(".")
+    else new File(confFile).getParentFile
+  }
+
+  private val userDelegate = userDelegateOption.getOrElse(new DefaultUserDelegate(new File(configDirectory, "passwd")))
+  private val clientDelegate = clientDelegateOption.getOrElse(new DefaultClientDelegate())
+  private val registryDelegate = registryDelegateOption.getOrElse(new DefaultRegistryDelegate())
+  private val sessionStoreDelegate = sessionStoreDelegateOption.getOrElse(new DefaultSessionStoreDelegate())
 
   private val registry       = new TrieRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)

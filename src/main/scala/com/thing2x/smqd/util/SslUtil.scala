@@ -58,7 +58,7 @@ object SslUtil {
     val md = new SHA1Digest()
     md.reset()
     md.update(dataBytes, 0, dataBytes.length)
-    val hashedBytes = new Array[Byte](256 / 8)
+    val hashedBytes = new Array[Byte](160 / 8) // SHA-1 value is always 160 bit long
     md.doFinal(hashedBytes, 0)
     ByteUtils.toHexString(hashedBytes)
   }
