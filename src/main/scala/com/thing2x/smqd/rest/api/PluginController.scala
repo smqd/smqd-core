@@ -86,6 +86,9 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
         patch {
           entity(as[com.typesafe.config.Config]) { conf =>
             updatePluginInstance(pluginName, instanceName, conf)
+          } ~
+          entity(as[String]) { str =>
+            updatePluginInstance(pluginName, instanceName, str)
           }
         } ~
         delete {
@@ -289,7 +292,6 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
   }
 
   private def createPluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
-    logger.info("==================+>")
     val smqdInstance = context.smqdInstance
     smqdInstance.pluginManager.configDirectory match {
       case Some(confDir) =>
@@ -312,6 +314,11 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
       case None =>
         complete(StatusCodes.InternalServerError, restError(500, s"plugin configuration directory is not set"))
     }
+  }
+
+  private def updatePluginInstance(pluginName: String, instanceName: String, configString: String): Route = {
+    val conf = ConfigFactory.parseString(configString)
+    updatePluginInstance(pluginName, instanceName, conf)
   }
 
   private def updatePluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
