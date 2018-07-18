@@ -53,7 +53,7 @@ case class IdentifierRejected(override val sessionId: String, override val messa
 case class InvalidWillTopic(override val sessionId: String, topic: String) extends SessionFault(sessionId, s"Invalid will topic[$topic]")
 case object MutipleConnectRejected extends GeneralFault("MultipleConnection not allowed")
 case object ServerUnavailable extends GeneralFault("Server unavailable")
-case class BadUserNameOrPassword(override val sessionId: String, override val message: String) extends SessionFault(sessionId, message)
+case class BadUsernameOrPassword(override val sessionId: String, override val message: String) extends SessionFault(sessionId, message)
 case class NotAuthorized(override val sessionId: String, override val message: String) extends SessionFault(sessionId, message)
 
 // SUBSCRIBE
@@ -64,3 +64,6 @@ case class UnknownErrorToSubscribe(override val sessionId: String, topicName: St
 
 // PUBLISH
 case class InvalidTopicToPublish(override val sessionId: String, topicName: String) extends SessionFault(sessionId, topicName)
+
+// User
+case class BadUserPassword(reason: String) extends GeneralFault(reason)

@@ -214,7 +214,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
         val code = result match {
           case _: IdentifierRejected => CONNECTION_REFUSED_IDENTIFIER_REJECTED // 0x02
           case ServerUnavailable => CONNECTION_REFUSED_SERVER_UNAVAILABLE // 0x03
-          case _: BadUserNameOrPassword => CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD // 0x04
+          case _: BadUsernameOrPassword => CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD // 0x04
           case _: NotAuthorized => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
           case _ => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
         }

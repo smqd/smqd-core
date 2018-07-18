@@ -41,6 +41,7 @@ import scala.language.postfixOps
 class Smqd(val config: Config,
            _system: ActorSystem,
            serviceDefs: Map[String, Config],
+           userDelegate: UserDelegate,
            clientDelegate: ClientDelegate,
            registryDelegate: RegistryDelegate,
            sessionStoreDelegate: SessionStoreDelegate)
@@ -252,6 +253,12 @@ class Smqd(val config: Config,
   def clientLogin(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
     val p = Promise[SmqResult]
     p.completeWith( clientDelegate.clientLogin(clientId, userName, password) )
+    p.future
+  }
+
+  def userLogin(username: String, password: String): Future[SmqResult] = {
+    val p = Promise[SmqResult]
+    p.completeWith( userDelegate.userLogin(username, password) )
     p.future
   }
 }

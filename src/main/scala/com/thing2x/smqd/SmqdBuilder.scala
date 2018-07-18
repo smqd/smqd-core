@@ -39,10 +39,16 @@ class SmqdBuilder(config: Config) extends ClassLoading {
   private var clientDelegate: ClientDelegate = _
   private var registryDelegate: RegistryDelegate = _
   private var sessionStoreDelegate: SessionStoreDelegate = _
+  private var userDelegate: UserDelegate = _
 
   private var system: ActorSystem = _
 
   private var serviceDefs: Map[String, Config] = _
+
+  def setUserDelegate(userDelegate: UserDelegate): SmqdBuilder = {
+    this.userDelegate = userDelegate
+    this
+  }
 
   def setClientDelegate(clientDelegate: ClientDelegate): SmqdBuilder = {
     this.clientDelegate = clientDelegate
@@ -104,6 +110,8 @@ class SmqdBuilder(config: Config) extends ClassLoading {
       logger.info("Clustering is disabled")
     }
 
+    if (userDelegate == null)
+      userDelegate = loadCustomClass[UserDelegate](config.getString("smqd.delegates.user"))
     if (clientDelegate == null)
       clientDelegate = loadCustomClass[ClientDelegate](config.getString("smqd.delegates.client"))
     if (registryDelegate == null)
@@ -129,6 +137,7 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     new Smqd(config,
       system,
       serviceDefs,
+      userDelegate,
       clientDelegate,
       registryDelegate,
       sessionStoreDelegate)

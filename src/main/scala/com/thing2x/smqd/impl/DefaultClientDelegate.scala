@@ -14,7 +14,7 @@
 
 package com.thing2x.smqd.impl
 
-import com.thing2x.smqd.fault.BadUserNameOrPassword
+import com.thing2x.smqd.fault.BadUsernameOrPassword
 import com.thing2x.smqd.{ClientDelegate, ClientId, SmqResult, SmqSuccess}
 import com.typesafe.scalalogging.StrictLogging
 
@@ -34,7 +34,7 @@ class DefaultClientDelegate extends ClientDelegate with StrictLogging {
         if (userName.get == new String(password.get, "utf-8")) // username == password
           SmqSuccess
         else
-          BadUserNameOrPassword(clientId.id, "Bad user name or password ")
+          BadUsernameOrPassword(clientId.id, "Bad user name or password ")
       }
       else if (userName.isEmpty && password.isEmpty) { // allow anonymous
         SmqSuccess

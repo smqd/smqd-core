@@ -22,7 +22,7 @@ import com.typesafe.scalalogging.StrictLogging
 /**
   *
   */
-class LoginControllerTest extends CoreApiTesting with StrictLogging {
+class UserControllerTest extends CoreApiTesting with StrictLogging {
 
   "Login" should {
     "login" in {
