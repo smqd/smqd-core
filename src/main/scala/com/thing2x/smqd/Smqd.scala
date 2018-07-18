@@ -22,6 +22,7 @@ import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.plugin.{BridgeDriver, InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
@@ -238,29 +239,29 @@ class Smqd(val config: Config,
   def retainedMessages(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage] =
     retainer.filter(filterPath, qos)
 
-  def allowSubscribe(filterPath: FilterPath, qos: QoS, clientId: ClientId, userName: Option[String]): Future[QoS] = {
-    val p = Promise[QoS]
-    p.completeWith( registryDelegate.allowSubscribe(filterPath, qos, clientId, userName) )
-    p.future
-  }
+  def allowSubscribe(filterPath: FilterPath, qos: QoS, clientId: ClientId, userName: Option[String]): Future[QoS] =
+    registryDelegate.allowSubscribe(filterPath, qos, clientId, userName)
 
-  def allowPublish(topicPath: TopicPath, clientId: ClientId, userName: Option[String]): Future[Boolean] = {
-    val p = Promise[Boolean]
-    p.completeWith(registryDelegate.allowPublish(topicPath, clientId, userName))
-    p.future
-  }
+  def allowPublish(topicPath: TopicPath, clientId: ClientId, userName: Option[String]): Future[Boolean] =
+    registryDelegate.allowPublish(topicPath, clientId, userName)
 
-  def clientLogin(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
-    val p = Promise[SmqResult]
-    p.completeWith( clientDelegate.clientLogin(clientId, userName, password) )
-    p.future
-  }
+  def clientLogin(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] =
+    clientDelegate.clientLogin(clientId, userName, password)
 
-  def userLogin(username: String, password: String): Future[SmqResult] = {
-    val p = Promise[SmqResult]
-    p.completeWith( userDelegate.userLogin(username, password) )
-    p.future
-  }
+  def userLogin(username: String, password: String): Future[SmqResult] =
+    userDelegate.userLogin(username, password)
+
+  def userList: Future[Seq[User]] =
+    userDelegate.userList
+
+  def userCreate(user: User): Future[SmqResult] =
+    userDelegate.userCreate(user)
+
+  def userUpdate(user: User): Future[SmqResult] =
+    userDelegate.userUpdate(user)
+
+  def userDelete(username: String): Future[SmqResult] =
+    userDelegate.userDelete(username)
 }
 
 object Smqd {

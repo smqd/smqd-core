@@ -14,6 +14,8 @@
 
 package com.thing2x.smqd
 
+import com.thing2x.smqd.UserDelegate.User
+
 import scala.concurrent.{ExecutionContext, Future}
 
 // 2018. 7. 18. - Created by Kwon, Yeong Eon
@@ -21,9 +23,13 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
   *
   */
+object UserDelegate {
+  case class User(username: String, password: String)
+}
 trait UserDelegate {
   def userLogin(username: String, password: String)(implicit ec: ExecutionContext): Future[SmqResult]
-  def userCreate(username: String, password: String)(implicit ec: ExecutionContext): Future[SmqResult]
-  def userUpdate(username: String, password: String)(implicit ec: ExecutionContext): Future[SmqResult]
-  def userRemove(username: String)(implicit ec: ExecutionContext): Future[SmqResult]
+  def userList(implicit ec: ExecutionContext): Future[Seq[User]]
+  def userCreate(user: User)(implicit ec: ExecutionContext): Future[SmqResult]
+  def userUpdate(user: User)(implicit ec: ExecutionContext): Future[SmqResult]
+  def userDelete(username: String)(implicit ec: ExecutionContext): Future[SmqResult]
 }

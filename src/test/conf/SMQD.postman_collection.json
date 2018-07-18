@@ -2067,7 +2067,7 @@
 					},
 					"response": [
 						{
-							"id": "d6000042-15a6-4eec-bba8-4119298c9da5",
+							"id": "2ec88d2b-21d2-449b-8a13-e5ed9b8ad9a1",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2118,7 +2118,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "367ca20e-37bb-4f91-a8f5-a2421e16d787",
+							"id": "077ec52d-f620-486c-8ce9-60a233a2d4f8",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2205,7 +2205,7 @@
 					},
 					"response": [
 						{
-							"id": "d2bf8dd9-01dc-4b98-a35d-f4844ac64df3",
+							"id": "2aaa0ae4-0312-4742-a7a0-30bb7e4de43d",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2283,7 +2283,7 @@
 					},
 					"response": [
 						{
-							"id": "237b02c6-e367-40ac-8334-cc6c47af0583",
+							"id": "f1c9b5c7-dfb5-4dc1-8717-9996e32cdc25",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2366,7 +2366,7 @@
 					},
 					"response": [
 						{
-							"id": "764182b3-bf7e-4dc4-9e02-65c2f72ad76e",
+							"id": "4e302f31-4ed5-4514-87f9-4c043256a0f7",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2449,7 +2449,7 @@
 					},
 					"response": [
 						{
-							"id": "373a37e9-86a7-4d02-a84f-b2bdac824a85",
+							"id": "4e87e8c7-9a97-48bb-8ef0-590abe960432",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2500,7 +2500,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "3fe1082c-07a7-43ba-a9cc-dd522cbc9244",
+							"id": "e599a77f-75eb-4e59-88f3-8d3d410f4ba0",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2615,7 +2615,7 @@
 					},
 					"response": [
 						{
-							"id": "7e91206f-4f9f-43f6-b8f9-ab80070c4b42",
+							"id": "6e52877a-9f00-48ba-8053-a4b75b0f4b17",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2666,7 +2666,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "6acc730a-ffed-4c63-bcac-750b5667e8cf",
+							"id": "8e27749d-4095-45b1-a587-2f523d0d6b0f",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2775,7 +2775,7 @@
 					},
 					"response": [
 						{
-							"id": "900bbea8-47b3-4527-9423-173797a86aa8",
+							"id": "6c782258-962a-4c33-87ed-4ad0ac463961",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2826,7 +2826,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "e2e9f3dd-974d-4943-9da1-37e13f0034a7",
+							"id": "ba823294-f4e3-43bb-bdbd-0f1ff1368b04",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2958,6 +2958,180 @@
 								"metrics",
 								"jvm",
 								"thread"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "users",
+			"description": "",
+			"item": [
+				{
+					"name": "Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "{{token_type}} {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"user\": \"admin\",\n\t\"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/auth/users",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"auth",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "admin",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "{{token_type}} {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"user\": \"admin\",\n\t\"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/auth/users/admin",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"auth",
+								"users",
+								"admin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create user1",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "{{token_type}} {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"username\": \"user1\",\n\t\"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/auth/users",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"auth",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update user1",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "{{token_type}} {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/auth/users/user1",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"auth",
+								"users",
+								"user1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete user1",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "{{token_type}} {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"password\": \"password\"\n}"
+						},
+						"url": {
+							"raw": "http://{{smqd_hostport}}/{{smqd_api}}/auth/users/user1",
+							"protocol": "http",
+							"host": [
+								"{{smqd_hostport}}"
+							],
+							"path": [
+								"{{smqd_api}}",
+								"auth",
+								"users",
+								"user1"
 							]
 						}
 					},

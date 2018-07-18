@@ -16,15 +16,16 @@ package com.thing2x.smqd.impl
 
 import com.thing2x.smqd.fault.BadUserPassword
 import com.thing2x.smqd.{SmqResult, SmqSuccess, UserDelegate}
+import com.typesafe.scalalogging.StrictLogging
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 
 // 2018. 7. 18. - Created by Kwon, Yeong Eon
 
 /**
   *
   */
-class DefaultUserDelegate extends UserDelegate {
+class DefaultUserDelegate extends UserDelegate with StrictLogging {
 
   override def userLogin(username: String, password: String)(implicit ec: ExecutionContext): Future[SmqResult] = {
     Future {
@@ -37,9 +38,31 @@ class DefaultUserDelegate extends UserDelegate {
     }
   }
 
-  override def userCreate(username: String, password: String)(implicit ec: ExecutionContext): Future[SmqResult] = ???
+  override def userList(implicit ec: ExecutionContext): Future[Seq[UserDelegate.User]] = {
+    logger.info("--userList")
+    Future {
+      Nil
+    }
+  }
 
-  override def userUpdate(username: String, password: String)(implicit ec: ExecutionContext): Future[SmqResult] = ???
+  override def userCreate(user: UserDelegate.User)(implicit ec: ExecutionContext): Future[SmqResult] = {
+    logger.info("--userCreate")
+    Future {
+      SmqSuccess
+    }
+  }
 
-  override def userRemove(username: String)(implicit ec: ExecutionContext): Future[SmqResult] = ???
+  override def userUpdate(user: UserDelegate.User)(implicit ec: ExecutionContext): Future[SmqResult] = {
+    logger.info("--userUpdate")
+    Future {
+      SmqSuccess
+    }
+  }
+
+  override def userDelete(username: String)(implicit ec: ExecutionContext): Future[SmqResult] = {
+    logger.info("--userDelete")
+    Future {
+      SmqSuccess
+    }
+  }
 }
