@@ -89,7 +89,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 
     // load routes configuration
-    val routes = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfig("routes")) else Set(emptyRoute)
+    val routes = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfigList("routes").asScala) else Nil
 
     // merge all routes into a single route value
     // then encapsulate with log directives
@@ -207,14 +207,9 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
   def routes: Route = finalRoutes
 
-  private def loadRouteFromConfig(config: Config): Set[server.Route] = {
-    val names = config.entrySet().asScala.map(entry => entry.getKey)
-      .filter(key => key.endsWith(".prefix"))
-      .map( k => k.substring(0, k.length - ".prefix".length))
-      .filter(k => config.hasPath(k+".class"))
-    logger.info(s"[$name] routes = "+names.mkString(", "))
-    names.map{ rname =>
-      val conf = config.getConfig(rname)
+  private def loadRouteFromConfig(configList: Seq[Config]): Seq[server.Route] = {
+    configList.map { conf =>
+      val rname = conf.getString("name")
       val className = conf.getString("class")
       val prefix = conf.getString("prefix")
       val tokens = prefix.split(Array('/', '"')).filterNot( _ == "") // split prefix into token array
@@ -227,7 +222,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       } catch {
         case _: NoSuchMethodException =>
           val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
-          logger.warn("!!Warning!! controller has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
+          logger.warn(s"!!Warning!! controller '$className' has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
           cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
       }
 
@@ -235,7 +230,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
       // make pathPrefix routes from tokens
       tokens.foldRight(ctrl.routes) { (tok, routes) => pathPrefix(tok)(routes)}
-    }.toSet
+    }
   }
 
   private val emptyRoute: Route = {

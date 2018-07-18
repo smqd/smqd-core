@@ -24,7 +24,7 @@ import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.plugin.PluginManager._
 import com.thing2x.smqd.plugin._
 import com.thing2x.smqd.rest.RestController
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
 
@@ -78,6 +78,9 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
         post {
           entity(as[com.typesafe.config.Config]) { conf =>
             createPluginInstance(pluginName, instanceName, conf)
+          } ~
+          entity(as[String]) { str =>
+            createPluginInstance(pluginName, instanceName, str)
           }
         } ~
         patch {
@@ -280,7 +283,13 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
     }
   }
 
+  private def createPluginInstance(pluginName: String, instanceName: String, configString: String): Route = {
+    val conf = ConfigFactory.parseString(configString)
+    createPluginInstance(pluginName, instanceName, conf)
+  }
+
   private def createPluginInstance(pluginName: String, instanceName: String, conf: Config): Route = {
+    logger.info("==================+>")
     val smqdInstance = context.smqdInstance
     smqdInstance.pluginManager.configDirectory match {
       case Some(confDir) =>

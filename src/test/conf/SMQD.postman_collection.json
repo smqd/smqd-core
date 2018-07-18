@@ -926,7 +926,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"auto-start\": true,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 8888,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"address\": \"127.0.0.1\",\n                \"bind\": {\n                    \"address\": \"0.0.0.0\"\n                },\n                \"enabled\": false,\n                \"port\": 443\n            }\n        },\n        \"routes\": {\n\t\t\t\"test\": {\n\t\t\t\t\"prefix\": \"test\",\n\t\t\t\t\"class\": \"com.thing2x.smqd.rest.TestController\"\n\t\t\t}\n    \t}\n    }\n}"
+									"raw": "{\n    \"auto-start\": true,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 8888,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"address\": \"127.0.0.1\",\n                \"bind\": {\n                    \"address\": \"0.0.0.0\"\n                },\n                \"enabled\": false,\n                \"port\": 443\n            }\n        },\n        \"routes\" = [\n\t\t\t{\n\t\t\t\t\"name\": \"test\"\n\t\t\t\t\"prefix\": \"test\",\n\t\t\t\t\"class\": \"com.thing2x.smqd.rest.TestController\"\n\t\t\t}\n    \t]\n    }\n}"
 								},
 								"url": {
 									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/instances/portal",
@@ -982,7 +982,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"auto-start\": true,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 9876,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"enabled\": false\n            }\n        },\n        \"routes\": {\n\t\t\t\"test\": {\n\t\t\t\t\"prefix\": \"test\",\n\t\t\t\t\"class\": \"com.thing2x.smqd.rest.TestController\"\n\t\t\t}\n    \t}\n    }\n}"
+									"raw": "{\n    \"auto-start\": true,\n    \"config\": {\n        \"cors\": {\n            \"enabled\": true\n        },\n        \"local\": {\n            \"enabled\": true,\n            \"bind\": {\n                \"address\": \"0.0.0.0\"\n            },\n            \"port\": 9876,\n            \"address\": \"127.0.0.1\",\n            \"secure\": {\n                \"enabled\": false\n            }\n        },\n        \"routes\": [\n\t\t\t{\n\t\t\t\t\"name\": \"test\",\n\t\t\t\t\"prefix\": \"test\",\n\t\t\t\t\"class\": \"com.thing2x.smqd.rest.TestController\"\n\t\t\t}\n    \t]\n    }\n}"
 								},
 								"url": {
 									"raw": "http://{{smqd_hostport}}/{{smqd_api}}/management/plugins/thing2x-core-http/instances/portal",
@@ -2067,7 +2067,7 @@
 					},
 					"response": [
 						{
-							"id": "9d574ae1-e756-450b-807d-717ba515c9db",
+							"id": "d6000042-15a6-4eec-bba8-4119298c9da5",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2118,7 +2118,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "43a55d91-6aba-4661-aa9d-f3ca36305fca",
+							"id": "367ca20e-37bb-4f91-a8f5-a2421e16d787",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2205,7 +2205,7 @@
 					},
 					"response": [
 						{
-							"id": "1bccf161-e88a-4873-ad5a-0003705a97a8",
+							"id": "d2bf8dd9-01dc-4b98-a35d-f4844ac64df3",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2283,7 +2283,7 @@
 					},
 					"response": [
 						{
-							"id": "457e164d-d959-4e84-97eb-bd5addcf86a0",
+							"id": "237b02c6-e367-40ac-8334-cc6c47af0583",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2366,7 +2366,7 @@
 					},
 					"response": [
 						{
-							"id": "c6f6eac0-b71d-4bc8-872f-4e0819497273",
+							"id": "764182b3-bf7e-4dc4-9e02-65c2f72ad76e",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2449,7 +2449,7 @@
 					},
 					"response": [
 						{
-							"id": "0f0a67ae-83d4-47a8-a6ad-1171889155b4",
+							"id": "373a37e9-86a7-4d02-a84f-b2bdac824a85",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2500,7 +2500,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "a940a9dc-ddb2-48a5-8431-56e6f06e9847",
+							"id": "3fe1082c-07a7-43ba-a9cc-dd522cbc9244",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2615,7 +2615,7 @@
 					},
 					"response": [
 						{
-							"id": "0c930ecf-0df2-415c-8305-68777ecfd0c0",
+							"id": "7e91206f-4f9f-43f6-b8f9-ab80070c4b42",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2666,7 +2666,7 @@
 							"body": "{\"code\":0,\"result\":[{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"},{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"}]}"
 						},
 						{
-							"id": "a1e13398-3d4d-4a86-b404-a6c325c4be7c",
+							"id": "6acc730a-ffed-4c63-bcac-750b5667e8cf",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2775,7 +2775,7 @@
 					},
 					"response": [
 						{
-							"id": "42538241-94bd-4d65-be97-01848db9c0ee",
+							"id": "900bbea8-47b3-4527-9423-173797a86aa8",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",
@@ -2826,7 +2826,7 @@
 							"body": "{\"code\":0,\"result\":{\"current_page\":1,\"total_page\":1,\"page_size\":20,\"total_num\":5,\"objects\":[{\"topic\":\"sender/+/temp\",\"qos\":2,\"clientId\":\"clientA\",\"channelId\":\"test-01:core-mqtt:mqtt:2\"},{\"topic\":\"sender/+/temp\",\"qos\":1,\"clientId\":\"clientb\",\"channelId\":\"test-01:core-mqtt:mqtt:1\"},{\"topic\":\"$local/$SYS/faults/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$a\"},{\"topic\":\"$SYS/requestors/test-01/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/requestors\"},{\"topic\":\"$local/$SYS/protocols/#\",\"qos\":0,\"actor\":\"akka://core-test/user/chief/registry_callbacks/$b\"}]}}"
 						},
 						{
-							"id": "dadd4f0d-6981-4c38-b773-fdac1ab7023b",
+							"id": "e2e9f3dd-974d-4943-9da1-37e13f0034a7",
 							"name": "GET clients",
 							"originalRequest": {
 								"method": "GET",

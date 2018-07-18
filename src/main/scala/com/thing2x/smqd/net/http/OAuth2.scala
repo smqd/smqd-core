@@ -95,10 +95,13 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
       bearerToken.flatMap {
         case Some(token) =>
           verifyToken(token) match {
-            case Some(claim: OAuth2Claim) => provide(claim)
-            case None => reject(AuthorizationFailedRejection)
+            case Some(claim: OAuth2Claim) =>
+              provide(claim)
+            case None =>
+              reject(AuthorizationFailedRejection)
           }
-        case _ =>  reject(AuthorizationFailedRejection)
+        case _ =>
+          reject(AuthorizationFailedRejection)
       }
     }
   }
