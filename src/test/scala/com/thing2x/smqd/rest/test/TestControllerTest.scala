@@ -60,12 +60,13 @@ class TestControllerTest extends WordSpec
       |            "enabled" : false
       |        }
       |      }
-      |      "routes" : {
-      |        "test" : {
+      |      "routes" : [
+      |        {
+      |            "name" : "test"
       |            "class" : "com.thing2x.smqd.rest.TestController"
       |            "prefix" : "test"
       |        }
-      |      }
+      |      ]
       |    }
       |  }
       |}
