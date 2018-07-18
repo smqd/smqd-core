@@ -39,7 +39,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
   private var checkDefault = false
 
   private def load: Properties = {
-    if (!checkDefault) createDefault
+    if (!checkDefault) createDefault()
     val p = new Properties()
     val r = new InputStreamReader(new FileInputStream(passwdFile))
     p.load(r)
@@ -48,13 +48,13 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
   }
 
   private def store(p: Properties): Unit = {
-    if (!checkDefault) createDefault
+    if (!checkDefault) createDefault()
     val w = new OutputStreamWriter(new FileOutputStream(passwdFile))
     p.store(w, "--passwords--")
     w.close()
   }
 
-  private def createDefault: Unit = {
+  private def createDefault(): Unit = {
     lock.synchronized {
       checkDefault = true
       if (!passwdFile.exists) {
