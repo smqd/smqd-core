@@ -50,8 +50,8 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   val localSecureEnabled: Boolean = config.getOptionBoolean("local.secure.enabled").getOrElse(false)
   val localSecureAddress: String = config.getOptionString("local.secure.address").getOrElse("127.0.0.1")
   val localSecurePort: Int = config.getOptionInt("local.secure.port").getOrElse(443)
-  val localSecureBindAddress: String = config.getOptionString("local.secure.address").getOrElse("0.0.0.0")
-  val localSecureBindPort: Int = config.getOptionInt("local.secure.port").getOrElse(localSecurePort)
+  val localSecureBindAddress: String = config.getOptionString("local.secure.bind.address").getOrElse("0.0.0.0")
+  val localSecureBindPort: Int = config.getOptionInt("local.secure.bind.port").getOrElse(localSecurePort)
 
   private val oauth2SecretKey: String = config.getOptionString("oauth2.secret_key").getOrElse("default_key")
   val oauth2TokenExpire: Duration = config.getOptionDuration("oauth2.token_expire").getOrElse(30.minutes)
