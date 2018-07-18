@@ -36,7 +36,7 @@ object SmqdBuilder {
 
 class SmqdBuilder(config: Config) extends ClassLoading {
 
-  private var authDelegate: AuthDelegate = _
+  private var clientDelegate: ClientDelegate = _
   private var registryDelegate: RegistryDelegate = _
   private var sessionStoreDelegate: SessionStoreDelegate = _
 
@@ -44,8 +44,8 @@ class SmqdBuilder(config: Config) extends ClassLoading {
 
   private var serviceDefs: Map[String, Config] = _
 
-  def setAuthDelegate(authDelegate: AuthDelegate): SmqdBuilder = {
-    this.authDelegate = authDelegate
+  def setClientDelegate(clientDelegate: ClientDelegate): SmqdBuilder = {
+    this.clientDelegate = clientDelegate
     this
   }
 
@@ -104,8 +104,8 @@ class SmqdBuilder(config: Config) extends ClassLoading {
       logger.info("Clustering is disabled")
     }
 
-    if (authDelegate == null)
-      authDelegate = loadCustomClass[AuthDelegate](config.getString("smqd.delegates.authentication"))
+    if (clientDelegate == null)
+      clientDelegate = loadCustomClass[ClientDelegate](config.getString("smqd.delegates.client"))
     if (registryDelegate == null)
       registryDelegate = loadCustomClass[RegistryDelegate](config.getString("smqd.delegates.registry"))
     if (sessionStoreDelegate == null)
@@ -129,7 +129,7 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     new Smqd(config,
       system,
       serviceDefs,
-      authDelegate,
+      clientDelegate,
       registryDelegate,
       sessionStoreDelegate)
   }

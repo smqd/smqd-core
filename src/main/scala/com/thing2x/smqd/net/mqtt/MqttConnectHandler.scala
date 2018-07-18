@@ -163,7 +163,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // [MQTT-3.1.4-2] If the ClientId represents a Client already connected to the Sever then the Server MUST disconnect the existing Client
     // [MQTT-3.1.4-3] The Server MUST perform the processing of CleanSession that is described in section 3.1.2.4
     //                Start message delivery and keep alive monitoring
-    sessionCtx.smqd.authenticate(sessionCtx.clientId, sessionCtx.userName, sessionCtx.password).onComplete {
+    sessionCtx.smqd.clientLogin(sessionCtx.clientId, sessionCtx.userName, sessionCtx.password).onComplete {
       case Success(result) if result == SmqSuccess =>
         sessionCtx.authorized = true
 

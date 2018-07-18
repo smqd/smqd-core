@@ -300,12 +300,12 @@ And `userName` and `password` are `Option` as MQTT protocol.
 If your application doesn't want to allow zero-length clientId or empty `userName`,
 just return `BaseNameOrpassword` instead of `SmqSuccess`
 
-> The AuthDelegate is called only when a client is connecting to the SMQD via network as mqtt client.
-> Internal publishing/subscription by api is not a subject of the authentication
+> The AuthDelegate is called only when a client is connecting to the SMQD via network as a mqtt client.
+> Internal publishing/subscription through api is not a subject of the authentication
 
 ```scala
 class MyAuthDelegate extends com.thing2x.smqd.AuthDelegate {
-  override def authenticate(clientId: String, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
+  override def clientLogin(clientId: String, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
     Future {
       println(s"[$clientId] userName: $userName password: $password")
       if (userName.isDefined && password.isDefined) {

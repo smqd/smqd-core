@@ -15,7 +15,7 @@
 package com.thing2x.smqd.impl
 
 import com.thing2x.smqd.fault.BadUserNameOrPassword
-import com.thing2x.smqd.{AuthDelegate, ClientId, SmqResult, SmqSuccess}
+import com.thing2x.smqd.{ClientDelegate, ClientId, SmqResult, SmqSuccess}
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -23,9 +23,9 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
   * 2018. 5. 31. - Created by Kwon, Yeong Eon
   */
-class DefaultAuthDelegate extends AuthDelegate with StrictLogging {
+class DefaultClientDelegate extends ClientDelegate with StrictLogging {
 
-  override def authenticate(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]])(implicit ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global): Future[SmqResult] = {
+  override def clientLogin(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]])(implicit ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global): Future[SmqResult] = {
 
     Future {
       logger.debug(s"[$clientId] userName: $userName password: $password")

@@ -41,7 +41,7 @@ import scala.language.postfixOps
 class Smqd(val config: Config,
            _system: ActorSystem,
            serviceDefs: Map[String, Config],
-           authDelegate: AuthDelegate,
+           clientDelegate: ClientDelegate,
            registryDelegate: RegistryDelegate,
            sessionStoreDelegate: SessionStoreDelegate)
   extends LifeCycle
@@ -249,9 +249,9 @@ class Smqd(val config: Config,
     p.future
   }
 
-  def authenticate(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
+  def clientLogin(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
     val p = Promise[SmqResult]
-    p.completeWith( authDelegate.authenticate(clientId, userName, password) )
+    p.completeWith( clientDelegate.clientLogin(clientId, userName, password) )
     p.future
   }
 }
