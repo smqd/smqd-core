@@ -36,14 +36,10 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
   logger.info(s"passwd file: ${passwdFile.getPath}")
 
   val lock = new Object()
-
-  if (!passwdFile.exists) {
-    val default = new Properties()
-    default.setProperty("admin", SslUtil.getSha1Hash("password")) // echo -n "password" | openssl sha1
-    store(default)
-  }
+  private var checkDefault = false
 
   private def load: Properties = {
+    if (!checkDefault) createDefault
     val p = new Properties()
     val r = new InputStreamReader(new FileInputStream(passwdFile))
     p.load(r)
@@ -52,9 +48,21 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
   }
 
   private def store(p: Properties): Unit = {
+    if (!checkDefault) createDefault
     val w = new OutputStreamWriter(new FileOutputStream(passwdFile))
     p.store(w, "--passwords--")
     w.close()
+  }
+
+  private def createDefault: Unit = {
+    lock.synchronized {
+      checkDefault = true
+      if (!passwdFile.exists) {
+        val default = new Properties()
+        default.setProperty("admin", SslUtil.getSha1Hash("password")) // echo -n "password" | openssl sha1
+        store(default)
+      }
+    }
   }
 
   override def userLogin(username: String, password: String)(implicit ec: ExecutionContext): Future[SmqResult] = {
