@@ -23,7 +23,10 @@ import com.typesafe.scalalogging.StrictLogging
 
 class DashboardController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
   val routes: Route =
-    path(Remaining) { path =>
-      getFromResource("dashboard/"+path)
+    path("dashboard" / Remaining) { path =>
+      getFromResource("dashboard/" + path)
+    } ~
+    path("assets" / Remaining) { path =>
+      getFromResource("dashboard/assets/" + path)
     }
 }
