@@ -26,7 +26,16 @@ import com.typesafe.scalalogging.StrictLogging
   *
   */
 class DoormanController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
-  val routes: Route = ignoreTrailingSlash {
-    redirect("/dashboard/", StatusCodes.PermanentRedirect)
-  }
+  private val dashboard: Route = redirect("/dashboard/", StatusCodes.PermanentRedirect)
+
+  val routes: Route =
+    path("") {
+      dashboard
+    } ~
+    path("/") {
+      dashboard
+    } ~
+    path("/index.html") {
+      dashboard
+    }
 }
