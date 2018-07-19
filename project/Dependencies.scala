@@ -7,10 +7,10 @@ object Dependencies {
 
   object Versions {
     val scala = "2.12.6"
-    val akka = "2.5.13"
+    val akka = "2.5.14"
     val akkaHttp = "10.1.3"
-    val netty = "4.1.25.Final"
-    val alpakka = "0.19"
+    val netty = "4.1.27.Final"
+    val alpakka = "0.20"
   }
 
   val akka: Seq[ModuleID] = Seq(
@@ -40,7 +40,7 @@ object Dependencies {
     // Logging
     "com.typesafe.akka" %% "akka-slf4j" % Versions.akka force(),
     "ch.qos.logback" % "logback-classic" % "1.2.3", // 01-Apr-2017 updated
-    "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
     //////////////////////////////////
     // Test
     "com.typesafe.akka" %% "akka-testkit" % Versions.akka % Test,
