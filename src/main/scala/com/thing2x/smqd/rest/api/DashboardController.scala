@@ -28,16 +28,14 @@ class DashboardController(name: String, context: HttpServiceContext) extends Res
   val routes: Route =
     path("dashboard") {
       pathEndOrSingleSlash {
-        getFromResource("dashboard/index.html")
+        redirect("/dashboard/index.html", StatusCodes.PermanentRedirect)
       }
-    } ~
-    path("dashboard/index.html") {
-      redirect("/dashboard/", StatusCodes.PermanentRedirect)
     } ~
     path("dashboard" / Remaining) {
       case path @ resourceRegex(_) =>
         getFromResource("dashboard/" + path)
       case _ =>
-        redirect("/dashboard/", StatusCodes.PermanentRedirect)
+        getFromResource("dashboard/index.html")
+        //redirect("/dashboard/index.html", StatusCodes.PermanentRedirect)
     }
 }
