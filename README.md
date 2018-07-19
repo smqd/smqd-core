@@ -350,7 +350,7 @@ val smqd = SmqdBuilder(config)
 
 ### Plugins
 
-[smqd](https://github.com/smqd/smqd) mqtt broker is also built on smqd-core, it consists of several plugins that provides basic features. It is possible to extend its features by installing additional plugins. Not only the smqd itself but also your application that uses smqd-core as a framework can use the plugin facility, which means that you can build an application logic or business login as a plugin and then install/reinstall/start/stop it by smqd-core REST API or its web UI during the process is running.
+[smqd](https://github.com/smqd/smqd) mqtt broker is also built on smqd-core, it consists of several plugins that provides basic features. It is possible to extend its features by installing additional plugins. Not only the smqd itself but also your application that uses smqd-core as a framework can use the plugin facility, which means that you can build an application logic or business login as a plugin and then install/reinstall/start/stop it by smqd-core REST API or its web UI while the application is running.
 
 ![img](docs/img/plugins.jpg)
 

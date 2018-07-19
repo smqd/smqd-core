@@ -27,7 +27,7 @@ package-lock.json
 src/main/resources/smqd-core-version.conf
 src/test/plugins/*
 src/test/conf/plugins/*
-src/test/conf/passwd
+passwd
 
 # macOS
 .DS_Store
