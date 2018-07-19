@@ -23,16 +23,21 @@ import com.typesafe.scalalogging.StrictLogging
 // 2018. 6. 20. - Created by Kwon, Yeong Eon
 
 class DashboardController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
+  private val resourceRegex = """(.+\.[\w]{1,6}$)""".r
+
   val routes: Route =
     path("dashboard") {
       pathEndOrSingleSlash {
-        redirect("/dashboard/index.html", StatusCodes.PermanentRedirect)
+        getFromResource("dashboard/index.html")
       }
     } ~
-    path("dashboard" / Remaining) { path =>
-      getFromResource("dashboard/" + path)
+    path("dashboard/index.html") {
+      redirect("/dashboard/", StatusCodes.PermanentRedirect)
     } ~
-    path("assets" / Remaining) { path =>
-      getFromResource("dashboard/assets/" + path)
+    path("dashboard" / Remaining) {
+      case path @ resourceRegex(_) =>
+        getFromResource("dashboard/" + path)
+      case _ =>
+        redirect("/dashboard/", StatusCodes.PermanentRedirect)
     }
 }
