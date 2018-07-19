@@ -310,7 +310,7 @@ just return `BaseNameOrpassword` instead of `SmqSuccess`
 class MyAuthDelegate extends com.thing2x.smqd.ClientDelegate {
   override def clientLogin(clientId: String, username: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
     Future {
-      println(s"[$clientId] username: $userName password: $password")
+      println(s"[$clientId] username: $username password: $password")
       if (username.isDefined && password.isDefined) {
         if (username.get == new String(password.get, "utf-8"))
           SmqSuccess
@@ -357,7 +357,7 @@ val smqd = SmqdBuilder(config)
 
 When smqd-core is instantiated, it refer to `smqd.plugin.manifest` configuration to find and load the plugin manifest that lists available plugins for the instance. The manifest file can located in local disk of the same machine or remote server. smqd-core supports `http` for remotely located manifest file.
 
-A plugin manifest file contains multiple desciptions of plugin pakcages. A package can be a plain jar file in a local directory specified by `smqd.plugin.dir` or can be downloaded from remote web server. We recommand to uee `maven` repository as plugin distribution method, since smqd-core supports remote maven repository to search and download plugins. It has a lot of benefits for managing plugins like downloading dependencies together, easy to integrate with CI tools, guarantee the version of plugin, security and so on.
+A plugin manifest file contains multiple desciptions of plugin pakcages. A package can be a plain jar file in a local directory specified by `smqd.plugin.dir` or can be downloaded from remote web server. We recommand to uee `maven` repository as plugin distribution method, since smqd-core supports remote maven repositories to search and download plugins. Using maven repository for plugins has many benefits like downloading dependencies together, easy to integrate with CI tools, guarantee the version of plugin, security and so on.
 
 
 #### Gateway plugins
