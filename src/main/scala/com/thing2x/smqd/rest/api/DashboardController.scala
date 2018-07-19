@@ -22,7 +22,8 @@ import com.typesafe.scalalogging.StrictLogging
 // 2018. 6. 20. - Created by Kwon, Yeong Eon
 
 class DashboardController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
-  val routes: Route = get {
-    getFromResource("dashboard")
-  }
+  val routes: Route =
+    path(Remaining) { path =>
+      getFromResource("dashboard/"+path)
+    }
 }
