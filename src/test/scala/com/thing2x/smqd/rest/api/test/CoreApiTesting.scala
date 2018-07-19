@@ -18,7 +18,7 @@ import akka.actor.ActorSystem
 import spray.json.{DefaultJsonProtocol, JsValue, RootJsonFormat}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.testkit.TestKit
 import com.thing2x.smqd.{EndpointInfo, NodeInfo, Smqd, SmqdBuilder}
 import com.thing2x.smqd.net.http.HttpService
@@ -27,6 +27,7 @@ import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import spray.json._
 
+import scala.concurrent.duration._
 import scala.concurrent.Promise
 
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
@@ -88,6 +89,8 @@ abstract class CoreApiTesting extends WordSpec
   var smqdInstance: Smqd = _
   var routes: Route = _
   val shutdownPromise = Promise[Boolean]
+
+  implicit def default(implicit system: ActorSystem) = RouteTestTimeout(5.seconds)
 
   override def beforeAll(): Unit = {
 
