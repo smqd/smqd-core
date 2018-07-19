@@ -14,6 +14,7 @@
 
 package com.thing2x.smqd.rest.api
 
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.rest.RestController
@@ -23,6 +24,11 @@ import com.typesafe.scalalogging.StrictLogging
 
 class DashboardController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
   val routes: Route =
+    path("dashboard") {
+      pathEndOrSingleSlash {
+        redirect("/dashboard/index.html", StatusCodes.PermanentRedirect)
+      }
+    } ~
     path("dashboard" / Remaining) { path =>
       getFromResource("dashboard/" + path)
     } ~
