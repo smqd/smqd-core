@@ -288,6 +288,8 @@ smqd {
 
 ## Customize behaviors
 
+### Delegates
+
 #### Client Authentication
 
 Every application has its own policy to authenticate client's connections. SMQD put this role under `AuthDelegate`.
@@ -346,41 +348,25 @@ val smqd = SmqdBuilder(config)
     .build()
 ```
 
-## Bridges
+### Plugins
 
-To use bridge, smqd requires driver definition (BridgeDriver) and bridge config (Bridge).
-In general, the bridge and it's driver configurations are defined in `smqd.bridge` sections in the config file
+[smqd](https://github.com/smqd/smqd) mqtt broker is also built on smqd-core, it consists of several plugins that provides basic features. It is possible to extend its features by installing additional plugins. Not only the smqd itself but also your application that uses smqd-core as a framework can use the plugin facility, which means that you can build an application logic or business login as a plugin and then install/reinstall/start/stop it by smqd-core REST API or its web UI during the process is running.
 
-```
-smqd {
-  bridge {
-    drivers = [ // Array of driver definitions
-        {
-            name = <drive name>
-            class = <driver implementation class name>
-            // Each BridgeDriver can have its driver configuration
-        },
-        {
-            // another driver definition
-        }
-    ]
+![img](docs/img/plugins.jpg)
 
-    bridges = [ // Array of bridge configuration
-        {
-            topic = "sensor/+/temperature" // topic filter that the bridge will subscribe
-            driver = <driver name>
-            // Each BridgeDriver has its own bridge configuration
-        },
-        {
-            // another bridge definition
-        }
-    ]
-  }
-}
-```
+When smqd-core is instantiated, it refer to `smqd.plugin.manifest` configuration to find and load the plugin manifest that lists available plugins for the instance. The manifest file can located in local disk of the same machine or remote server. smqd-core supports `http` for remotely located manifest file.
 
-- [smqd-bridge-mqtt](http://github.com/smqd/smqd-bridge-mqtt/)
-- [smqd-bridge-http](http://github.com/smqd/smqd-bridge-http/)
+A plugin manifest file contains multiple desciptions of plugin pakcages. A package can be a plain jar file in a local directory specified by `smqd.plugin.dir` or can be downloaded from remote web server. We recommand to uee `maven` repository as plugin distribution method, since smqd-core supports remote maven repository to search and download plugins. It has a lot of benefits for managing plugins like downloading dependencies together, easy to integrate with CI tools, guarantee the version of plugin, security and so on.
+
+
+#### Gateway plugins
+
+- smqd-plugin-coap: coap gateway, receiving coap messages and translate them to mqtt messages and vice versa.
+
+#### Bridge plugins
+
+- [smqd-bridge-mqtt](http://github.com/smqd/smqd-bridge-mqtt/): bridge between smqd and external mqtt broker
+- [smqd-bridge-http](http://github.com/smqd/smqd-bridge-http/): bridge between smqd and external http server
 
 ### Configuration
 
@@ -390,7 +376,7 @@ smqd {
 
 - Core API
 
-  Postman json file is [here](src/test/conf/SMQD.postman_collection.json)
+  Postman json file is available [here](src/test/conf/SMQD.postman_collection.json)
 
   Run smqd-core process with following sbt command to test rest api
 
