@@ -151,9 +151,10 @@ scala.sys.addShutdownHook {
 
   val smqd = SmqdBuilder(config)
     .setActorSystem(system)
-    .setAuthDelegate(new DefaultAuthDelegate())
-    .setRegistryDelegate(new DefaultRegistryDelegate())
-    .setSessionStoreDelegate(new DefaultSessionStore())
+    .setUserDelegate(new CustomUserDelegate())
+    .setClientDelegate(new CustomClientDelegate())
+    .setRegistryDelegate(new CustomRegistryDelegate())
+    .setSessionStoreDelegate(new CustomSessionStore())
     .setServices(services)
     .build()
 
@@ -292,26 +293,26 @@ smqd {
 
 #### Client Authentication
 
-Every application has its own policy to authenticate client's connections. SMQD put this role under `AuthDelegate`.
-Application that needs to customize the authentication policy shlould implement `AuthDelegate`.
-The following code is SMQD's default AuthDelegate implimentation.
+Every application has its own policy to authenticate client's connections. SMQD put this role under `ClientDelegate`.
+Application that needs to customize the authentication policy shlould implement `Clientelegate`.
+The following code is SMQD's default ClientDelegate implimentation.
 
-There are three parameters for the method `authenticate()`.
+There are three parameters for the method `clientLogin()`.
 `clientId` represents client-id that is defined in MQTT specification.
 And `userName` and `password` are `Option` as MQTT protocol.
-If your application doesn't want to allow zero-length clientId or empty `userName`,
+If your application doesn't want to allow zero-length clientId or empty `username`,
 just return `BaseNameOrpassword` instead of `SmqSuccess`
 
-> The AuthDelegate is called only when a client is connecting to the SMQD via network as a mqtt client.
+> The ClientDelegate is called only when a client is connecting to the SMQD via network as a mqtt client.
 > Internal publishing/subscription through api is not a subject of the authentication
 
 ```scala
-class MyAuthDelegate extends com.thing2x.smqd.AuthDelegate {
-  override def clientLogin(clientId: String, userName: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
+class MyAuthDelegate extends com.thing2x.smqd.ClientDelegate {
+  override def clientLogin(clientId: String, username: Option[String], password: Option[Array[Byte]]): Future[SmqResult] = {
     Future {
-      println(s"[$clientId] userName: $userName password: $password")
-      if (userName.isDefined && password.isDefined) {
-        if (userName.get == new String(password.get, "utf-8"))
+      println(s"[$clientId] username: $userName password: $password")
+      if (username.isDefined && password.isDefined) {
+        if (username.get == new String(password.get, "utf-8"))
           SmqSuccess
         else
           BadUserNameOrPassword(clientId, "Bad user name or password ")
@@ -324,27 +325,27 @@ class MyAuthDelegate extends com.thing2x.smqd.AuthDelegate {
 }
 ```
 
-There are two ways to register your `AuthDelegate`.
+There are two ways to register your `ClientDelegate`.
 
-1) Change configuration to replace `AuthDelegate`.
+1) Change configuration to replace `ClientDelegate`.
 
 > In this case your customized AuthDelegate class shouldn't have any parameter to instanciate.
 
 ```
 smqd {
   delegates {
-    authentication = com.sample.MyAuthDelegate
+    client = com.sample.MyClientDelegate
   }
 }
 ```
 
-2) `SmqdBuilder` has `setAuthDelegate()` that takes an instance of `AuthDelegate`.
+2) `SmqdBuilder` has `setClientDelegate()` that takes an instance of `ClientDelegate`.
 
-> If your `AuthDelegate` needs parameters to instanciate, this is the way to do.
+> If your `ClientDelegate` needs parameters to instantiate, this is the way to do.
 
 ```scala
 val smqd = SmqdBuilder(config)
-    .setAuthDelegate(new MyAuthDelegate())
+    .setClientDelegate(new MyClientDelegate(...params...))
     .build()
 ```
 
