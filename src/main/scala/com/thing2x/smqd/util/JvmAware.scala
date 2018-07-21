@@ -16,6 +16,7 @@ package com.thing2x.smqd.util
 
 import java.lang.management.ManagementFactory
 
+import com.sun.management.UnixOperatingSystemMXBean
 import com.thing2x.smqd.util.JvmAware.{JvmMemoryPoolUsage, JvmOperatingSystem}
 
 import scala.collection.JavaConverters._
@@ -27,7 +28,7 @@ import scala.collection.JavaConverters._
   */
 object JvmAware {
   case class JvmMemoryPoolUsage(name: String, `type`: String, used: Long, max: Long)
-  case class JvmOperatingSystem(name: String, version: String, arch: String, processors: Int)
+  case class JvmOperatingSystem(name: String, version: String, arch: String, processors: Int, fd: Option[Long])
 }
 
 trait JvmAware {
@@ -46,7 +47,14 @@ trait JvmAware {
 
   def javaOperatingSystem: JvmOperatingSystem = {
     val osMXBean = ManagementFactory.getOperatingSystemMXBean
-    JvmOperatingSystem(osMXBean.getName, osMXBean.getVersion, osMXBean.getArch, osMXBean.getAvailableProcessors)
+
+    osMXBean match {
+      case unix: UnixOperatingSystemMXBean =>
+        val fd = unix.getOpenFileDescriptorCount
+        JvmOperatingSystem(osMXBean.getName, osMXBean.getVersion, osMXBean.getArch, osMXBean.getAvailableProcessors, Some(fd))
+      case _ =>
+        JvmOperatingSystem(osMXBean.getName, osMXBean.getVersion, osMXBean.getArch, osMXBean.getAvailableProcessors, None)
+    }
   }
 
   def javaCpuUsage: Double = {

@@ -40,6 +40,7 @@ object JvmMonitoringActor {
     def heapUsed: Long
     def cpuLoad: Double
     def threadCount: Int
+    def fdCount: Long
   }
 
   private var provider: Option[Provider] = None
@@ -77,6 +78,9 @@ object JvmMonitoringActor {
       registry.register(MetricRegistry.name("jvm.thread.count"), new Gauge[Int]{
         override def getValue: Int = if (provider.isDefined) provider.get.threadCount else 0
       })
+      registry.register(MetricRegistry.name("jvm.fd.count"), new Gauge[Long]{
+        override def getValue: Long = if (provider.isDefined) provider.get.fdCount else 0
+      })
       true
     }
   }
@@ -91,6 +95,7 @@ class JvmMonitoringActor extends Actor with StrictLogging with JvmAware with Jvm
   var heapUsed: Long = 0
   var cpuLoad: Double = 0
   var threadCount: Int = 0
+  var fdCount: Long = 0
 
   private var schedule: Option[Cancellable] = None
 
@@ -151,5 +156,7 @@ class JvmMonitoringActor extends Actor with StrictLogging with JvmAware with Jvm
       this.cpuLoad = javaCpuUsage
 
       this.threadCount = javaThreadCount
+
+      this.fdCount = javaOperatingSystem.fd.getOrElse(0)
   }
 }
