@@ -73,7 +73,7 @@ object InstanceDefinition extends StrictLogging {
 class InstanceDefinition[+T <: Plugin](val instance: T, val pluginDef: PluginDefinition, val autoStart: Boolean) {
   val name: String = instance.name
 
-  /** UNKNOWN, STOPPED, STOPPING, STARTING, RUNNING */
+  /** FAIL, STOPPED, STOPPING, STARTING, RUNNING */
   def status: String = instance.status.toString
 
   /** packageName / pluginName / instanceName */
@@ -84,7 +84,7 @@ class InstanceDefinition[+T <: Plugin](val instance: T, val pluginDef: PluginDef
       cmd match {
         case "start" =>
           instance.status match {
-            case InstanceStatus.UNKNOWN | InstanceStatus.STOPPED =>
+            case InstanceStatus.FAIL | InstanceStatus.STOPPED =>
               instance.execStart()
               ExecSuccess(s"Instance '$name' is ${instance.status}")
             case status =>
@@ -92,7 +92,7 @@ class InstanceDefinition[+T <: Plugin](val instance: T, val pluginDef: PluginDef
           }
         case "stop" =>
           instance.status match {
-            case InstanceStatus.UNKNOWN | InstanceStatus.RUNNING =>
+            case InstanceStatus.FAIL | InstanceStatus.RUNNING =>
               instance.execStop()
               ExecSuccess(s"Instance '$name' is ${instance.status}")
             case status =>

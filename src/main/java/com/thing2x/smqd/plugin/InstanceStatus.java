@@ -20,5 +20,5 @@ package com.thing2x.smqd.plugin;
  * 2018. 7. 7. - Created by Kwon, Yeong Eon
  */
 public enum InstanceStatus {
-  UNKNOWN, STOPPED, STOPPING, STARTING, RUNNING
+  FAIL, STOPPED, STOPPING, STARTING, RUNNING
 }

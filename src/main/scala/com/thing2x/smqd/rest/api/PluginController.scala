@@ -333,7 +333,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
             instDef.instance.status match {
               case InstanceStatus.RUNNING | InstanceStatus.STARTING | InstanceStatus.STOPPING =>
                 complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
-              case InstanceStatus.STOPPED | InstanceStatus.UNKNOWN =>
+              case InstanceStatus.STOPPED | InstanceStatus.FAIL =>
                 if (pm.updateInstanceConfigFile(smqdInstance, pluginName, instanceName, file, conf)) {
                   getPluginInstanceConfig(pluginName, instanceName)
                 }
@@ -362,7 +362,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
             instDef.instance.status match {
               case InstanceStatus.RUNNING | InstanceStatus.STARTING | InstanceStatus.STOPPING =>
                 complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
-              case InstanceStatus.STOPPED | InstanceStatus.UNKNOWN =>
+              case InstanceStatus.STOPPED | InstanceStatus.FAIL =>
                 if (pm.deleteInstanceConfigFile(smqdInstance, pluginName, instanceName, file))
                   complete(StatusCodes.OK, restSuccess(0, JsObject("success" -> JsString("plugin instance deleted"))))
                 else

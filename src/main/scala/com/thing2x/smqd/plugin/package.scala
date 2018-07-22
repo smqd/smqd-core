@@ -14,12 +14,9 @@
 
 package com.thing2x.smqd
 
-import java.text.ParseException
+import java.io.{ByteArrayOutputStream, OutputStreamWriter, PrintWriter}
 
-import com.typesafe.config._
-import spray.json.{DefaultJsonProtocol, JsArray, JsBoolean, JsObject, JsString, JsValue, JsonParser, RootJsonFormat}
-
-import scala.collection.JavaConverters._
+import spray.json.{DefaultJsonProtocol, JsArray, JsBoolean, JsObject, JsString, JsValue, RootJsonFormat}
 
 // 2018. 7. 7. - Created by Kwon, Yeong Eon
 
@@ -35,13 +32,30 @@ package object plugin extends DefaultJsonProtocol {
     override def read(json: JsValue): InstanceDefinition[Plugin] = ???
 
     override def write(obj: InstanceDefinition[Plugin]): JsValue = {
-      JsObject(
+      val entities = Map(
         "name" -> JsString(obj.name),
         "status" -> JsString(obj.status),
         "auto-start" -> JsBoolean(obj.autoStart),
         "plugin" -> JsString(obj.pluginDef.name),
-        "package" -> JsString(obj.pluginDef.packageName)
-      )
+        "package" -> JsString(obj.pluginDef.packageName))
+
+      obj.instance.status match {
+        case InstanceStatus.FAIL if obj.instance.failure.isDefined =>
+          val cause = obj.instance.failure.get
+          val buffer = new ByteArrayOutputStream(4096)
+          val pw = new PrintWriter(new OutputStreamWriter(buffer))
+          cause.printStackTrace(pw)
+          pw.close()
+          val stack = new String(buffer.toString)
+
+          JsObject( entities + ("failure" -> JsObject (
+            "message" -> JsString(cause.getMessage),
+            "stack" -> JsString(stack)
+          )))
+        case _ =>
+          JsObject( entities )
+      }
+
     }
   }
 

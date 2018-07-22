@@ -16,6 +16,7 @@ package com.thing2x.smqd.plugin
 
 import com.thing2x.smqd.{LifeCycle, Smqd}
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.StrictLogging
 
 // 2018. 7. 4. - Created by Kwon, Yeong Eon
 
@@ -25,18 +26,23 @@ trait Plugin extends LifeCycle {
 
   def execStart(): Unit
   def execStop(): Unit
+
+  def failure: Option[Throwable]
 }
 
-abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Config) extends Plugin {
-  private var _status = InstanceStatus.STOPPED
+abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Config) extends Plugin with StrictLogging {
 
+  private var _status = InstanceStatus.STOPPED
   def status: InstanceStatus = _status
+
+  private var _cause: Option[Throwable] = None
 
   def preStarting(): Unit = {
     _status = InstanceStatus.STARTING
   }
 
   def postStarted(): Unit = {
+    _cause = None
     _status = InstanceStatus.RUNNING
   }
 
@@ -45,18 +51,43 @@ abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Conf
   }
 
   def postStopped(): Unit = {
+    _cause = None
     _status = InstanceStatus.STOPPED
   }
 
   def execStart(): Unit = {
-    preStarting()
-    start()
-    postStarted()
+    try {
+      preStarting()
+      start()
+      postStarted()
+    }
+    catch {
+      case th: Throwable =>
+        _cause = Some(th)
+        _status = InstanceStatus.FAIL
+        logger.warn(s"Fail to start plugin instance '$name'", th)
+    }
   }
 
   def execStop(): Unit = {
-    preStopping()
-    stop()
-    postStopped()
+    try {
+      preStopping()
+      stop()
+      postStopped()
+    }
+    catch {
+      case th: Throwable =>
+        _cause = Some(th)
+        _status = InstanceStatus.FAIL
+        logger.warn(s"Fail to stop plugin instance '$name'", th)
+    }
   }
+
+  def failure(ex: Throwable): Unit = {
+    logger.warn(s"Failure in plugin instance '$name'", ex)
+    _status = InstanceStatus.FAIL
+    _cause = Some(ex)
+  }
+
+  def failure: Option[Throwable] = _cause
 }

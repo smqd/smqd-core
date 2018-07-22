@@ -32,5 +32,5 @@ class TakeOnePlugin(name: String, smqd: Smqd, config: Config) extends Service(na
     logger.info("Stop take one plugin")
   }
 
-  override def status: InstanceStatus = InstanceStatus.UNKNOWN
+  override def status: InstanceStatus = InstanceStatus.FAIL
 }

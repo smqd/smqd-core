@@ -121,8 +121,9 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
           localBound(b.localAddress)
           logger.info(s"[$name] Started. listening ${b.localAddress}")
         case Failure(e) =>
-          logger.error(s"[$name] Failed", e)
-          scala.sys.exit(-1)
+          // report the exception instead of quick death
+          // then AbstractPlugin will catch it, so that plugin manager can mark the plugin instance with failure
+          failure(new Exception(s"Bind fail /$localBindAddress:$localBindPort", e))
       }
     }
 
@@ -143,8 +144,9 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
                 localSecureBound(b.localAddress)
                 logger.info(s"[$name] Started. listening ${b.localAddress}")
               case Failure(e) =>
-                logger.error(s"[$name] Failed", e)
-                scala.sys.exit(-1)
+                // report the exception instead of quick death
+                // then AbstractPlugin will catch it, so that plugin manager can mark the plugin instance with failure
+                failure(new Exception(s"Bind fail /$localSecureBindAddress:$localSecureBindPort", e))
             }
           case _ =>
         }
