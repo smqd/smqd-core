@@ -63,9 +63,7 @@ abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Conf
     }
     catch {
       case th: Throwable =>
-        _cause = Some(th)
-        _status = InstanceStatus.FAIL
-        logger.warn(s"Fail to start plugin instance '$name'", th)
+        failure(th)
     }
   }
 
@@ -77,9 +75,7 @@ abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Conf
     }
     catch {
       case th: Throwable =>
-        _cause = Some(th)
-        _status = InstanceStatus.FAIL
-        logger.warn(s"Fail to stop plugin instance '$name'", th)
+        failure(th)
     }
   }
 
@@ -87,7 +83,10 @@ abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Conf
     logger.warn(s"Failure in plugin instance '$name'", ex)
     _status = InstanceStatus.FAIL
     _cause = Some(ex)
+    if (shouldExitOnFailure) scala.sys.exit(1)
   }
 
-  def failure: Option[Throwable] = _cause
+  final def failure: Option[Throwable] = _cause
+
+  val shouldExitOnFailure: Boolean = false
 }

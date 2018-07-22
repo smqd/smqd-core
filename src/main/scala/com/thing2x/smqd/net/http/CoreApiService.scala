@@ -39,4 +39,5 @@ class CoreApiService(name: String, smqdInstance: Smqd, config: Config) extends H
     smqdInstance.setApiEndpoint(EndpointInfo(localEndpoint, secureEndpoint))
   }
 
+  override val shouldExitOnFailure: Boolean = true
 }
