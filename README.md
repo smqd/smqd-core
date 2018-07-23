@@ -53,19 +53,34 @@ SMQD will not make cluster ranged routes for local subscription, and only delive
     pub 'topic'
 ```
 
+![sub_local_1](docs/img/sub_local_1.png)
+
+Other normal subscribers are not affected by local subscription.
+
+![sub_local_2](docs/img/sub_local_2.png)
+
 #### Queue Subscription (Load balancing)
+
+The messages are distributed among *queue* subscribers.
+
 
 ```
     sub '$queue/topic'
     pub 'topic'
 ```
 
+![sub_queue](docs/img/sub_queue.png)
+
 #### Shared Subscription (Load balancing among the same group subscribers)
+
+The messages are distributed among same *group* subscribers.
 
 ```
     sub '$share/<group>/topic'
     pub 'topic'
 ```
+
+![sub_share](docs/img/sub_share.png)
 
 #### System topics
 
