@@ -41,7 +41,7 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
   // repository definitions
   private[plugin] val repositoryDefs =
   // repo def for core plugins (internal)
-  RepositoryDefinition(CORE_PKG, "thing2x.com", new URI("https://github.com/smqd"), installable = false, "smqd core plugins") +:
+  RepositoryDefinition(CORE_PKG, "http://www.thing2x.com", new URI("https://github.com/smqd"), installable = false, "smqd core plugins") +:
     // repo def for manually installed
     RepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false, "manually installed plugins") +:
     findRepositoryDefinitions(findManifest(pluginManifestUri))
