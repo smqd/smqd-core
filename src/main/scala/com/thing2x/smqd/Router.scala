@@ -260,46 +260,15 @@ class ClusterAwareLocalRouter(registry: Registry) extends Actor with SendingOutb
   override def receive: Receive = {
     case rm: RoutableMessage =>
       // local messaging
-      val matchedRegList = registry.filter(rm.topicPath).groupBy(_.filterPath.prefix).flatMap { case (prefix, regList) =>
-        prefix match {
-          case FilterPathPrefix.NoPrefix =>
-            regList
-
-          case FilterPathPrefix.Local if rm.isLocal =>
-            regList
-
-          case FilterPathPrefix.Local if rm.isRemote =>
-            // local subscriptions, if a message arrived from a remote node, simply ignore
-            Seq.empty
-
-          case FilterPathPrefix.Queue =>
-            val dest = if (regList.size == 1) {
-              regList.head
-            }
-            else {
-              regList(random.nextInt(regList.size))
-            }
-            Seq(dest)
-
-          case FilterPathPrefix.Share =>
-            regList.groupBy(reg => reg.filterPath.group.get).map{ case (_, seq) =>
-              // send one message per a group
-              seq(random.nextInt(seq.size))
-            }.toSeq
-
-          case _ =>
-            Seq.empty
-        }
-      }.toSeq
-
-      sendOutboundPublish(matchedRegList, rm)
-
+      sendOutboundPublishByTypes(registry.filter(rm.topicPath), rm)(random)
     case msg =>
       logger.info("Unhandled Message {}", msg)
   }
 }
 
 class LocalModeRouter(registry: Registry) extends Router with SendingOutboundPublish with StrictLogging {
+
+  private val random: scala.util.Random = new scala.util.Random(System.currentTimeMillis())
 
   override def snapshot: Map[FilterPath, Set[SmqdRoute]] = Map.empty
 
@@ -312,15 +281,6 @@ class LocalModeRouter(registry: Registry) extends Router with SendingOutboundPub
   override private[smqd] def removeRoute(filterPath: FilterPath): Unit = { } // do nothing
 
   override def routes(rm: RoutableMessage): Unit = {
-    registry
-      // filter by topic
-      .filter(rm.topicPath)
-      // group by subscriber: Overlap subscriptions [MQTT-3.3.5-1],
-      // send a message for a subscriber with maximum QoS of all the matching subscriptions.
-      .groupBy(reg => reg.actor)
-      .foreach{ case (actor, regs) =>
-        val reg = regs.sortWith((l, r) => l.qos > r.qos).head
-        sendOutboundPubish(reg, rm)
-      }
+    sendOutboundPublishByTypes(registry.filter(rm.topicPath), rm)(random)
   }
 }
