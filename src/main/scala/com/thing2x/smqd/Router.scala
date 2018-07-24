@@ -196,6 +196,53 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
 
 
 trait SendingOutboundPublish {
+
+  def sendOutboundPublishByTypes(filteredList: Seq[Registration], rm: RoutableMessage)(implicit random: scala.util.Random): Unit = {
+    val matchedRegList = filteredList.groupBy(_.filterPath.prefix).flatMap { case (prefix, regList) =>
+      prefix match {
+        case FilterPathPrefix.NoPrefix =>
+          regList
+
+        case FilterPathPrefix.Local if rm.isLocal =>
+          regList
+
+        case FilterPathPrefix.Local if rm.isRemote =>
+          // local subscriptions, if a message arrived from a remote node, simply ignore
+          Seq.empty
+
+        case FilterPathPrefix.Queue =>
+          val dest = if (regList.size == 1) {
+            regList.head
+          }
+          else {
+            regList(random.nextInt(regList.size))
+          }
+          Seq(dest)
+
+        case FilterPathPrefix.Share =>
+          regList.groupBy(reg => reg.filterPath.group.get).map{ case (_, seq) =>
+            // send one message per a group
+            seq(random.nextInt(seq.size))
+          }.toSeq
+
+        case _ =>
+          Seq.empty
+      }
+    }.toSeq
+
+    sendOutboundPublish(matchedRegList, rm)
+  }
+
+  // [MQTT-3.3.5-1] Filtering overlap subscriptions,
+  // send a message for a subscriber with maximum QoS of all the matching subscriptions.
+  def sendOutboundPublish(regList: Seq[Registration], rm: RoutableMessage): Unit = {
+    regList.groupBy(reg => reg.actor)
+      .foreach{ case (_, regs) =>
+        val reg = regs.sortWith((l, r) => l.qos > r.qos).head
+        sendOutboundPubish(reg, rm)
+      }
+  }
+
   def sendOutboundPubish(reg: Registration, rm: RoutableMessage): Unit = {
     if (reg.clientId.isDefined) { // session associated subscriber, which means this is not a internal actor (callback)
       reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, rm.msg)
@@ -213,16 +260,17 @@ class ClusterAwareLocalRouter(registry: Registry) extends Actor with SendingOutb
   override def receive: Receive = {
     case rm: RoutableMessage =>
       // local messaging
-      registry.filter(rm.topicPath).groupBy(_.filterPath.prefix).foreach { case (prefix, regList) =>
+      val matchedRegList = registry.filter(rm.topicPath).groupBy(_.filterPath.prefix).flatMap { case (prefix, regList) =>
         prefix match {
           case FilterPathPrefix.NoPrefix =>
-            regList.foreach { reg => sendOutboundPubish(reg, rm) }
+            regList
 
           case FilterPathPrefix.Local if rm.isLocal =>
-            regList.foreach { reg => sendOutboundPubish(reg, rm) }
+            regList
 
           case FilterPathPrefix.Local if rm.isRemote =>
             // local subscriptions, if a message arrived from a remote node, simply ignore
+            Seq.empty
 
           case FilterPathPrefix.Queue =>
             val dest = if (regList.size == 1) {
@@ -231,16 +279,21 @@ class ClusterAwareLocalRouter(registry: Registry) extends Actor with SendingOutb
             else {
               regList(random.nextInt(regList.size))
             }
-
-            sendOutboundPubish(dest, rm)
+            Seq(dest)
 
           case FilterPathPrefix.Share =>
-            regList.groupBy(reg => reg.filterPath.group.get).foreach{ case (group, seq) =>
+            regList.groupBy(reg => reg.filterPath.group.get).map{ case (_, seq) =>
               // send one message per a group
-              sendOutboundPubish(seq(random.nextInt(seq.size)), rm)
-            }
+              seq(random.nextInt(seq.size))
+            }.toSeq
+
+          case _ =>
+            Seq.empty
         }
-      }
+      }.toSeq
+
+      sendOutboundPublish(matchedRegList, rm)
+
     case msg =>
       logger.info("Unhandled Message {}", msg)
   }
@@ -259,6 +312,15 @@ class LocalModeRouter(registry: Registry) extends Router with SendingOutboundPub
   override private[smqd] def removeRoute(filterPath: FilterPath): Unit = { } // do nothing
 
   override def routes(rm: RoutableMessage): Unit = {
-    registry.filter(rm.topicPath).foreach{ reg => sendOutboundPubish(reg, rm) }
+    registry
+      // filter by topic
+      .filter(rm.topicPath)
+      // group by subscriber: Overlap subscriptions [MQTT-3.3.5-1],
+      // send a message for a subscriber with maximum QoS of all the matching subscriptions.
+      .groupBy(reg => reg.actor)
+      .foreach{ case (actor, regs) =>
+        val reg = regs.sortWith((l, r) => l.qos > r.qos).head
+        sendOutboundPubish(reg, rm)
+      }
   }
 }

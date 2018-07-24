@@ -24,6 +24,7 @@ import javax.net.ssl.SSLEngine
 import com.thing2x.smqd._
 import com.thing2x.smqd.session.SessionManagerActor
 import com.thing2x.smqd.util.ActorIdentifying
+import io.netty.handler.logging.LogLevel
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -62,7 +63,7 @@ class MqttWsChannelInitializer(smqd: Smqd,
     if (sslEngine.isDefined) {
       pipeline.addLast(SSL_HANDLER, new SslHandler(sslEngine.get))
     }
-
+    //pipeline.addLast("loggingHandler", new io.netty.handler.logging.LoggingHandler("mqtt.logger", LogLevel.INFO))
     pipeline.addLast("httpServerCodec", new HttpServerCodec)
     pipeline.addLast("wsMqttHandshaker", new MqttWsHandshakeHandler(channelBpsCounter, channelTpsCounter, messageMaxSize, clientIdentifierFormat))
   }

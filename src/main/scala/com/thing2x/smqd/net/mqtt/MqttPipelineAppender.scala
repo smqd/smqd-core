@@ -43,6 +43,8 @@ trait MqttPipelineAppender {
     pipeline.addLast(DECODING_HANDLER, new MqttDecoder(messageMaxSize))
     pipeline.addLast(ENCODING_HANDLER, MqttEncoder.INSTANCE)
 
+    //pipeline.addLast("loggingHandler", new io.netty.handler.logging.LoggingHandler("mqtt.logger", LogLevel.INFO))
+
     pipeline.addLast(CHANNEL_TPS_HANDLER, channelTpsCounter)
 
     pipeline.addLast(IDLE_STATE_HANDLER, new IdleStateHandler(7, 0, 0))
