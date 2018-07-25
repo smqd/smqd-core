@@ -30,29 +30,44 @@ trait Plugin extends LifeCycle {
   def failure: Option[Throwable]
 }
 
-abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Config) extends Plugin with StrictLogging {
+abstract class AbstractPlugin(val name: String, val smqdInstance: Smqd, val config: Config) extends Plugin with StrictLogging {
 
-  private var _status = InstanceStatus.STOPPED
-  def status: InstanceStatus = _status
+  private[plugin] var definition: Option[InstanceDefinition[_]] = None
+
+  private var v_status = InstanceStatus.STOPPED
+  private def status_=(newStatus: InstanceStatus): Unit = {
+    v_status = newStatus
+    val path = definition match {
+      case Some(instDef) =>
+        instDef.path
+      case _ =>
+        "$SYS/plugins/events/"+name
+    }
+    val topic = "$SYS/plugins/events/"+path
+    val key = path.replaceAll("[/]", ".")
+    smqdInstance.publish(topic, s"""{"$key": {"status":"${v_status.toString}"}}""")
+  }
+
+  def status: InstanceStatus = v_status
 
   private var _cause: Option[Throwable] = None
 
   def preStarting(): Unit = {
-    _status = InstanceStatus.STARTING
+    status = InstanceStatus.STARTING
   }
 
   def postStarted(): Unit = {
     _cause = None
-    _status = InstanceStatus.RUNNING
+    status = InstanceStatus.RUNNING
   }
 
   def preStopping(): Unit = {
-    _status = InstanceStatus.STOPPED
+    status = InstanceStatus.STOPPING
   }
 
   def postStopped(): Unit = {
     _cause = None
-    _status = InstanceStatus.STOPPED
+    status = InstanceStatus.STOPPED
   }
 
   def execStart(): Unit = {
@@ -81,8 +96,8 @@ abstract class AbstractPlugin(val name: String, val smqd: Smqd, val config: Conf
 
   def failure(ex: Throwable): Unit = {
     logger.warn(s"Failure in plugin instance '$name'", ex)
-    _status = InstanceStatus.FAIL
     _cause = Some(ex)
+    status = InstanceStatus.FAIL
     if (shouldExitOnFailure) scala.sys.exit(1)
   }
 

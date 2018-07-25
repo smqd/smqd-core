@@ -84,7 +84,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       logger.debug(s"[$name] secure bind   : $localSecureBindAddress:$localSecureBindPort")
     }
 
-    import smqd.Implicit._
+    import smqdInstance.Implicit._
 
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 

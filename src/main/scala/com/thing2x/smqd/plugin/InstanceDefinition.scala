@@ -79,6 +79,11 @@ class InstanceDefinition[+T <: Plugin](val instance: T, val pluginDef: PluginDef
   /** packageName / pluginName / instanceName */
   val path: String = s"${pluginDef.packageName}/${pluginDef.name}/$name"
 
+  instance match {
+    case ap: AbstractPlugin =>
+      ap.definition = Some(this.asInstanceOf[InstanceDefinition[T]])
+  }
+
   def exec(cmd: String)(implicit ec: ExecutionContext): Future[ExecResult] = Future {
     try {
       cmd match {
