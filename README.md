@@ -86,6 +86,7 @@ The messages are distributed among same *group* subscribers.
 
 - [x] $SYS/faults : system fault messages
 - [x] $SYS/protocols : MQTT network control packet tracking
+- [x] $SYS/metric/data : system metric collections
 
 
 * how to subscribe to smqd via mqtt
