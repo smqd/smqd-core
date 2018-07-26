@@ -67,9 +67,9 @@ class RepositoryDefinition(val name: String,
     (this.name, that.name) match {
       case (PluginManager.CORE_PKG, _) => -1
       case (_, PluginManager.CORE_PKG) => 1
-      case (l, r) if l.startsWith("smqd-") && r.startsWith("smqd") => l.compare(r)
-      case (l, r) if l.startsWith("smqd-") && !r.startsWith("smqd") => -1
-      case (l, r) if !l.startsWith("smqd-") && r.startsWith("smqd") => 1
+      case (l, r) if l.startsWith("smqd-") && r.startsWith("smqd-") => l.compare(r)
+      case (l, r) if l.startsWith("smqd-") && !r.startsWith("smqd-") => -1
+      case (l, r) if !l.startsWith("smqd-") && r.startsWith("smqd-") => 1
       case _ => this.name.compare(that.name)
     }
   }
