@@ -80,7 +80,7 @@ private[plugin] class PackageLoader(pm: PluginManager, urls: Array[URL], parent:
         PluginDefinition(pluginName, clazz, packageName, version, multiInst, conf, confSchema)
       }
 
-      val pkg = new PackageDefinition(packageName, packageVendor, packageDescription, plugins, repo)
+      val pkg = PackageDefinition(packageName, packageVendor, packageDescription, plugins, repo)
       repo.setInstalledPackage(pkg)
       Some(pkg)
     }
