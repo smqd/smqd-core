@@ -71,7 +71,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
         val pw = load.getProperty(username)
         //logger.trace(s"stored pw=${pw} vs. user pw=${SslUtil.getSha1Hash(password)}")
         if (pw != null && pw == SslUtil.getSha1Hash(password)) {
-          SmqSuccess
+          SmqSuccess()
         }
         else {
           UserWrongPassword("Bad username or password ")
@@ -98,7 +98,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
         else {
           props.setProperty(user.username, SslUtil.getSha1Hash(user.password))
           store(props)
-          SmqSuccess
+          SmqSuccess()
         }
       }
     }
@@ -114,7 +114,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
         else {
           props.setProperty(user.username, SslUtil.getSha1Hash(user.password))
           store(props)
-          SmqSuccess
+          SmqSuccess()
         }
       }
     }
@@ -125,12 +125,12 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
       lock.synchronized {
         val props = load
         if (props.getProperty(username) == null) {
-          SmqSuccess
+          SmqSuccess()
         }
         else {
           props.remove(username)
           store(props)
-          SmqSuccess
+          SmqSuccess()
         }
       }
     }

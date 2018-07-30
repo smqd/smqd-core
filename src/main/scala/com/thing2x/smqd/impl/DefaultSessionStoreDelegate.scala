@@ -70,11 +70,11 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
 
   override def flushSession(token: SessionStoreToken): Future[SmqResult] = Future {
     if (token.cleanSession) {
-      SmqSuccess
+      SmqSuccess()
     }
     else {
       logger.trace(s"[${token.clientId}] *** flushSessionData")
-      SmqSuccess
+      SmqSuccess()
     }
   }
 
