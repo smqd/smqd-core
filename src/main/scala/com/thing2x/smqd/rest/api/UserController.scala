@@ -17,7 +17,7 @@ package com.thing2x.smqd.rest.api
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
-import com.thing2x.smqd.SmqSuccess
+import com.thing2x.smqd.{SmqSuccess, SmqSuccessWithData}
 import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.net.http.OAuth2.OAuth2Claim
@@ -58,14 +58,20 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
     path("login") {
       post {
         entity(as[LoginRequest]) { loginReq =>
-          val claim = OAuth2Claim(loginReq.user, Map("issuer" -> "smqd-core"))
           val login = context.smqdInstance.userLogin(loginReq.user, loginReq.password)
           onComplete (login) {
-            case  Success(result) if result == SmqSuccess =>
+            case  Success(result) if result == SmqSuccess | result.isInstanceOf[SmqSuccessWithData] =>
+              val additionalInfo = result match {
+                case SmqSuccessWithData(info) => info
+                case _ => Map("issuer" -> "smqd-core")
+              }
+
+              val claim = OAuth2Claim(loginReq.user, additionalInfo)
               context.oauth2.issueJwt(claim) { jwt =>
                 val response = LoginResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
                 complete(StatusCodes.OK, restSuccess(0, response.toJson))
               }
+
             case _ =>
               complete(StatusCodes.Unauthorized, restError(401, s"Bad username or password"))
           }
