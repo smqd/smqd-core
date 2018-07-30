@@ -24,6 +24,7 @@ import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd.SessionStore.SubscriptionData
 import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.impl.{DefaultClientDelegate, DefaultRegistryDelegate, DefaultSessionStoreDelegate, DefaultUserDelegate}
@@ -201,6 +202,9 @@ class Smqd(val config: Config,
 
   private lazy val protocolManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+ProtocolNotificationManager.actorName)(system)
   def notifyProtocol(proto: ProtocolNotification): Unit = protocolManager ! proto
+
+  def snapshotSessions: Map[ClientId, Seq[SubscriptionData]] =
+    sessionStore.snapshot
 
   def snapshotRegistrations: Seq[Registration] =
     registry.snapshot

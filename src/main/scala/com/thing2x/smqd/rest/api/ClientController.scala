@@ -17,7 +17,7 @@ package com.thing2x.smqd.rest.api
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
-import com.thing2x.smqd._
+import com.thing2x.smqd.SessionStore.SubscriptionData
 import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.net.http.OAuth2.OAuth2Claim
 import com.thing2x.smqd.rest.RestController
@@ -43,22 +43,22 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
 
   private def getClients(clientId: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
 
-    def clientSubscriptionToJson(subscriptions:Seq[(FilterPath, QoS.QoS)]): JsArray = {
+    def clientSubscriptionToJson(subscriptions:Seq[SubscriptionData]): JsArray = {
       JsArray(
         subscriptions.map{ s => JsObject(
-          "topic" -> JsString(s._1.toString),
-          "qos" -> JsNumber(s._2.id))
+          "topic" -> JsString(s.filterPath.toString),
+          "qos" -> JsNumber(s.qos.id))
         }.toVector)
     }
 
-    val rt = context.smqdInstance.snapshotRegistrations
+    val list = context.smqdInstance.snapshotSessions
 
     clientId match {
       case Some(cid) => // exact match
-        val lst = rt.filter(r => r.clientId.isDefined && r.clientId.get.id == cid)
-        if (lst.nonEmpty) { // may find multiple registrations of a client
-          val subscriptions = lst.map(r => (r.filterPath, r.qos))
-          val clientId = lst.head.clientId.get
+        val filtered = list.filter{ case (k, _) => k.id == cid }
+        if (filtered.nonEmpty) { // may find multiple registrations of a client
+          val clientId = filtered.head._1
+          val subscriptions = filtered.head._2
 
           complete(StatusCodes.OK, restSuccess(0, JsObject(
             "clientId" -> JsString(clientId.id),
@@ -71,17 +71,16 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
       case None => // search
         val result = searchName match {
           case Some(search) => // query
-            rt.filter(r => r.clientId.isDefined && r.clientId.get.id.contains(search))
-              .groupBy(r => r.clientId.get).toSeq.sortWith{ case ((lc, _), (rc, _)) => lc.id.compare(rc.id) < 0 }
+            list.filter{ case (k, _) => k.id.contains(search) }
+                .toSeq.sortWith{ case ((lk, _), (rk, _)) => lk.id.compare(rk.id) < 0 }
           case None => // all
-            rt.filter(r => r.clientId.isDefined)
-              .groupBy(r => r.clientId.get).toSeq.sortWith{ case ((lc, _), (rc, _)) => lc.id.compare(rc.id) < 0 }
+            list.toSeq.sortWith{ case ((lk, _), (rk, _)) => lk.id.compare(rk.id) < 0 }
         }
-        val jsResult = result.map { s =>
+        val jsResult = result.map { case (k, subscriptions) =>
           JsObject(
-            "clientId" -> JsString(s._1.id),
-            "channelId" -> JsString(s._1.channelId.getOrElse("")),
-            "subscriptions" -> clientSubscriptionToJson(s._2.map(x => (x.filterPath, x.qos)))
+            "clientId" -> JsString(k.id),
+            "channelId" -> JsString(k.channelId.getOrElse("")),
+            "subscriptions" -> clientSubscriptionToJson(subscriptions)
           )
         }
 

@@ -107,7 +107,8 @@ class MqttWsFrameInboundHandler extends ChannelInboundHandlerAdapter with Strict
         logger.trace(s"PongWebSocketFrame Received : ${pong.content}")
 
       case cf: CloseWebSocketFrame =>
-        logger.trace(s"CloseWebSocketFrame Received : ${cf.reasonText} ;${cf.statusCode}")
+        logger.trace(s"CloseWebSocketFrame Received")
+        ctx.close()
 
       case _ =>
         logger.debug(s"Received unsupported WebSocketFrame: ${msg.getClass.getName}")

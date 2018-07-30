@@ -44,7 +44,8 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
     val subscriptions = if (cleanSession) {
       // always create new session if cleanSession = true
       logger.trace(s"[$clientId] *** clearSessionData")
-      map.remove(token.clientId.id)
+      val data = SessionData(clientId, mutable.Set.empty, mutable.Queue.empty)
+      map.put(clientId.id, data)
       Nil
     }
     else {
@@ -146,4 +147,10 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
       case _ =>
     }
   }
+
+  override def snapshot: Map[ClientId, Seq[SubscriptionData]] = {
+    val x = map.map{ case (_, v) => v.clientId -> v.subscriptions.toSeq }
+    collection.immutable.HashMap[ClientId, Seq[SubscriptionData]](x.toSeq: _*)
+  }
+
 }

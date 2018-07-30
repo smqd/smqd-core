@@ -45,6 +45,7 @@ trait SessionStoreDelegate {
 
   def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Unit
 
+  def snapshot: Map[ClientId, Seq[SubscriptionData]]
 }
 
 object SessionStore {
@@ -90,4 +91,6 @@ class SessionStore(delegate: SessionStoreDelegate) {
   def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Unit =
     delegate.deleteAfterDeliveryAck(token, msgId)
 
+  def snapshot: Map[ClientId, Seq[SubscriptionData]] =
+    delegate.snapshot
 }
