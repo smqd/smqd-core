@@ -58,10 +58,10 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
     path("login") {
       post {
         entity(as[LoginRequest]) { loginReq =>
-          val claim = OAuth2Claim(loginReq.user, Map("issuer" -> "smqd-core"))
           val login = context.smqdInstance.userLogin(loginReq.user, loginReq.password)
           onComplete (login) {
-            case  Success(result) if result == SmqSuccess =>
+            case  Success(SmqSuccess(userInfo)) =>
+              val claim = OAuth2Claim(loginReq.user, userInfo + ("issuer" -> "smqd-core"))
               context.oauth2.issueJwt(claim) { jwt =>
                 val response = LoginResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
                 complete(StatusCodes.OK, restSuccess(0, response.toJson))
@@ -114,7 +114,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
       post { // create a user
         entity(as[User]) { user =>
           onComplete(context.smqdInstance.userCreate(user)) {
-            case Success(SmqSuccess) =>
+            case Success(SmqSuccess(_)) =>
               complete(StatusCodes.OK, restError(0, "User created"))
             case _ =>
               complete(StatusCodes.InternalServerError, restError(500, "Unknown server error"))
@@ -138,7 +138,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
       } ~
       delete { // delete a user
         onComplete(context.smqdInstance.userDelete(pUsername)) {
-          case Success(SmqSuccess) =>
+          case Success(SmqSuccess(_)) =>
             complete(StatusCodes.OK, restSuccess(0, JsString(s"User '$pUsername' deleted")))
           case _ =>
             complete(StatusCodes.InternalServerError, restError(500, "Unknown server error"))
@@ -147,7 +147,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
       patch { // update a user
         entity(as[UserUpdateRequest]) { update =>
           onComplete(context.smqdInstance.userUpdate(User(pUsername, update.password))) {
-            case Success(SmqSuccess) =>
+            case Success(SmqSuccess(_)) =>
               complete(StatusCodes.OK, restSuccess(0, JsString(s"User '$pUsername' updated")))
             case _ =>
               complete(StatusCodes.NotImplemented, restError(501, "Not implemented"))

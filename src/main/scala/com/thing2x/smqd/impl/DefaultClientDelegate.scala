@@ -32,15 +32,15 @@ class DefaultClientDelegate extends ClientDelegate with StrictLogging {
 
       if (userName.isDefined && password.isDefined) {
         if (userName.get == new String(password.get, "utf-8")) // username == password
-          SmqSuccess
+          SmqSuccess()
         else
           BadUsernameOrPassword(clientId.id, "Bad user name or password ")
       }
       else if (userName.isEmpty && password.isEmpty) { // allow anonymous
-        SmqSuccess
+        SmqSuccess()
       }
       else {
-        SmqSuccess
+        SmqSuccess()
       }
     }
 

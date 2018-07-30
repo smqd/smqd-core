@@ -22,6 +22,6 @@ package com.thing2x.smqd
 sealed trait SmqResult {
 }
 
-object SmqSuccess extends SmqResult
+case class SmqSuccess(userInfo: Map[String, String] = Map.empty) extends SmqResult
 
 trait SmqFailure extends SmqResult
