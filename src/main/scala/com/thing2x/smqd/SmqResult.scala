@@ -25,3 +25,5 @@ sealed trait SmqResult {
 object SmqSuccess extends SmqResult
 
 trait SmqFailure extends SmqResult
+
+case class SmqSuccessWithData(info:Map[String,String]) extends SmqResult
