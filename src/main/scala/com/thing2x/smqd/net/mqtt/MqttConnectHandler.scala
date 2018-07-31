@@ -164,7 +164,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // [MQTT-3.1.4-3] The Server MUST perform the processing of CleanSession that is described in section 3.1.2.4
     //                Start message delivery and keep alive monitoring
     sessionCtx.smqd.clientLogin(sessionCtx.clientId, sessionCtx.userName, sessionCtx.password).onComplete {
-      case Success(result) if result == SmqSuccess =>
+      case Success(SmqSuccess(_)) =>
         sessionCtx.authorized = true
 
         val sessionManager = channelCtx.channel.attr(ATTR_SESSION_MANAGER).get
