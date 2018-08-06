@@ -28,14 +28,14 @@ import com.thing2x.smqd.SessionStore.SubscriptionData
 import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.impl.{DefaultClientDelegate, DefaultRegistryDelegate, DefaultSessionStoreDelegate, DefaultUserDelegate}
-import com.thing2x.smqd.plugin.{BridgeDriver, InstanceDefinition, PluginManager, Service}
+import com.thing2x.smqd.plugin.{InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 
 // 2018. 6. 12. - Created by Kwon, Yeong Eon
