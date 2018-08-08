@@ -94,7 +94,7 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
   }
 
   override def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Future[SmqResult] = Future {
-    logger.trace(s"============> (+) ${token.cleanSession} ${filterPath.toString} ${qos}")
+    //logger.trace(s"============> (+) ${token.cleanSession} ${filterPath.toString} ${qos}")
     map.get(token.clientId.id) match {
       case Some(data: SessionData) =>
         data.subscriptions += SubscriptionData(filterPath, qos)
@@ -104,7 +104,7 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
   }
 
   override def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Future[SmqResult] = Future {
-    logger.trace(s"============> (-) ${filterPath.toString}")
+    //logger.trace(s"============> (-) ${filterPath.toString}")
     map.get(token.clientId.id) match {
       case Some(data: SessionData) =>
         val removing = data.subscriptions.filter( _.filterPath == filterPath)
@@ -168,6 +168,6 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
   }
 
   override def snapshot(search: Option[String] = None): Future[Seq[ClientData]] = Future {
-    map.filter{ case (_, v) => v.online }.map{ case (_, v) => ClientData(v.clientId, v.subscriptions.toSeq) }.toSeq
+    map.filter{ case (_, v) => v.online }.map{ case (_, v) => ClientData(v.clientId, v.subscriptions.toSeq, v.messages.size ) }.toSeq
   }
 }

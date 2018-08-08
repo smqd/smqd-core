@@ -58,7 +58,7 @@ object SessionStore {
     def cleanSession: Boolean
   }
 
-  case class ClientData(clientId: ClientId, subscriptions: Seq[SubscriptionData])
+  case class ClientData(clientId: ClientId, subscriptions: Seq[SubscriptionData], pendingMessageSize: Long)
   case class SubscriptionData(filterPath: FilterPath, qos: QoS)
   case class MessageData(topicPath: TopicPath, qos: QoS, msgId: Int, msg: Any, var lastTryTime: Long, var acked: Boolean = false)
   case class InitialData(token: SessionStoreToken, subscriptions: Seq[SubscriptionData])

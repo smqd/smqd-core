@@ -41,12 +41,20 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
     }
   }
 
-  private def clientSubscriptionToJson(subscriptions:Seq[SubscriptionData]): JsArray = {
+  private def clientSubscriptionToJson(subscriptions: Seq[SubscriptionData]): JsArray = {
     JsArray(
       subscriptions.map{ s => JsObject(
         "topic" -> JsString(s.filterPath.toString),
         "qos" -> JsNumber(s.qos.id))
       }.toVector)
+  }
+
+  private def clientInfoToJson(cid: String, channelId: String, subscriptions: Seq[SubscriptionData], pendingMessages: Long): JsObject = {
+    JsObject(
+      "clientId" -> JsString(cid),
+      "channelId" -> JsString(channelId),
+      "pendingMessages" -> JsNumber(pendingMessages),
+      "subscriptions" -> clientSubscriptionToJson(subscriptions))
   }
 
   private def getClientExactMatch(clientId: String): Route = {
@@ -57,11 +65,9 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
       if (filtered.nonEmpty) { // may find multiple registrations of a client
         val clientId = filtered.head.clientId
         val subscriptions = filtered.head.subscriptions
+        val pendings = filtered.head.pendingMessageSize
 
-        restSuccess(0, JsObject(
-          "clientId" -> JsString(clientId.id),
-          "channelId" -> JsString(clientId.channelId.getOrElse("")),
-          "subscriptions" -> clientSubscriptionToJson(subscriptions)))
+        restSuccess(0, clientInfoToJson(clientId.id, clientId.channelId.getOrElse(""), subscriptions, pendings))
       }
       else {
         restError(404, s"Not found: $clientId")
@@ -77,11 +83,7 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
       val filtered = list.filter(_.clientId.id.contains(search))
         .sortWith { case (lk, rk) => lk.clientId.id.compare(rk.clientId.id) < 0 }
         .map { data =>
-          JsObject(
-            "clientId" -> JsString(data.clientId.id),
-            "channelId" -> JsString(data.clientId.channelId.getOrElse("")),
-            "subscriptions" -> clientSubscriptionToJson(data.subscriptions)
-          )
+          clientInfoToJson(data.clientId.id, data.clientId.channelId.getOrElse(""), data.subscriptions, data.pendingMessageSize)
         }
       restSuccess(0, pagenate(filtered, currPage, pageSize))
     }
@@ -94,11 +96,7 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
     val jsResult = f.map { list =>
       val filtered = list.sortWith{ case (lk, rk) => lk.clientId.id.compare(rk.clientId.id) < 0 }
         .map { data =>
-          JsObject(
-            "clientId" -> JsString(data.clientId.id),
-            "channelId" -> JsString(data.clientId.channelId.getOrElse("")),
-            "subscriptions" -> clientSubscriptionToJson(data.subscriptions)
-          )
+          clientInfoToJson(data.clientId.id, data.clientId.channelId.getOrElse(""), data.subscriptions, data.pendingMessageSize)
         }
       restSuccess(0, pagenate(filtered, currPage, pageSize))
     }
