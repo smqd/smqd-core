@@ -51,9 +51,9 @@ object SessionManagerActor {
   case class SessionActorPostStopNotification(clientId: ClientId, sessionActor: ActorRef)
 }
 
-abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Actor with StrictLogging {
+abstract class SessionManagerActor(smqdInstance: Smqd, sstore: SessionStore) extends Actor with StrictLogging {
 
-  import smqd.Implicit._
+  import smqdInstance.Implicit._
 
   private case class ChallengedSessionActorTerminated(clientId: ClientId, promise: Promise[Boolean], previousClientId: ClientId)
 
@@ -177,11 +177,11 @@ abstract class SessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Act
     val promise = Promise[CreateSessionResult]()
     sstore.createSession(clientId, cleanSession).onComplete {
       case Success(initialData) =>
-        val child = context.actorOf(Props(classOf[SessionActor], ctx, smqd, sstore, initialData.token), clientId.actorName)
+        val child = context.actorOf(Props(classOf[SessionActor], ctx, smqdInstance, sstore, initialData.token), clientId.actorName)
 
         // restore session state - subscriptions
         initialData.subscriptions.foreach { d =>
-          smqd.subscribe(d.filterPath, child, clientId, d.qos)
+          smqdInstance.subscribe(d.filterPath, child, clientId, d.qos)
           logger.trace(s"[$clientId] restore subscription: ${d.filterPath} (${d.qos})")
         }
 
@@ -204,10 +204,12 @@ class LocalModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends Ses
   }
 
   override def registerSession(clientId: ClientId, sessionActor: ActorRef): Future[Boolean] = Future {
+    sstore.setSessionState(clientId, connected = true)
     true // there is nothing to do in non-cluster mode
   }
 
   override def unregisterSession(clientId: ClientId): Future[Boolean] = Future {
+    sstore.setSessionState(clientId, connected = false)
     true // there is nothing to do in non-cluster mode
   }
 }
@@ -288,6 +290,7 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
   override def registerSession(clientId: ClientId, sessionActor: ActorRef): Future[Boolean] = {
     val promise = Promise[Boolean]
     ddata ! Update(SessionsKey, LWWMap.empty[String, ActorRef], writeConsistency, Some((clientId, promise, "registered"))){ m =>
+      sstore.setSessionState(clientId, connected = true)
       logger.trace(s"[$clientId] ddata register (${clientId.id} -> ${sessionActor.toString})")
       m + (clientId.id, sessionActor)
     }
@@ -299,6 +302,7 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
   override def unregisterSession(clientId: ClientId): Future[Boolean] = {
     val promise = Promise[Boolean]
     ddata ! Update(SessionsKey, LWWMap.empty[String, ActorRef], writeConsistency, Some((clientId, promise, "unregistered"))){ m =>
+      sstore.setSessionState(clientId, connected = false)
       logger.trace(s"[$clientId] ddata unregister")
       m - clientId.id
     }

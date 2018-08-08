@@ -15,7 +15,8 @@
 package com.thing2x.smqd
 
 import com.thing2x.smqd.QoS.QoS
-import com.thing2x.smqd.SessionStore.{InitialData, SessionStoreToken, SubscriptionData}
+import com.thing2x.smqd.SessionStore.{ClientData, InitialData, SessionStoreToken, SubscriptionData}
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.Future
 
@@ -31,21 +32,23 @@ trait SessionStoreDelegate {
 
   def flushSession(token: SessionStoreToken): Future[SmqResult]
 
-  def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Unit
+  def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Future[SmqResult]
 
-  def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Unit
+  def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Future[SmqResult]
 
   def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData]
 
-  def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isReatin: Boolean, msgId: Int, msg: Any)
+  def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isReatin: Boolean, msgId: Int, msg: Any): Future[SmqResult]
 
-  def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit
+  def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Future[SmqResult]
 
-  def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit
+  def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Future[SmqResult]
 
-  def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Unit
+  def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Future[SmqResult]
 
-  def snapshot: Map[ClientId, Seq[SubscriptionData]]
+  def setSessionState(clientId: ClientId, connected: Boolean): Future[SmqResult]
+
+  def snapshot(search: Option[String]): Future[Seq[ClientData]]
 }
 
 object SessionStore {
@@ -55,42 +58,48 @@ object SessionStore {
     def cleanSession: Boolean
   }
 
+  case class ClientData(clientId: ClientId, subscriptions: Seq[SubscriptionData])
   case class SubscriptionData(filterPath: FilterPath, qos: QoS)
   case class MessageData(topicPath: TopicPath, qos: QoS, msgId: Int, msg: Any, var lastTryTime: Long, var acked: Boolean = false)
   case class InitialData(token: SessionStoreToken, subscriptions: Seq[SubscriptionData])
 }
 
-class SessionStore(delegate: SessionStoreDelegate) {
+class SessionStore(smqdInstance: Smqd, delegate: SessionStoreDelegate) extends StrictLogging {
+
   def createSession(clientId: ClientId, cleanSession: Boolean): Future[InitialData] =
     delegate.createSession(clientId, cleanSession)
 
   def flushSession(token: SessionStoreToken): Future[SmqResult] =
     delegate.flushSession(token)
 
-  def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Unit =
+  def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Future[SmqResult] =
     delegate.saveSubscription(token, filterPath, qos)
 
-  def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Unit =
+  def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Future[SmqResult] =
     delegate.deleteSubscription(token, filterPath)
 
   def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData] =
     delegate.loadSubscriptions(token)
 
-  def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isRetain: Boolean, msgId: Int, msg: Any): Unit =
+  def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isRetain: Boolean, msgId: Int, msg: Any): Future[SmqResult] =
     delegate.storeBeforeDelivery(token, topicPath, qos, isRetain, msgId, msg)
 
   // QoS = 1
-  def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit =
+  def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Future[SmqResult] =
     delegate.deleteAfterDeliveryAck(token, msgId)
 
   // QoS = 2
-  def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit =
+  def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Future[SmqResult] =
     delegate.updateAfterDeliveryAck(token, msgId)
 
   // QoS = 2
-  def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Unit =
+  def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Future[SmqResult] =
     delegate.deleteAfterDeliveryAck(token, msgId)
 
-  def snapshot: Map[ClientId, Seq[SubscriptionData]] =
-    delegate.snapshot
+  def snapshot(search: Option[String]): Future[Seq[ClientData]] =
+    delegate.snapshot(search)
+
+  def setSessionState(clientId: ClientId, connected: Boolean): Future[SmqResult] = {
+    delegate.setSessionState(clientId, connected)
+  }
 }

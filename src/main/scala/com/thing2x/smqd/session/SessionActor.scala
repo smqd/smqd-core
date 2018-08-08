@@ -86,10 +86,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     // so that ddata can remove session actor's registration from ddata
     context.parent ! SessionActorPostStopNotification(ctx.clientId, self)
 
-    import smqd.Implicit._
-    Future{
-      sstore.flushSession(stoken)
-    }
+    sstore.flushSession(stoken)
     ctx.sessionStopped()
   }
 
@@ -297,11 +294,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
             }
 
             // save subscription state
-            if (qos == QoS.AtLeastOnce || qos == QoS.ExactlyOnce) {
-              Future {
-                sstore.saveSubscription(stoken, topic, qos)
-              }
-            }
+            sstore.saveSubscription(stoken, topic, qos)
 
             // [MQTT-3.3.1-6] When a new subscription is established, the last retained message, if any,
             // on each matching topic name MUST be sent to the subscriber
@@ -336,9 +329,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
       unsubs.map { topicName =>
         TPath.parseForFilter(topicName) match {
           case Some(filterPath) =>
-            Future {
-              sstore.deleteSubscription(stoken, filterPath)
-            }
+            sstore.deleteSubscription(stoken, filterPath)
             smqd.unsubscribe(filterPath, self)
           case _=>
             // failure if the topicName is unable to parse

@@ -41,50 +41,81 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
     }
   }
 
-  private def getClients(clientId: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
+  private def clientSubscriptionToJson(subscriptions:Seq[SubscriptionData]): JsArray = {
+    JsArray(
+      subscriptions.map{ s => JsObject(
+        "topic" -> JsString(s.filterPath.toString),
+        "qos" -> JsNumber(s.qos.id))
+      }.toVector)
+  }
 
-    def clientSubscriptionToJson(subscriptions:Seq[SubscriptionData]): JsArray = {
-      JsArray(
-        subscriptions.map{ s => JsObject(
-          "topic" -> JsString(s.filterPath.toString),
-          "qos" -> JsNumber(s.qos.id))
-        }.toVector)
+  private def getClientExactMatch(clientId: String): Route = {
+    import context.smqdInstance.Implicit._
+    val f = context.smqdInstance.snapshotSessions(None)
+    val jsResult = f.map{ list =>
+      val filtered = list.filter( _.clientId.id == clientId)
+      if (filtered.nonEmpty) { // may find multiple registrations of a client
+        val clientId = filtered.head.clientId
+        val subscriptions = filtered.head.subscriptions
+
+        restSuccess(0, JsObject(
+          "clientId" -> JsString(clientId.id),
+          "channelId" -> JsString(clientId.channelId.getOrElse("")),
+          "subscriptions" -> clientSubscriptionToJson(subscriptions)))
+      }
+      else {
+        restError(404, s"Not found: $clientId")
+      }
     }
+    complete(StatusCodes.OK, jsResult)
+  }
 
-    val list = context.smqdInstance.snapshotSessions
-
-    clientId match {
-      case Some(cid) => // exact match
-        val filtered = list.filter{ case (k, _) => k.id == cid }
-        if (filtered.nonEmpty) { // may find multiple registrations of a client
-          val clientId = filtered.head._1
-          val subscriptions = filtered.head._2
-
-          complete(StatusCodes.OK, restSuccess(0, JsObject(
-            "clientId" -> JsString(clientId.id),
-            "channelId" -> JsString(clientId.channelId.getOrElse("")),
-            "subscriptions" -> clientSubscriptionToJson(subscriptions))))
-        }
-        else { // or not found
-          complete(StatusCodes.NotFound, restError(404, s"Client not found: $cid"))
-        }
-      case None => // search
-        val result = searchName match {
-          case Some(search) => // query
-            list.filter{ case (k, _) => k.id.contains(search) }
-                .toSeq.sortWith{ case ((lk, _), (rk, _)) => lk.id.compare(rk.id) < 0 }
-          case None => // all
-            list.toSeq.sortWith{ case ((lk, _), (rk, _)) => lk.id.compare(rk.id) < 0 }
-        }
-        val jsResult = result.map { case (k, subscriptions) =>
+  private def getClientsWithClientId(search: String, currPage: Option[Int], pageSize: Option[Int]): Route = {
+    import context.smqdInstance.Implicit._
+    val f = context.smqdInstance.snapshotSessions(None)
+    val jsResult = f.map { list =>
+      val filtered = list.filter(_.clientId.id.contains(search))
+        .sortWith { case (lk, rk) => lk.clientId.id.compare(rk.clientId.id) < 0 }
+        .map { data =>
           JsObject(
-            "clientId" -> JsString(k.id),
-            "channelId" -> JsString(k.channelId.getOrElse("")),
-            "subscriptions" -> clientSubscriptionToJson(subscriptions)
+            "clientId" -> JsString(data.clientId.id),
+            "channelId" -> JsString(data.clientId.channelId.getOrElse("")),
+            "subscriptions" -> clientSubscriptionToJson(data.subscriptions)
           )
         }
+      restSuccess(0, pagenate(filtered, currPage, pageSize))
+    }
+    complete(StatusCodes.OK, jsResult)
+  }
 
-        complete(StatusCodes.OK, restSuccess(0, pagenate(jsResult, currPage, pageSize)))
+  private def getClients(currPage: Option[Int], pageSize: Option[Int]): Route = {
+    import context.smqdInstance.Implicit._
+    val f = context.smqdInstance.snapshotSessions(None)
+    val jsResult = f.map { list =>
+      val filtered = list.sortWith{ case (lk, rk) => lk.clientId.id.compare(rk.clientId.id) < 0 }
+        .map { data =>
+          JsObject(
+            "clientId" -> JsString(data.clientId.id),
+            "channelId" -> JsString(data.clientId.channelId.getOrElse("")),
+            "subscriptions" -> clientSubscriptionToJson(data.subscriptions)
+          )
+        }
+      restSuccess(0, pagenate(filtered, currPage, pageSize))
+    }
+    complete(StatusCodes.OK, jsResult)
+  }
+
+  private def getClients(clientId: Option[String], searchName: Option[String], currPage: Option[Int], pageSize: Option[Int]): Route = {
+    clientId match {
+      case Some(cid) => // exact match
+        getClientExactMatch(cid)
+      case None =>      // search
+        searchName match {
+          case Some(search) => // query
+            getClientsWithClientId(search, currPage, pageSize)
+          case None => // all
+            getClients(currPage, pageSize)
+        }
     }
   }
 }

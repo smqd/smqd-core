@@ -24,7 +24,7 @@ import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import akka.util.Timeout
 import com.codahale.metrics.{MetricRegistry, SharedMetricRegistries}
 import com.thing2x.smqd.QoS.QoS
-import com.thing2x.smqd.SessionStore.SubscriptionData
+import com.thing2x.smqd.SessionStore.ClientData
 import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.impl.{DefaultClientDelegate, DefaultRegistryDelegate, DefaultSessionStoreDelegate, DefaultUserDelegate}
@@ -93,7 +93,7 @@ class Smqd(val config: Config,
   private val registry       = new TrieRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)
   private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
-  private val sessionStore   = new SessionStore(sessionStoreDelegate)
+  private val sessionStore   = new SessionStore(this, sessionStoreDelegate)
   private val requestor      = new Requestor()
 
   private var chiefActor: ActorRef = _
@@ -203,8 +203,8 @@ class Smqd(val config: Config,
   private lazy val protocolManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+ProtocolNotificationManager.actorName)(system)
   def notifyProtocol(proto: ProtocolNotification): Unit = protocolManager ! proto
 
-  def snapshotSessions: Map[ClientId, Seq[SubscriptionData]] =
-    sessionStore.snapshot
+  def snapshotSessions(search: Option[String] = None): Future[Seq[ClientData]] =
+    sessionStore.snapshot(search)
 
   def snapshotRegistrations: Seq[Registration] =
     registry.snapshot

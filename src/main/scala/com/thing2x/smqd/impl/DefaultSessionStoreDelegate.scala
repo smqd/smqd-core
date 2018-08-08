@@ -15,7 +15,7 @@
 package com.thing2x.smqd.impl
 
 import com.thing2x.smqd.QoS.QoS
-import com.thing2x.smqd.SessionStore.{InitialData, MessageData, SessionStoreToken, SubscriptionData}
+import com.thing2x.smqd.SessionStore._
 import com.thing2x.smqd.impl.DefaultSessionStoreDelegate._
 import com.thing2x.smqd.{ClientId, FilterPath, QoS, SessionStoreDelegate, SmqResult, SmqSuccess, TopicPath}
 import com.typesafe.scalalogging.StrictLogging
@@ -31,7 +31,7 @@ object DefaultSessionStoreDelegate {
 
   case class Token(clientId: ClientId, cleanSession: Boolean) extends SessionStoreToken
 
-  case class SessionData(clientId: ClientId, subscriptions: mutable.Set[SubscriptionData], messages: mutable.Queue[MessageData])
+  case class SessionData(clientId: ClientId, subscriptions: mutable.Set[SubscriptionData], messages: mutable.Queue[MessageData], var online: Boolean)
 }
 
 class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLogging {
@@ -44,7 +44,7 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
     val subscriptions = if (cleanSession) {
       // always create new session if cleanSession = true
       logger.trace(s"[$clientId] *** clearSessionData")
-      val data = SessionData(clientId, mutable.Set.empty, mutable.Queue.empty)
+      val data = SessionData(clientId, mutable.Set.empty, mutable.Queue.empty, online = false)
       map.put(clientId.id, data)
       Nil
     }
@@ -55,11 +55,14 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
           // There is nothing to do since DefaultSessionStoreDelegate is using HashMap
           // If you implement the delegate based rdbms, need to deserialize data
           logger.trace(s"[$clientId] *** restoreSessionData")
-          data.subscriptions.toSeq
+          val filtered = data.subscriptions.filter{ s => s.qos == QoS.AtLeastOnce || s.qos == QoS.ExactlyOnce }.toSeq
+          data.subscriptions.clear()
+          data.subscriptions ++= filtered
+          filtered
 
         case None => // create new session if it doesn't exist
           logger.trace(s"[$clientId] *** createSessionData")
-          val data = SessionData(clientId, mutable.Set.empty, mutable.Queue.empty)
+          val data = SessionData(clientId, mutable.Set.empty, mutable.Queue.empty, online = false)
           map.put(clientId.id, data)
           Nil
       }
@@ -90,26 +93,28 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
     }
   }
 
-  override def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Unit = {
-    if (!token.cleanSession && (qos == QoS.AtLeastOnce || qos == QoS.ExactlyOnce)) {
-      map.get(token.clientId.id) match {
-        case Some(data: SessionData) =>
-          data.subscriptions += SubscriptionData(filterPath, qos)
-        case _ =>
-      }
+  override def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Future[SmqResult] = Future {
+    logger.trace(s"============> (+) ${token.cleanSession} ${filterPath.toString} ${qos}")
+    map.get(token.clientId.id) match {
+      case Some(data: SessionData) =>
+        data.subscriptions += SubscriptionData(filterPath, qos)
+      case _ =>
     }
+    SmqSuccess()
   }
 
-  override def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Unit = {
+  override def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Future[SmqResult] = Future {
+    logger.trace(s"============> (-) ${filterPath.toString}")
     map.get(token.clientId.id) match {
       case Some(data: SessionData) =>
         val removing = data.subscriptions.filter( _.filterPath == filterPath)
         data.subscriptions --= removing
       case _ =>
     }
+    SmqSuccess()
   }
 
-  override def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isReatin: Boolean, msgId: Int, msg: Any): Unit = {
+  override def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isReatin: Boolean, msgId: Int, msg: Any): Future[SmqResult] = Future {
     if (qos == QoS.AtLeastOnce || qos == QoS.ExactlyOnce) {
       map.get(token.clientId.id) match {
         case Some(data: SessionData) =>
@@ -117,17 +122,19 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
         case _ =>
       }
     }
+    SmqSuccess()
   }
 
-  override def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit = {
+  override def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Future[SmqResult] = Future {
     map.get(token.clientId.id) match {
       case Some(data: SessionData) =>
         data.messages.dequeueFirst(d => d.msgId == msgId)
       case _ =>
     }
+    SmqSuccess()
   }
 
-  override def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Unit = {
+  override def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Future[SmqResult] = Future {
     map.get(token.clientId.id) match {
       case Some(data: SessionData) =>
         data.messages.find(d => d.msgId == msgId) match {
@@ -138,19 +145,29 @@ class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLoggin
         }
       case _ =>
     }
+    SmqSuccess()
   }
 
-  override def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Unit = {
+  override def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Future[SmqResult] = Future {
     map.get(token.clientId.id) match {
       case Some(data: SessionData) =>
         data.messages.dequeueFirst(d => d.msgId == msgId)
       case _ =>
     }
+    SmqSuccess()
   }
 
-  override def snapshot: Map[ClientId, Seq[SubscriptionData]] = {
-    val x = map.map{ case (_, v) => v.clientId -> v.subscriptions.toSeq }
-    collection.immutable.HashMap[ClientId, Seq[SubscriptionData]](x.toSeq: _*)
+  override def setSessionState(clientId: ClientId, connected: Boolean): Future[SmqResult] = Future {
+    // logger.trace(s"===> session: [$clientId] ${ if(connected) "connected" else "disconnected"}")
+    map.get(clientId.id) match {
+      case Some(data: SessionData) =>
+        data.online = connected
+      case _ =>
+    }
+    SmqSuccess()
   }
 
+  override def snapshot(search: Option[String] = None): Future[Seq[ClientData]] = Future {
+    map.filter{ case (_, v) => v.online }.map{ case (_, v) => ClientData(v.clientId, v.subscriptions.toSeq) }.toSeq
+  }
 }
