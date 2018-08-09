@@ -35,7 +35,7 @@ abstract class AbstractPlugin(val name: String, val smqdInstance: Smqd, val conf
   private[plugin] var definition: Option[InstanceDefinition[_]] = None
 
   private var v_status = InstanceStatus.STOPPED
-  private def status_=(newStatus: InstanceStatus): Unit = {
+  private def setStatus(newStatus: InstanceStatus): Unit = {
     v_status = newStatus
     val path = definition match {
       case Some(instDef) =>
@@ -53,27 +53,24 @@ abstract class AbstractPlugin(val name: String, val smqdInstance: Smqd, val conf
   private var _cause: Option[Throwable] = None
 
   def preStarting(): Unit = {
-    status = InstanceStatus.STARTING
   }
 
   def postStarted(): Unit = {
-    _cause = None
-    status = InstanceStatus.RUNNING
   }
 
   def preStopping(): Unit = {
-    status = InstanceStatus.STOPPING
   }
 
   def postStopped(): Unit = {
-    _cause = None
-    status = InstanceStatus.STOPPED
   }
 
-  def execStart(): Unit = {
+  final def execStart(): Unit = {
     try {
+      _cause = None
       preStarting()
+      setStatus(InstanceStatus.STARTING)
       start()
+      setStatus(InstanceStatus.RUNNING)
       postStarted()
     }
     catch {
@@ -82,10 +79,13 @@ abstract class AbstractPlugin(val name: String, val smqdInstance: Smqd, val conf
     }
   }
 
-  def execStop(): Unit = {
+  final def execStop(): Unit = {
     try {
+      _cause = None
       preStopping()
+      setStatus(InstanceStatus.STOPPING)
       stop()
+      setStatus(InstanceStatus.STOPPED)
       postStopped()
     }
     catch {
@@ -94,14 +94,33 @@ abstract class AbstractPlugin(val name: String, val smqdInstance: Smqd, val conf
     }
   }
 
-  def failure(ex: Throwable): Unit = {
+  /**
+    * When a plugin meets an exception it should report the exception by calling this method.
+    * The plugin override `shouldExitOnFailure` and returns `true`, smqd will shutdown the process
+    * with `scala.sys.exit(1)`.
+    *
+    * @param ex an exception that a plugin whants to report
+    */
+  final def failure(ex: Throwable): Unit = {
     logger.warn(s"Failure in plugin instance '$name'", ex)
     _cause = Some(ex)
-    status = InstanceStatus.FAIL
+    setStatus(InstanceStatus.FAIL)
     if (shouldExitOnFailure) scala.sys.exit(1)
   }
 
+  /**
+    * Retrieve the latest exception.
+    *
+    * @return the latest exception that has been reported by plugin
+    */
   final def failure: Option[Throwable] = _cause
 
+  /**
+    * When a plugin occurs an exception, smqd core call `shouldExitOnFailure` and then shutdown
+    * whole process if the plugin returns `true`.
+    * Subcalss can override this to decide if the process can continue to run or terminate.
+    *
+    * The default value is `false`
+    */
   val shouldExitOnFailure: Boolean = false
 }
