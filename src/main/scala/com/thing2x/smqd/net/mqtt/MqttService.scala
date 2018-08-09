@@ -66,7 +66,7 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     if ( config.getBoolean("local.enabled") ) {
       val localAddress: String = config.getString("local.address")
       val localPort: Int = config.getInt("local.port")
-      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttInitializer(name+":mqtt", false))
+      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttInitializer(name+":mqtt", secure = false))
       channels +:= channel
     }
 
@@ -74,7 +74,7 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     if ( config.getBoolean("local.secure.enabled") ) {
       val localAddress: String = config.getString("local.secure.address")
       val localPort: Int = config.getInt("local.secure.port")
-      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttInitializer(name+":mqtts", true))
+      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttInitializer(name+":mqtts", secure = true))
       channels +:= channel
     }
 
@@ -82,7 +82,7 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     if ( config.getBoolean("ws.enabled") ) {
       val localAddress: String = config.getString("ws.address")
       val localPort: Int = config.getInt("ws.port")
-      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttWsInitializer(name+":ws", false))
+      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttWsInitializer(name+":ws", secure = false))
       channels +:= channel
     }
 
@@ -90,7 +90,7 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     if (config.getBoolean("ws.secure.enabled") ) {
       val localAddress: String = config.getString("ws.secure.address")
       val localPort: Int = config.getInt("ws.secure.port")
-      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttWsInitializer(name+":wss", true))
+      val channel = openChannel(masterGroup, workerGroup, localAddress, localPort, createMqttWsInitializer(name+":wss", secure = true))
       channels +:= channel
     }
 
