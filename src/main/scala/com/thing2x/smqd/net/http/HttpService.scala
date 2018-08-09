@@ -16,6 +16,7 @@ package com.thing2x.smqd.net.http
 
 import java.net.InetSocketAddress
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
@@ -23,6 +24,7 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.directives.LoggingMagnet
 import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.{ConnectionContext, Http, server}
+import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.Service
@@ -31,7 +33,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
@@ -84,7 +86,9 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       logger.debug(s"[$name] secure bind   : $localSecureBindAddress:$localSecureBindPort")
     }
 
-    import smqdInstance.Implicit._
+    implicit val ec: ExecutionContext = smqdInstance.Implicit.gloablDispatcher
+    implicit val actorSystem: ActorSystem = smqdInstance.Implicit.system
+    implicit val materializer: Materializer = smqdInstance.Implicit.materializer
 
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 
@@ -109,7 +113,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     }
 
     if (localEnabled) {
-      val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(system), logAdapter)
+      val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(actorSystem), logAdapter)
       val bindingFuture = serverSource.to(Sink.foreach{ connection =>
         connection.handleWithAsyncHandler(handler(connection.remoteAddress))
       }).run()
@@ -132,7 +136,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
         tlsProvider.sslContext match {
           case Some(sslContext) =>
             val connectionContext = ConnectionContext.https(sslContext)
-            val serverSource = Http().bind(localSecureBindAddress, localSecureBindPort, connectionContext, ServerSettings(system), logAdapter)
+            val serverSource = Http().bind(localSecureBindAddress, localSecureBindPort, connectionContext, ServerSettings(actorSystem), logAdapter)
             val tlsBindingFuture = serverSource.to(Sink.foreach{ connection =>
               connection.handleWithAsyncHandler(handler(connection.remoteAddress))
             }).run()
@@ -156,7 +160,10 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
   override def stop(): Unit = {
     logger.info(s"[$name] Stopping...")
-    import smqdInstance.Implicit._
+
+    implicit val ec: ExecutionContext = smqdInstance.Implicit.gloablDispatcher
+    implicit val actorSystem: ActorSystem = smqdInstance.Implicit.system
+    implicit val materializer: Materializer = smqdInstance.Implicit.materializer
 
     binding match {
       case Some(b) =>
