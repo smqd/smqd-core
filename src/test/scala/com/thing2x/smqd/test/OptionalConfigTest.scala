@@ -32,7 +32,7 @@ class OptionalConfigTest extends FlatSpec {
     }
     """.stripMargin)
 
-  "OptionalCofngi" should "String" in {
+  "OptionalConfig" should "String" in {
     var v: Option[String] = None
 
     v = config.getOptionString("smqd.strSome")
