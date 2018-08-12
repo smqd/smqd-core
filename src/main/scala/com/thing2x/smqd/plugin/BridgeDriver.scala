@@ -16,7 +16,8 @@ package com.thing2x.smqd.plugin
 
 import java.util.concurrent.atomic.AtomicLong
 
-import com.thing2x.smqd.{Smqd, _}
+import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.util.OptionalConfig._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 

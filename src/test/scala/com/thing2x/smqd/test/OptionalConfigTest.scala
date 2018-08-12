@@ -14,9 +14,9 @@
 
 package com.thing2x.smqd.test
 
+import com.thing2x.smqd.util.OptionalConfig._
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest.FlatSpec
-import com.thing2x.smqd._
 
 import scala.language.implicitConversions
 

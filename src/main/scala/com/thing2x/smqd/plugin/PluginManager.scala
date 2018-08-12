@@ -18,6 +18,7 @@ import java.io._
 
 import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.PluginManager.InstallResult
+import com.thing2x.smqd.util.OptionalConfig._
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
 import com.typesafe.scalalogging.StrictLogging
 

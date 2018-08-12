@@ -14,9 +14,10 @@
 
 package com.thing2x.smqd.test
 
+import com.thing2x.smqd._
+import com.thing2x.smqd.util.OptionalConfig._
 import com.typesafe.config.ConfigFactory
 import org.scalatest.FlatSpec
-import com.thing2x.smqd._
 
 // 2018. 6. 26. - Created by Kwon, Yeong Eon
 

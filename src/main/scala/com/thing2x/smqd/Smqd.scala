@@ -30,6 +30,7 @@ import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.impl.{DefaultClientDelegate, DefaultRegistryDelegate, DefaultSessionStoreDelegate, DefaultUserDelegate}
 import com.thing2x.smqd.plugin.{InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
+import com.thing2x.smqd.util.OptionalConfig._
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging

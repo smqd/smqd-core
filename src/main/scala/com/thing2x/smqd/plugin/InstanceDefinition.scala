@@ -15,11 +15,11 @@
 package com.thing2x.smqd.plugin
 
 import com.thing2x.smqd.Smqd
+import com.thing2x.smqd.util.OptionalConfig._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.{ExecutionContext, Future}
-import com.thing2x.smqd._
 
 // 2018. 7. 9. - Created by Kwon, Yeong Eon
 

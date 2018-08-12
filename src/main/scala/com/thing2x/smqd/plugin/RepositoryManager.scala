@@ -23,9 +23,9 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.scaladsl.{FileIO, Sink, Source}
 import akka.stream.{IOResult, Materializer}
-import com.thing2x.smqd._
 import com.thing2x.smqd.plugin.PluginManager.{CORE_PKG, STATIC_PKG}
 import com.thing2x.smqd.plugin.RepositoryDefinition.MavenModule
+import com.thing2x.smqd.util.OptionalConfig._
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 import sbt.librarymanagement.UnresolvedWarning
@@ -147,8 +147,8 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
   }
 
   private[plugin] def installMaven(packageName: String, moduleDef: MavenModule, rootDir: File): Option[File] = {
-    import sbt.librarymanagement.syntax._
     import sbt.librarymanagement.ivy._
+    import sbt.librarymanagement.syntax._
 
     val fileRetrieve = new File(rootDir, "ivy")
     val fileCache = new File(rootDir, "ivy/cache")
