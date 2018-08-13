@@ -14,9 +14,6 @@
 
 package com.thing2x
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import spray.json._
-
 import scala.language.implicitConversions
 
 // 2018. 6. 24. - Created by Kwon, Yeong Eon
@@ -24,7 +21,5 @@ import scala.language.implicitConversions
 /**
   *
   */
-package object smqd extends DefaultJsonProtocol {
-  implicit def stringToFilterPath(str: String): FilterPath = FilterPath(str)
-  implicit def stringToTopicPath(str: String): TopicPath = TopicPath(str)
+package object smqd {
 }

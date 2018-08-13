@@ -15,12 +15,11 @@
 package com.thing2x.smqd
 
 import com.thing2x.smqd.FilterPathPrefix.FilterPathPrefix
-import com.typesafe.scalalogging.Logger
 
 import scala.annotation.tailrec
 import scala.collection.concurrent.TrieMap
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
+import scala.language.implicitConversions
 
 // 2018. 5. 31. - Created by Kwon, Yeong Eon
 
@@ -160,7 +159,7 @@ object FilterPathPrefix extends Enumeration {
   val Share: FilterPathPrefix = Value("share")
 }
 
-import FilterPathPrefix._
+import com.thing2x.smqd.FilterPathPrefix._
 
 object FilterPath {
   def apply(path: String): FilterPath = TPath.parseForFilter(path).get
@@ -240,6 +239,9 @@ case class FilterPath(tokens: Seq[TName], prefix: FilterPathPrefix = NoPrefix, g
 }
 
 object TPath {
+
+  implicit def stringToFilterPath(str: String): FilterPath = FilterPath(str)
+  implicit def stringToTopicPath(str: String): TopicPath = TopicPath(str)
 
   def parseForFilter(path: String): Option[FilterPath] = {
     val tokens = TName.parse(path)
