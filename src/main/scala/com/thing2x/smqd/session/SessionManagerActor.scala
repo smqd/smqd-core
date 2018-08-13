@@ -24,6 +24,7 @@ import com.thing2x.smqd.ChiefActor.ReadyAck
 import com.thing2x.smqd._
 import com.thing2x.smqd.session.SessionActor._
 import com.thing2x.smqd.session.SessionManagerActor._
+import com.thing2x.smqd.util.FutureUtil._
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.duration._

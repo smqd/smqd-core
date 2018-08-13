@@ -16,17 +16,11 @@ package com.thing2x
 
 import java.text.ParseException
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.pattern.after
-import akka.stream.OverflowStrategy
-import akka.util.Timeout
 import com.codahale.metrics.Counter
 import com.typesafe.config._
 import spray.json._
 
-import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
-import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
 
 // 2018. 6. 24. - Created by Kwon, Yeong Eon
@@ -38,18 +32,12 @@ package object smqd extends DefaultJsonProtocol {
   implicit def stringToFilterPath(str: String): FilterPath = FilterPath(str)
   implicit def stringToTopicPath(str: String): TopicPath = TopicPath(str)
 
-  implicit class FutureWithTimeout[T](f: Future[T]) {
-    def withTimeout(exception: => Throwable)(implicit timeout: Timeout, system: ActorSystem, ec: ExecutionContext): Future[T] = {
-      Future.firstCompletedOf(Seq(f, after(timeout.duration, system.scheduler)(Future.failed(exception))))
-    }
-  }
-
   /**
     *
-    * @param nodeName
-    * @param api
-    * @param address node's address that has format as "system@ipaddress:port"
-    * @param status  membership status
+    * @param nodeName node's name
+    * @param api core-api address of the node
+    * @param address node's clustering address that has format as "system@ipaddress:port"
+    * @param status  clustering membership status
     * @param roles   list of roles
     * @param dataCenter data center name
     * @param isLeader true if the node is leader of the cluster
