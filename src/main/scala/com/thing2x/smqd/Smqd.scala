@@ -80,16 +80,12 @@ class Smqd(val config: Config,
   val tlsProvider: Option[TlsProvider] = TlsProvider(config.getOptionConfig("smqd.tls"))
   val pluginManager = PluginManager(config.getConfig("smqd.plugin"), version)
 
-  private val configDirectory = {
-    val confFile = System.getProperty("config.file")
-    if (confFile == null) new File(".")
-    else new File(confFile).getParentFile
-  }
+  val facilityFactory = FacilityFactory(config)
 
-  private val userDelegate = userDelegateOption.getOrElse(new DefaultUserDelegate(new File(configDirectory, "passwd")))
-  private val clientDelegate = clientDelegateOption.getOrElse(new DefaultClientDelegate())
-  private val registryDelegate = registryDelegateOption.getOrElse(new DefaultRegistryDelegate())
-  private val sessionStoreDelegate = sessionStoreDelegateOption.getOrElse(new DefaultSessionStoreDelegate())
+  private val userDelegate = userDelegateOption.getOrElse(facilityFactory.userDelegate)
+  private val clientDelegate = clientDelegateOption.getOrElse(facilityFactory.clientDelegate)
+  private val registryDelegate = registryDelegateOption.getOrElse(facilityFactory.registryDelegate)
+  private val sessionStoreDelegate = sessionStoreDelegateOption.getOrElse(facilityFactory.sessionStoreDelegate)
 
   private val registry       = new TrieRegistry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)

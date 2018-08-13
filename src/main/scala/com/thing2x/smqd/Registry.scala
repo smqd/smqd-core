@@ -134,12 +134,6 @@ abstract class AbstractRegistry(smqd: Smqd) extends Registry with ActorIdentifyi
   }
 }
 
-trait RegistryDelegate {
-  def allowSubscribe(filterPath: FilterPath, qos: QoS, sessionId: ClientId, userName: Option[String]): Future[QoS]
-  def allowPublish(topicPath: TopicPath, sessionId: ClientId, userName: Option[String]): Future[Boolean]
-}
-
-
 final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegistry(smqd)  {
 
   protected val registry: mutable.HashMap[FilterPath, Set[Registration]] = mutable.HashMap[FilterPath, Set[Registration]]()
