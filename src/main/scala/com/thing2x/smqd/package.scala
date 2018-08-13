@@ -14,11 +14,7 @@
 
 package com.thing2x
 
-import java.text.ParseException
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import com.codahale.metrics.Counter
-import com.typesafe.config._
 import spray.json._
 
 import scala.language.implicitConversions
@@ -31,18 +27,6 @@ import scala.language.implicitConversions
 package object smqd extends DefaultJsonProtocol {
   implicit def stringToFilterPath(str: String): FilterPath = FilterPath(str)
   implicit def stringToTopicPath(str: String): TopicPath = TopicPath(str)
-
-  implicit object MetricCounterFormat extends RootJsonFormat[Counter] {
-    override def write(c: Counter): JsValue = JsObject("count" -> JsNumber(c.getCount))
-    override def read(json: JsValue): Counter = ???
-  }
-
-  implicit object RouteFormat extends RootJsonFormat[com.thing2x.smqd.SmqdRoute] {
-    override def read(json: JsValue): SmqdRoute = ???
-    override def write(rt: SmqdRoute): JsValue = JsObject(
-      "topic" -> JsString(rt.filterPath.toString),
-      "node" -> JsString(rt.actor.path.toString))
-  }
 
   implicit object RegistrationFormat extends RootJsonFormat[com.thing2x.smqd.Registration] {
     override def read(json: JsValue): Registration = ???

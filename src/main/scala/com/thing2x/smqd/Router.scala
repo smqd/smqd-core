@@ -23,6 +23,7 @@ import akka.cluster.ddata.{DistributedData, ORMultiMap, ORMultiMapKey}
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.session.SessionActor.OutboundPublish
 import com.typesafe.scalalogging.StrictLogging
+import spray.json.{DefaultJsonProtocol, JsObject, JsString, JsValue, RootJsonFormat}
 
 import scala.concurrent.duration._
 
@@ -45,6 +46,15 @@ case class RoutableMessage(topicPath: TopicPath, msg: Any, isRetain: Boolean = f
 
 case class SmqdRoute(filterPath: FilterPath, actor: ActorRef, nodeName: String) {
   override def toString: String = s"${filterPath.toString} ${actor.path.toString}"
+}
+
+object SmqdRoute extends DefaultJsonProtocol {
+  implicit object RouteFormat extends RootJsonFormat[com.thing2x.smqd.SmqdRoute] {
+    override def read(json: JsValue): SmqdRoute = ???
+    override def write(rt: SmqdRoute): JsValue = JsObject(
+      "topic" -> JsString(rt.filterPath.toString),
+      "node" -> JsString(rt.actor.path.toString))
+  }
 }
 
 class ClusterModeRouter(verbose: Boolean) extends Router with StrictLogging {
