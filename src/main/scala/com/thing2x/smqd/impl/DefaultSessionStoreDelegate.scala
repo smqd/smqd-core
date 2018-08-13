@@ -17,12 +17,11 @@ package com.thing2x.smqd.impl
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.SessionStore._
 import com.thing2x.smqd.impl.DefaultSessionStoreDelegate._
-import com.thing2x.smqd.{ClientId, FilterPath, QoS, SessionStoreDelegate, SmqResult, SmqSuccess, TopicPath}
+import com.thing2x.smqd._
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 // 2018. 5. 31. - Created by Kwon, Yeong Eon
 
@@ -33,7 +32,7 @@ object DefaultSessionStoreDelegate {
   case class SessionData(clientId: ClientId, subscriptions: mutable.Set[SubscriptionData], messages: mutable.Queue[MessageData], var online: Boolean)
 }
 
-class DefaultSessionStoreDelegate extends SessionStoreDelegate with StrictLogging {
+class DefaultSessionStoreDelegate(implicit ec: ExecutionContext) extends SessionStoreDelegate with StrictLogging {
 
   private val map: mutable.HashMap[String, SessionData] = new mutable.HashMap()
 

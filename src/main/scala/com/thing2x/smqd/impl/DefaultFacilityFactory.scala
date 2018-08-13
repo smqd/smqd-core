@@ -19,12 +19,14 @@ import java.io.File
 import com.thing2x.smqd._
 import com.typesafe.config.Config
 
+import scala.concurrent.ExecutionContext
+
 // 2018. 8. 13. - Created by Kwon, Yeong Eon
 
 /**
   *
   */
-class DefaultFacilityFactory(config: Config) extends FacilityFactory {
+class DefaultFacilityFactory(config: Config, ec: ExecutionContext) extends FacilityFactory {
 
   protected val configDirectory: File = {
     val confFile = System.getProperty("config.file")
@@ -36,18 +38,19 @@ class DefaultFacilityFactory(config: Config) extends FacilityFactory {
     new DefaultUserDelegate(new File(configDirectory, "passwd"))
   }
 
-  override def clientDelegate: ClientDelegate = {
-    new DefaultClientDelegate()
-  }
+    override def clientDelegate: ClientDelegate = {
+      new DefaultClientDelegate()
+    }
 
-  override def registryDelegate: RegistryDelegate = {
-    new DefaultRegistryDelegate()
-  }
+    override def registryDelegate: RegistryDelegate = {
+      new DefaultRegistryDelegate()
+    }
 
-  override def sessionStoreDelegate: SessionStoreDelegate = {
-    new DefaultSessionStoreDelegate()
-  }
+    override def sessionStoreDelegate: SessionStoreDelegate = {
+      implicit val executionContext: ExecutionContext = ec
+      new DefaultSessionStoreDelegate()
+    }
 
-  override def release(): Unit = {
+    override def release(): Unit = {
   }
 }
