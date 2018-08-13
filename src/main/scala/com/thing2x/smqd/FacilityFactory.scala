@@ -14,7 +14,6 @@
 
 package com.thing2x.smqd
 
-import com.thing2x.smqd.impl._
 import com.typesafe.config.Config
 
 // 2018. 8. 13. - Created by Kwon, Yeong Eon

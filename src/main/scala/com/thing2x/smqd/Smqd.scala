@@ -14,8 +14,6 @@
 
 package com.thing2x.smqd
 
-import java.io.File
-
 import akka.actor.{ActorRef, ActorSystem, Address, Props}
 import akka.cluster.Cluster
 import akka.dispatch.MessageDispatcher
@@ -27,7 +25,6 @@ import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.SessionStore.ClientData
 import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
-import com.thing2x.smqd.impl.{DefaultClientDelegate, DefaultRegistryDelegate, DefaultSessionStoreDelegate, DefaultUserDelegate}
 import com.thing2x.smqd.plugin.{InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
 import com.thing2x.smqd.util.ConfigUtil._
