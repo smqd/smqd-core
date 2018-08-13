@@ -18,7 +18,7 @@ import java.io.{File, InputStreamReader}
 import java.net.{URL, URLClassLoader}
 
 import com.thing2x.smqd.plugin.PluginManager._
-import com.thing2x.smqd.util.OptionalConfig._
+import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 

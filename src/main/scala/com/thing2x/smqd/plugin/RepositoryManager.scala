@@ -25,7 +25,7 @@ import akka.stream.scaladsl.{FileIO, Sink, Source}
 import akka.stream.{IOResult, Materializer}
 import com.thing2x.smqd.plugin.PluginManager.{CORE_PKG, STATIC_PKG}
 import com.thing2x.smqd.plugin.RepositoryDefinition.MavenModule
-import com.thing2x.smqd.util.OptionalConfig._
+import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 import sbt.librarymanagement.UnresolvedWarning

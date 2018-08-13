@@ -32,40 +32,6 @@ package object smqd extends DefaultJsonProtocol {
   implicit def stringToFilterPath(str: String): FilterPath = FilterPath(str)
   implicit def stringToTopicPath(str: String): TopicPath = TopicPath(str)
 
-  /**
-    *
-    * @param nodeName node's name
-    * @param api core-api address of the node
-    * @param address node's clustering address that has format as "system@ipaddress:port"
-    * @param status  clustering membership status
-    * @param roles   list of roles
-    * @param dataCenter data center name
-    * @param isLeader true if the node is leader of the cluster
-    */
-  case class NodeInfo(nodeName: String, api: Option[EndpointInfo], address: String, status: String, roles: Set[String], dataCenter: String, isLeader: Boolean)
-
-  case class EndpointInfo(address: Option[String], secureAddress: Option[String])
-
-  implicit object TypesafeConfigFormat extends RootJsonFormat[Config] {
-    private val ParseOptions = ConfigParseOptions.defaults().setSyntax(ConfigSyntax.JSON)
-    private val RenderOptions = ConfigRenderOptions.concise().setJson(true)
-    override def read(json: JsValue): Config = json match {
-      case obj: JsObject => ConfigFactory.parseString(obj.compactPrint, ParseOptions)
-      // case _ => deserializationError("Expected JsObject for Config deserialization")
-      case _ =>
-        throw new ParseException("json parse error: unsable to build config object", 0)
-    }
-    override def write(config: Config): JsValue = {
-      //      val entries = config.entrySet().asScala.map { entry =>
-      //        val key = entry.getKey
-      //        val value: com.typesafe.config.ConfigValue = entry.getValue
-      //        val opt = value.render(ConfigRenderOptions.concise())
-      //        key ->JsonParser(opt)
-      //      }.toMap
-      JsonParser(config.root.render(RenderOptions))
-    }
-  }
-
   implicit object MetricCounterFormat extends RootJsonFormat[Counter] {
     override def write(c: Counter): JsValue = JsObject("count" -> JsNumber(c.getCount))
     override def read(json: JsValue): Counter = ???

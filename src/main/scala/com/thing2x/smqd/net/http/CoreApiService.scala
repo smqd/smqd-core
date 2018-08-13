@@ -17,7 +17,7 @@ package com.thing2x.smqd.net.http
 import java.net.InetSocketAddress
 
 import com.thing2x.smqd._
-import com.thing2x.smqd.util.OptionalConfig._
+import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 

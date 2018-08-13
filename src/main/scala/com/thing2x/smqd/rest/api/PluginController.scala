@@ -19,7 +19,7 @@ import java.io.File
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
-import com.thing2x.smqd._
+import com.thing2x.smqd.util.ConfigUtil._
 import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.plugin.PluginManager._
 import com.thing2x.smqd.plugin._

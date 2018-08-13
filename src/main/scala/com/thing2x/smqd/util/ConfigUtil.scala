@@ -14,17 +14,42 @@
 
 package com.thing2x.smqd.util
 
+import java.text.ParseException
+
 import akka.stream.OverflowStrategy
-import com.typesafe.config.Config
+import com.typesafe.config._
+import spray.json.{DefaultJsonProtocol, JsObject, JsValue, JsonParser, RootJsonFormat}
 
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 import scala.language.implicitConversions
 
 // 2018. 8. 13. - Created by Kwon, Yeong Eon
 
-/**
-  *
-  */
+object ConfigUtil extends DefaultJsonProtocol {
+
+  implicit object TypesafeConfigFormat extends RootJsonFormat[Config] {
+    private val ParseOptions = ConfigParseOptions.defaults().setSyntax(ConfigSyntax.JSON)
+    private val RenderOptions = ConfigRenderOptions.concise().setJson(true)
+    override def read(json: JsValue): Config = json match {
+      case obj: JsObject => ConfigFactory.parseString(obj.compactPrint, ParseOptions)
+      // case _ => deserializationError("Expected JsObject for Config deserialization")
+      case _ =>
+        throw new ParseException("json parse error: unsable to build config object", 0)
+    }
+    override def write(config: Config): JsValue = {
+      //      val entries = config.entrySet().asScala.map { entry =>
+      //        val key = entry.getKey
+      //        val value: com.typesafe.config.ConfigValue = entry.getValue
+      //        val opt = value.render(ConfigRenderOptions.concise())
+      //        key ->JsonParser(opt)
+      //      }.toMap
+      JsonParser(config.root.render(RenderOptions))
+    }
+  }
+
+  implicit def configToOptionalConfig(base: Config): OptionalConfig = new OptionalConfig(base)
+}
+
 class OptionalConfig(base: Config) {
   def getOptionBoolean(path: String): Option[Boolean] =
     if (base.hasPath(path))
@@ -92,8 +117,4 @@ class OptionalConfig(base: Config) {
       case "fail"         => OverflowStrategy.fail
       case _              => OverflowStrategy.dropNew
     }
-}
-
-object OptionalConfig {
-  implicit def configToOptionalConfig(base: Config): OptionalConfig = new OptionalConfig(base)
 }
