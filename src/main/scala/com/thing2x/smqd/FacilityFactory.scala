@@ -26,6 +26,7 @@ trait FacilityFactory {
   def clientDelegate: ClientDelegate
   def registryDelegate: RegistryDelegate
   def sessionStoreDelegate: SessionStoreDelegate
+  def release(): Unit
 }
 
 object FacilityFactory {

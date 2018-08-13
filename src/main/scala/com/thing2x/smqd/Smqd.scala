@@ -169,6 +169,14 @@ class Smqd(val config: Config,
         }
       }
 
+      try {
+        facilityFactory.release()
+      }
+      catch {
+        case ex: Throwable =>
+          logger.error("Stopping facility factory failed", ex)
+      }
+
       cluster match {
         case Some(cl) =>
           cl.leave(cl.selfAddress)

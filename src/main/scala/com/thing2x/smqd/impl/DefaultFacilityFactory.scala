@@ -47,4 +47,7 @@ class DefaultFacilityFactory(config: Config) extends FacilityFactory {
   override def sessionStoreDelegate: SessionStoreDelegate = {
     new DefaultSessionStoreDelegate()
   }
+
+  override def release(): Unit = {
+  }
 }
