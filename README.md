@@ -342,11 +342,11 @@ class MyAuthDelegate extends com.thing2x.smqd.ClientDelegate {
 }
 ```
 
-There are two ways to register your `ClientDelegate`.
+There are three ways to register your `ClientDelegate`.
 
 1) Change configuration to replace `ClientDelegate`.
 
-> In this case your customized AuthDelegate class shouldn't have any parameter to instanciate.
+> In this case your customized AuthDelegate class shouldn't have any parameter to instantiate.
 
 ```
 smqd {
@@ -364,6 +364,37 @@ smqd {
 val smqd = SmqdBuilder(config)
     .setClientDelegate(new MyClientDelegate(...params...))
     .build()
+```
+
+3) If you want to full control of customization delegates, define `FacilityFactory` class and register the factory class in `smqd.conf`.
+The default factory is defined as below.
+
+```
+smqd.facility_factory = com.thing2x.smqd.impl.DefaultFacilityFactory
+```
+
+The `FacilityFactory` is a factory class to produce all kind of delegates implementation.
+You can replace it your own factory implementation by extending `DefaultFacilityFactory`.
+
+```scala
+class DefaultFacilityFactory(config: Config) extends FacilityFactory {
+
+  override def userDelegate: UserDelegate = {
+    new DefaultUserDelegate()
+  }
+
+  override def clientDelegate: ClientDelegate = {
+    new DefaultClientDelegate()
+  }
+
+  override def registryDelegate: RegistryDelegate = {
+    new DefaultRegistryDelegate()
+  }
+
+  override def sessionStoreDelegate: SessionStoreDelegate = {
+    new DefaultSessionStoreDelegate()
+  }
+}
 ```
 
 ### Plugins
