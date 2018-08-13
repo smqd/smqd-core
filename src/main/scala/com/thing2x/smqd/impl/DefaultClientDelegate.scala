@@ -20,9 +20,8 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * 2018. 5. 31. - Created by Kwon, Yeong Eon
-  */
+// 2018. 5. 31. - Created by Kwon, Yeong Eon
+
 class DefaultClientDelegate extends ClientDelegate with StrictLogging {
 
   override def clientLogin(clientId: ClientId, userName: Option[String], password: Option[Array[Byte]])(implicit ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global): Future[SmqResult] = {

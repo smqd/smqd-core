@@ -24,9 +24,8 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-/**
-  * 2018. 5. 31. - Created by Kwon, Yeong Eon
-  */
+// 2018. 5. 31. - Created by Kwon, Yeong Eon
+
 object DefaultSessionStoreDelegate {
 
   case class Token(clientId: ClientId, cleanSession: Boolean) extends SessionStoreToken

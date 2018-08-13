@@ -20,9 +20,8 @@ import com.thing2x.smqd.{ClientId, _}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-/**
-  * 2018. 6. 1. - Created by Kwon, Yeong Eon
-  */
+
+// 2018. 6. 1. - Created by Kwon, Yeong Eon
 
 class DefaultRegistryDelegate extends RegistryDelegate with StrictLogging {
   def allowSubscribe(filterPath: FilterPath, qos: QoS, sessionId: ClientId, userName: Option[String]): Future[QoS] = Future(qos)
