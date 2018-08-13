@@ -366,7 +366,7 @@ val smqd = SmqdBuilder(config)
     .build()
 ```
 
-3) If you want to full control of customization delegates, define `FacilityFactory` class and register the factory class in `smqd.conf`.
+3) If you want to get full control of customization delegates, define `FacilityFactory` class and register the factory class in `smqd.conf`.
 The default factory is defined as below.
 
 ```
