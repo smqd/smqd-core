@@ -20,6 +20,7 @@ import com.thing2x.smqd.QoS._
 import com.thing2x.smqd.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
 import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
+import spray.json.{DefaultJsonProtocol, JsNumber, JsObject, JsString, JsValue, RootJsonFormat}
 
 import scala.collection.mutable
 import scala.concurrent.{Await, Future}
@@ -66,6 +67,28 @@ case class Registration(filterPath: FilterPath, qos: QoS, actor: ActorRef, clien
       case (Some(_), None) => -1
       case (None, Some(_)) => 1
       case _ =>  this.actor.path.toString.compareToIgnoreCase(that.actor.path.toString)
+    }
+  }
+}
+
+object Registration extends DefaultJsonProtocol {
+  implicit object RegistrationFormat extends RootJsonFormat[com.thing2x.smqd.Registration] {
+    override def read(json: JsValue): Registration = ???
+    override def write(rt: Registration): JsValue = {
+      if (rt.clientId.isDefined) {
+        val channelId = rt.clientId.get.channelId
+        JsObject(
+          "topic" -> JsString(rt.filterPath.toString),
+          "qos" -> JsNumber(rt.qos.id),
+          "clientId" -> JsString(rt.clientId.get.id),
+          "channelId" -> JsString(channelId.getOrElse("n/a")))
+      }
+      else {
+        JsObject(
+          "topic" -> JsString(rt.filterPath.toString),
+          "qos" -> JsNumber(rt.qos.id),
+          "actor" -> JsString(rt.actor.path.toString))
+      }
     }
   }
 }
