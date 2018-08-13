@@ -22,35 +22,6 @@ import scala.concurrent.Future
 
 // 2018. 7. 2. - Created by Kwon, Yeong Eon
 
-trait SessionStoreDelegate {
-  /**
-    * create new session
-    * @param clientId client identifier
-    * @return previous existing MqttSession
-    */
-  def createSession(clientId: ClientId, cleanSession: Boolean): Future[InitialData]
-
-  def flushSession(token: SessionStoreToken): Future[SmqResult]
-
-  def saveSubscription(token: SessionStoreToken, filterPath: FilterPath, qos: QoS): Future[SmqResult]
-
-  def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Future[SmqResult]
-
-  def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData]
-
-  def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isReatin: Boolean, msgId: Int, msg: Any): Future[SmqResult]
-
-  def deleteAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Future[SmqResult]
-
-  def updateAfterDeliveryAck(token: SessionStoreToken, msgId: Int): Future[SmqResult]
-
-  def deleteAfterDeliveryComplete(token: SessionStoreToken, msgId: Int): Future[SmqResult]
-
-  def setSessionState(clientId: ClientId, connected: Boolean): Future[SmqResult]
-
-  def snapshot(search: Option[String]): Future[Seq[ClientData]]
-}
-
 object SessionStore {
 
   trait SessionStoreToken {
