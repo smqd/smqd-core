@@ -79,7 +79,7 @@ class DefaultSessionStoreDelegate(implicit ec: ExecutionContext) extends Session
     }
   }
 
-  override def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData] = {
+  override def loadSubscriptions(token: SessionStoreToken): Future[Seq[SubscriptionData]] = Future {
     if (token.cleanSession) {
       Nil
     }

@@ -49,7 +49,7 @@ class SessionStore(smqdInstance: Smqd, delegate: SessionStoreDelegate) extends S
   def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Future[SmqResult] =
     delegate.deleteSubscription(token, filterPath)
 
-  def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData] =
+  def loadSubscriptions(token: SessionStoreToken): Future[Seq[SubscriptionData]] =
     delegate.loadSubscriptions(token)
 
   def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isRetain: Boolean, msgId: Int, msg: Any): Future[SmqResult] =

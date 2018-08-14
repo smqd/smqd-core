@@ -38,7 +38,7 @@ trait SessionStoreDelegate {
 
   def deleteSubscription(token: SessionStoreToken, filterPath: FilterPath): Future[SmqResult]
 
-  def loadSubscriptions(token: SessionStoreToken): Seq[SubscriptionData]
+  def loadSubscriptions(token: SessionStoreToken): Future[Seq[SubscriptionData]]
 
   def storeBeforeDelivery(token: SessionStoreToken, topicPath: TopicPath, qos: QoS, isReatin: Boolean, msgId: Int, msg: Any): Future[SmqResult]
 
