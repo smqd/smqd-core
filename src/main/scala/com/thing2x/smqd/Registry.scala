@@ -116,7 +116,7 @@ abstract class AbstractRegistry(smqd: Smqd) extends Registry with ActorIdentifyi
 
   import scala.concurrent.duration._
   import scala.language.postfixOps
-  private lazy val callbackManager = identifyActor(manager(RegistryCallbackManagerActor.actorName))(system)
+  private lazy val callbackManager = identifyManagerActor(RegistryCallbackManagerActor.actorName)
   private implicit val timeout: Timeout = 1 second
 
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef = {

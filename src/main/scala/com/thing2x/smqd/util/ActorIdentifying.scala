@@ -41,5 +41,7 @@ trait ActorIdentifying extends StrictLogging {
     }
   }
 
-  def manager(name: String): String = s"user/${ChiefActor.actorName}/$name"
+  private def manager(name: String): String = s"user/${ChiefActor.actorName}/$name"
+
+  def identifyManagerActor(name: String)(implicit system: ActorSystem, timeout: Timeout): ActorRef = identifyActor(manager(name))
 }
