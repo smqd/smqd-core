@@ -49,37 +49,41 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       //////////////////////////////////
       // CONNECT(1)
       case m: MqttConnectMessage =>
+        channelCtx.fireChannelReadComplete()
         processConnect(channelCtx, m)
 
       //////////////////////////////////
       // CONNACK(2)
       case _: MqttConnAckMessage =>
+        channelCtx.fireChannelReadComplete()
         val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
-        sessionCtx.smqd.notifyFault(NotAllowedMqttMessage("CONNACK"))
+        if (sessionCtx != null) sessionCtx.smqd.notifyFault(NotAllowedMqttMessage("CONNACK"))
         channelCtx.close()
 
       //////////////////////////////////
       // DISCONNECT(14)
       case m: MqttMessage if m.fixedHeader.messageType == DISCONNECT =>
-        val session = channelCtx.channel.attr(ATTR_SESSION).get
-        val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+        channelCtx.fireChannelReadComplete()
         // [MQTT-3.14.4-3] Server MUST discard any Will Message associated with the current connection without publishing
-        sessionCtx.will = None
-        session ! InboundDisconnect
+        val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+        if (sessionCtx != null) sessionCtx.will = None
+        val session = channelCtx.channel.attr(ATTR_SESSION).get
+        if (session != null) session ! InboundDisconnect
 
       //////////////////////////////////
       // PINGREQ(12)
       case m: MqttMessage if m.fixedHeader.messageType == PINGREQ =>
+        channelCtx.fireChannelReadComplete()
         // [MQTT-3.12.4-1] Server MUST send a PINGRESP Packet in response to a PINGREQ Packet
         val rsp = new MqttMessage(new MqttFixedHeader(PINGRESP, false, AT_MOST_ONCE, false, 0))
         channelCtx.channel.writeAndFlush(rsp)
-        channelCtx.fireChannelReadComplete()
 
       //////////////////////////////////
       // PINGRESP(13)
       case m: MqttMessage if m.fixedHeader.messageType == PINGRESP =>
+        channelCtx.fireChannelReadComplete()
         val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
-        sessionCtx.smqd.notifyFault(NotAllowedMqttMessage("PINGRESP"))
+        if (sessionCtx != null) sessionCtx.smqd.notifyFault(NotAllowedMqttMessage("PINGRESP"))
         channelCtx.close()
 
       //////////////////////////////////
@@ -145,7 +149,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.1.3-9] If the Server rejects the ClientId it MUST respond to CONNECT Packet with a CONNACK
       // return code 0x02 (Identifier rejected) and then close the Network Connection
       sessionCtx.smqd.notifyFault(IdentifierRejected(sessionCtx.clientId.toString, "clientid is not a valid format"))
-      connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, false, true)
+      connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = false, close = true)
       return
     }
 
@@ -233,7 +237,6 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
         new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
         new MqttConnAckVariableHeader(returnCode, sessionPresent)))
 
-    channelCtx.fireChannelReadComplete()
     if (close) channelCtx.close()
   }
 
