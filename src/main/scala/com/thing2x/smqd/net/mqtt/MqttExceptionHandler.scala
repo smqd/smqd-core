@@ -26,17 +26,17 @@ object MqttExceptionHandler {
 
 class MqttExceptionHandler extends ChannelHandlerAdapter with StrictLogging {
 
-  override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = {
-    val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-    if (channelCtx != null) {
-      val channelId = channelCtx.channelId
-      val sessionId = channelCtx.clientId
+  override def exceptionCaught(channelCtx: ChannelHandlerContext, cause: Throwable): Unit = {
+    val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+    if (sessionCtx != null) {
+      val channelId = sessionCtx.channelId
+      val sessionId = sessionCtx.clientId
 
       logger.error(s"[$sessionId] $channelId Unexpected Exception", cause)
     }
     else {
       logger.error("Unexpected exception", cause)
     }
-    ctx.close()
+    channelCtx.close()
   }
 }
