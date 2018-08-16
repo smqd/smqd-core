@@ -35,7 +35,7 @@ class SmqdSerializerTest extends TestKit(ActorSystem("serializer", ConfigFactory
     TestKit.shutdownActorSystem(system)
   }
 
-  val actor = system.actorOf(TestActors.blackholeProps)
+  // private val actor = system.actorOf(TestActors.blackholeProps)
 
   "SmqdSerializer" must {
     val serExt = SerializationExtension(system)

@@ -65,7 +65,7 @@ class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseStri
   with BeforeAndAfterAll
   with StrictLogging {
 
-  val smqd = new SmqdBuilder(system.settings.config)
+  private val smqd = new SmqdBuilder(system.settings.config)
     .setActorSystem(system)
     .setServices(Map.empty)
     .build()
@@ -116,7 +116,7 @@ class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseStri
     }
   }
 
-  val subscribeActor = system.actorOf(Props(classOf[PublishTest.SubsribeActor], testActor), "echo")
+  private val subscribeActor = system.actorOf(Props(classOf[PublishTest.SubsribeActor], testActor), "echo")
 
   "Actor Subscription" must {
     "actor must work" in {
@@ -133,7 +133,7 @@ class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseStri
   }
 
   //val echo = system.actorOf(TestActors.echoActorProps)
-  val serverActor = system.actorOf(Props(classOf[PublishTest.ServerActor], smqd), "server")
+  private val serverActor = system.actorOf(Props(classOf[PublishTest.ServerActor], smqd), "server")
 
   "Request & Response" must {
     smqd.subscribe("request/func", serverActor)

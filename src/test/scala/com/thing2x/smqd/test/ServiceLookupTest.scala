@@ -38,7 +38,7 @@ class ServiceLookupTest extends TestKit(ActorSystem("service_lookup", ConfigFact
   with BeforeAndAfterAll
   with StrictLogging {
 
-  val smqd = new SmqdBuilder(system.settings.config)
+  private val smqd = new SmqdBuilder(system.settings.config)
     .setActorSystem(system)
     .build()
 
