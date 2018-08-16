@@ -54,8 +54,8 @@ object Dependencies {
     "io.netty" % "netty-codec-mqtt" % Versions.netty,
     "io.netty" % "netty-codec-http" % Versions.netty,
     "io.netty" % "netty-handler" % Versions.netty,
-    "io.netty" % "netty-transport-native-epoll" % Versions.netty, //classifier "linux-x86_64",  // for Linux
-    "io.netty" % "netty-transport-native-kqueue" % Versions.netty, // classifier "macos-x86_64"  // for macOS
+    "io.netty" % "netty-transport-native-epoll" % Versions.netty classifier "linux-x86_64",  // for Linux
+    "io.netty" % "netty-transport-native-kqueue" % Versions.netty classifier "osx-x86_64",  // for macOS
     "io.netty" % "netty-resolver-dns" % Versions.netty
   )
 
