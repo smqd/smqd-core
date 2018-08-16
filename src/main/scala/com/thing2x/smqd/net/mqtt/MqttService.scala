@@ -16,12 +16,9 @@ package com.thing2x.smqd.net.mqtt
 
 import com.thing2x.smqd.Smqd
 import com.thing2x.smqd.plugin.Service
-import com.thing2x.smqd._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.nio.NioEventLoopGroup
-import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.{Channel, ChannelHandler, ChannelOption, EventLoopGroup}
 import io.netty.util.ResourceLeakDetector
 
@@ -49,13 +46,34 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
   private val clientIdentifierFormat: Regex = smqdInstance.config.getString("smqd.registry.client.identifier.format").r
 
+  private val transport =
+    if (io.netty.channel.epoll.Epoll.isAvailable) try { io.netty.channel.epoll.Epoll.ensureAvailability(); "epoll" } catch { case _: Throwable => "nio" }
+    else if (io.netty.channel.kqueue.KQueue.isAvailable) try { io.netty.channel.kqueue.KQueue.ensureAvailability(); "kqueue" } catch { case _: Throwable => "nio" }
+    else "nio"
+
   override def start(): Unit = {
     logger.info(s"Mqtt Service [$name] Starting...")
 
+    logger.debug(s"Mqtt Service [$name] transport is $transport")
+
     val masterGroupThreadCount = config.getInt("thread.master.count")
     val workerGroupThreadCount = config.getInt("thread.worker.count")
-    val masterGroup = new NioEventLoopGroup(masterGroupThreadCount)
-    val workerGroup = new NioEventLoopGroup(workerGroupThreadCount)
+    val masterGroup = transport match {
+      case "epoll" =>
+        new io.netty.channel.epoll.EpollEventLoopGroup(masterGroupThreadCount)
+      case "kqueue" =>
+        new io.netty.channel.kqueue.KQueueEventLoopGroup(masterGroupThreadCount)
+      case "nio" =>
+        new io.netty.channel.nio.NioEventLoopGroup(masterGroupThreadCount)
+    }
+    val workerGroup = transport match {
+      case "epoll" =>
+        new io.netty.channel.epoll.EpollEventLoopGroup(workerGroupThreadCount)
+      case "kqueue" =>
+        new io.netty.channel.kqueue.KQueueEventLoopGroup(workerGroupThreadCount)
+      case "nio" =>
+        new io.netty.channel.nio.NioEventLoopGroup(workerGroupThreadCount)
+    }
     groups = masterGroup :: workerGroup :: Nil
 
     val leakDetectorLevel: String = config.getString("leak.detector.level").toUpperCase
@@ -109,9 +127,17 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
   private def openChannel(masterGroup: EventLoopGroup, workerGroup: EventLoopGroup, localAddress: String, localPort: Int, h: ChannelHandler): Channel = {
     val b = new ServerBootstrap
-    b.group(masterGroup, workerGroup).channel(classOf[NioServerSocketChannel])
-      .childHandler(h)
-      .childOption(ChannelOption.SO_REUSEADDR, new java.lang.Boolean(true))
+    b.group(masterGroup, workerGroup)
+    transport match {
+      case "epoll" =>
+        b.channel(classOf[io.netty.channel.epoll.EpollServerSocketChannel])
+      case "kqueue" =>
+        b.channel(classOf[io.netty.channel.kqueue.KQueueServerSocketChannel])
+      case "nio" =>
+        b.channel(classOf[io.netty.channel.socket.nio.NioServerSocketChannel])
+    }
+    b.childHandler(h)
+    b.childOption(ChannelOption.SO_REUSEADDR, new java.lang.Boolean(true))
 
     val channel = b.bind(localAddress, localPort).sync.channel
     logger.info(s"open channel: ${channel.localAddress.toString}")
