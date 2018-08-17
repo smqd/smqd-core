@@ -56,11 +56,13 @@ class MqttKeepAliveHandler extends ChannelInboundHandlerAdapter with StrictLoggi
           case IdleState.READER_IDLE =>
             logger.debug(s"reader idle exceed close connection - ${ctx.channel.remoteAddress.toString}")
             ctx.close()
-          case IdleState.WRITER_IDLE => // not use
+          case IdleState.WRITER_IDLE => // not use yet - never happen
             logger.debug(s"Idle State ==> ${idle.isFirst}")
-          case IdleState.ALL_IDLE =>
+          case IdleState.ALL_IDLE => // not use yet - never happen
             logger.debug(s"Idle State ==> ${idle.isFirst}")
         }
+      case _ =>
+        ctx.fireUserEventTriggered(evt)
     }
   }
 }

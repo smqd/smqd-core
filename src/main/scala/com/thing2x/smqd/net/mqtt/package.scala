@@ -66,4 +66,6 @@ package object mqtt {
     case 0x02 => ExactlyOnce
     case _ => Failure
   }
+
+  case object RemoveProtocolHandler
 }

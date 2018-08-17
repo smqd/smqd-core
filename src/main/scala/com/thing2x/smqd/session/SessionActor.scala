@@ -197,17 +197,17 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     opub.qos match {
       case QoS.AtMostOnce =>
         //// SPEC: A PUBLISH packet MUST NOT contain a Packet Identifier if its QoS value is set to 0
-        sessionCtx.deliverPub(opub.topicPath.toString, opub.qos, opub.isRetain, 0, msg)
+        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, 0, msg)
 
       case QoS.AtLeastOnce => // wait ack
         val msgId = nextMessageId
         sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, msg)
-        sessionCtx.deliverPub(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
+        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
 
       case QoS.ExactlyOnce => // wait rec, comp
         val msgId = nextMessageId
         sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, msg)
-        sessionCtx.deliverPub(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
+        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
     }
   }
 
@@ -217,7 +217,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
 
   private def outboundRec(orec: OutboundPublishRec): Unit = {
     sstore.updateAfterDeliveryAck(stoken, orec.msgId)
-    sessionCtx.deliverPubRel(orec.msgId)
+    sessionCtx.writePubRel(orec.msgId)
   }
 
   private def outboundComp(ocomp: OutboundPublishComp): Unit = {

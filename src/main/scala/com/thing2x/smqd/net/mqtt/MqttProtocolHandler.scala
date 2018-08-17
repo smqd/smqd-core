@@ -39,6 +39,16 @@ class MqttProtocolInboundHandler extends ChannelInboundHandlerAdapter with MqttP
         ctx.fireChannelRead(msg)
     }
   }
+
+  override def userEventTriggered(ctx: ChannelHandlerContext, evt: scala.Any): Unit = {
+    evt match {
+      case RemoveProtocolHandler =>
+        ctx.pipeline.remove(PROTO_OUT_HANDLER)
+        ctx.pipeline.remove(PROTO_IN_HANDLER)
+      case _ =>
+        ctx.fireUserEventTriggered(evt)
+    }
+  }
 }
 
 object MqttProtocolOutboundHandler{

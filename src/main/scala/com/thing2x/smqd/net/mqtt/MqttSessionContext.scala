@@ -105,8 +105,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
     * Called by SessionActor when it removes protocol handlers to prevent infinite echo in logging
     */
   def removeProtocolNotification(): Unit = {
-    channel.pipeline.remove(PROTO_OUT_HANDLER)
-    channel.pipeline.remove(PROTO_IN_HANDLER)
+    channel.pipeline.fireUserEventTriggered(RemoveProtocolHandler)
   }
 
   /**
@@ -147,7 +146,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
     }
   })
 
-  override def deliverPub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit = {
+  override def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit = {
     logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: ($msgId) ${msg.length}")
     val buf = channel.alloc.ioBuffer(msg.length)
     buf.writeBytes(msg)
@@ -158,7 +157,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
     ))
   }
 
-  override def deliverPubRel(msgId: Int): Unit = {
+  override def writePubRel(msgId: Int): Unit = {
     channel.writeAndFlush(new MqttMessage(
       new MqttFixedHeader(PUBREL, false, AT_LEAST_ONCE, false, 0),
       MqttMessageIdVariableHeader.from(msgId)
