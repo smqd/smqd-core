@@ -82,7 +82,7 @@ class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd, 
 
   var will: Option[Will] = None
 
-  private def publishWill(ctx: ChannelHandlerContext): Unit = {
+  private def publishWill(): Unit = {
     if (!authorized) return
 
     will match {
@@ -118,7 +118,8 @@ class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd, 
 
   override def sessionStopped(): Unit = {
     logger.trace(s"[$clientId] session stopped")
-    channelContext.close()
+    if (!channelContext.isRemoved)
+      channelContext.close()
   }
 
   override def sessionTimeout(): Unit = {
@@ -141,13 +142,14 @@ class MqttSessionContext(channelContext: ChannelHandlerContext, val smqd: Smqd, 
       if (session != null)
         session ! SessionActor.ChannelClosed(cleanSession)
 
-      publishWill(channelContext)
+      publishWill()
     }
   }
 
   override def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit = {
     logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: ($msgId) ${msg.length}")
-    val buf = io.netty.buffer.Unpooled.wrappedBuffer(msg)
+    val buf = channelContext.alloc.ioBuffer(msg.length)
+    buf.writeBytes(msg)
     channelContext.channel.writeAndFlush(new MqttPublishMessage(
       new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, isRetain, 0),
       new MqttPublishVariableHeader(topic, msgId),
