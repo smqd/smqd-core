@@ -21,6 +21,7 @@ import io.netty.handler.codec.mqtt.MqttQoS._
 import io.netty.handler.codec.mqtt._
 import com.thing2x.smqd.TPath
 import com.thing2x.smqd.fault._
+import com.thing2x.smqd.session.SessionActor
 import com.thing2x.smqd.session.SessionActor.InboundPublish
 
 import scala.concurrent.Promise
@@ -164,9 +165,9 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
 
   //// Scenario: Sending Message to Client, QoS 1
   private def publishAck(handlerCtx: ChannelHandlerContext, m: MqttPubAckMessage): Unit = {
-    val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
-    val msgId = m.variableHeader().messageId()
-    sessionCtx.deliverAck(msgId)
+    val session = handlerCtx.channel.attr(ATTR_SESSION).get
+    val msgId = m.variableHeader.messageId
+    session ! SessionActor.OutboundPublishAck(msgId)
   }
 
   //// Scenario: Sending Message to Client: QoS 2 (part 2)
@@ -175,12 +176,8 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
     m.variableHeader match {
       case id: MqttMessageIdVariableHeader =>
         val msgId = id.messageId
-        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
-        sessionCtx.deliverRec(msgId)
-        handlerCtx.writeAndFlush(new MqttMessage(
-          new MqttFixedHeader(PUBREL, false, AT_LEAST_ONCE, false, 0),
-          MqttMessageIdVariableHeader.from(msgId)
-        ))
+        val session = handlerCtx.channel.attr(ATTR_SESSION).get
+        session ! SessionActor.OutboundPublishRec(msgId)
       case _ => // maformed PUBREC message, no message id
         val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
         sessionCtx.smqd.notifyFault(MalformedMessage("no message id in PUBREC"))
@@ -193,8 +190,8 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
     m.variableHeader match {
       case id: MqttMessageIdVariableHeader =>
         val msgId = id.messageId
-        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
-        sessionCtx.deliverComp(msgId)
+        val session = handlerCtx.channel.attr(ATTR_SESSION).get
+        session ! SessionActor.OutboundPublishComp(msgId)
       case _ =>
         val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
         sessionCtx.smqd.notifyFault(MalformedMessage("no message id in PUBCOMP"))

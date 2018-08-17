@@ -35,7 +35,8 @@ trait SessionContext {
   def sessionStopped(): Unit
   def close(reason: String): Unit
 
-  def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit
+  def deliverPub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit
+  def deliverPubRel(msgId: Int): Unit
 }
 
 object SessionState extends Enumeration {
