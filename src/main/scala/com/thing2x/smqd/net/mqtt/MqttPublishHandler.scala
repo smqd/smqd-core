@@ -35,7 +35,7 @@ object MqttPublishHandler{
 
 class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging {
 
-  override def channelRead(ctx: ChannelHandlerContext, msg: Any): Unit = {
+  override def channelRead(handlerCtx: ChannelHandlerContext, msg: Any): Unit = {
     /*
         QoS 1)
 
@@ -55,40 +55,40 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
       ///////////////////////////////////
       // PUBLISH(3)
       case m: MqttPublishMessage =>
-        publish(ctx, m)
-        ctx.fireChannelReadComplete()
+        publish(handlerCtx, m)
+        handlerCtx.fireChannelReadComplete()
 
       ///////////////////////////////////
       // PUBACK(4)
       case m: MqttPubAckMessage =>
-        publishAck(ctx, m)
-        ctx.fireChannelReadComplete()
+        publishAck(handlerCtx, m)
+        handlerCtx.fireChannelReadComplete()
 
       ///////////////////////////////////
       // PUBREL(6)
       case m: MqttMessage if m.fixedHeader().messageType() == PUBREL =>
-        publishRel(ctx, m)
-        ctx.fireChannelReadComplete()
+        publishRel(handlerCtx, m)
+        handlerCtx.fireChannelReadComplete()
 
       ///////////////////////////////////
       // PUBREC(5)
       case m: MqttMessage if m.fixedHeader().messageType() == PUBREC =>
-        publishRec(ctx, m)
-        ctx.fireChannelReadComplete()
+        publishRec(handlerCtx, m)
+        handlerCtx.fireChannelReadComplete()
 
       ///////////////////////////////////
       // PUBCOMP(7)
       case m: MqttMessage if m.fixedHeader().messageType() == PUBCOMP =>
-        publishComp(ctx, m)
-        ctx.fireChannelReadComplete()
+        publishComp(handlerCtx, m)
+        handlerCtx.fireChannelReadComplete()
 
       case _ =>
-        ctx.fireChannelRead(msg)
+        handlerCtx.fireChannelRead(msg)
     }
   }
 
   //// Scenario: Receiving Message from Client, QoS 0,1,2
-  private def publish(ctx: ChannelHandlerContext, m: MqttPublishMessage): Unit = {
+  private def publish(handlerCtx: ChannelHandlerContext, m: MqttPublishMessage): Unit = {
 
     val fh = m.fixedHeader()
     val isDup = fh.isDup
@@ -102,17 +102,17 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
     val topicPath = TPath.parseForTopic(topicName) match {
       case Some(tp) => tp
       case _ => // invalid topic name
-        val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
         sessionCtx.smqd.notifyFault(InvalidTopicToPublish(sessionCtx.clientId.toString, topicName))
-        ctx.close()
+        handlerCtx.close()
         return
     }
 
     // AuthorizePublish
-    val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
+    val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
     import sessionCtx.smqd.Implicit._
 
-    val sessionActor = ctx.channel.attr(ATTR_SESSION).get
+    val sessionActor = handlerCtx.channel.attr(ATTR_SESSION).get
     val array = new Array[Byte](payload.readableBytes)
     payload.readBytes(array)
     payload.release()
@@ -128,12 +128,12 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
               case AT_MOST_ONCE =>  // 0,  no ack
 
               case AT_LEAST_ONCE => // 1,  ack
-                ctx.channel.writeAndFlush(new MqttPubAckMessage(
+                handlerCtx.channel.writeAndFlush(new MqttPubAckMessage(
                   new MqttFixedHeader(PUBACK, false, AT_LEAST_ONCE, false, 0),
                   MqttMessageIdVariableHeader.from(pktId)))
 
               case EXACTLY_ONCE => // 2, exactly_once
-                ctx.channel.writeAndFlush(new MqttMessage(
+                handlerCtx.channel.writeAndFlush(new MqttMessage(
                   new MqttFixedHeader(PUBREC, false, AT_LEAST_ONCE, false, 0),
                   MqttMessageIdVariableHeader.from(pktId)))
 
@@ -148,57 +148,57 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
   }
 
   //// Scenario: Receiving Message from Client, QoS 2
-  private def publishRel(ctx: ChannelHandlerContext, m: MqttMessage): Unit = {
+  private def publishRel(handlerCtx: ChannelHandlerContext, m: MqttMessage): Unit = {
     m.variableHeader match {
       case id: MqttMessageIdVariableHeader =>
         val msgId = id.messageId
-        ctx.writeAndFlush(new MqttMessage(
+        handlerCtx.writeAndFlush(new MqttMessage(
           new MqttFixedHeader(PUBCOMP, false, AT_LEAST_ONCE, false, 0),
           MqttMessageIdVariableHeader.from(msgId)))
       case _ => // malformed PUBREL message, no message id
-        val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-        channelCtx.smqd.notifyFault(MalformedMessage("no message id in PUBREL"))
-        ctx.close()
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
+        sessionCtx.smqd.notifyFault(MalformedMessage("no message id in PUBREL"))
+        handlerCtx.close()
     }
   }
 
   //// Scenario: Sending Message to Client, QoS 1
-  private def publishAck(ctx: ChannelHandlerContext, m: MqttPubAckMessage): Unit = {
-    val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
+  private def publishAck(handlerCtx: ChannelHandlerContext, m: MqttPubAckMessage): Unit = {
+    val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
     val msgId = m.variableHeader().messageId()
-    channelCtx.deliverAck(msgId)
+    sessionCtx.deliverAck(msgId)
   }
 
   //// Scenario: Sending Message to Client: QoS 2 (part 2)
-  private def publishRec(ctx: ChannelHandlerContext, m: MqttMessage): Unit = {
+  private def publishRec(handlerCtx: ChannelHandlerContext, m: MqttMessage): Unit = {
     // send PUBREL
     m.variableHeader match {
       case id: MqttMessageIdVariableHeader =>
         val msgId = id.messageId
-        val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-        channelCtx.deliverRec(msgId)
-        ctx.writeAndFlush(new MqttMessage(
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
+        sessionCtx.deliverRec(msgId)
+        handlerCtx.writeAndFlush(new MqttMessage(
           new MqttFixedHeader(PUBREL, false, AT_LEAST_ONCE, false, 0),
           MqttMessageIdVariableHeader.from(msgId)
         ))
       case _ => // maformed PUBREC message, no message id
-        val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-        channelCtx.smqd.notifyFault(MalformedMessage("no message id in PUBREC"))
-        ctx.close()
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
+        sessionCtx.smqd.notifyFault(MalformedMessage("no message id in PUBREC"))
+        handlerCtx.close()
     }
   }
 
   //// Scenario: Sending Message to Client: QoS 2 (part 3)
-  private def publishComp(ctx: ChannelHandlerContext, m: MqttMessage): Unit = {
+  private def publishComp(handlerCtx: ChannelHandlerContext, m: MqttMessage): Unit = {
     m.variableHeader match {
       case id: MqttMessageIdVariableHeader =>
         val msgId = id.messageId
-        val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-        channelCtx.deliverComp(msgId)
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
+        sessionCtx.deliverComp(msgId)
       case _ =>
-        val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-        channelCtx.smqd.notifyFault(MalformedMessage("no message id in PUBCOMP"))
-        ctx.close()
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
+        sessionCtx.smqd.notifyFault(MalformedMessage("no message id in PUBCOMP"))
+        handlerCtx.close()
     }
   }
 }
