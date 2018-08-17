@@ -44,6 +44,8 @@ package object mqtt {
   val SUBSCRIBE_HANDLER = "subscribe.handler"
   val CONNECT_HANDER = "connect.handler"
 
+  val EXCEPTION_HANDLER = "exception.handler"
+
   val ATTR_SESSION_CTX: AttributeKey[MqttSessionContext] = AttributeKey.newInstance("attr.session.context")
 
   val ATTR_METRICS: AttributeKey[MqttMetrics] = AttributeKey.newInstance("attr.metrics")

@@ -18,6 +18,7 @@ import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd._
 import com.thing2x.smqd.session.{SessionActor, SessionContext}
 import com.typesafe.scalalogging.StrictLogging
+import io.netty.channel.embedded.EmbeddedChannel
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.{Channel, ChannelFuture}
 import io.netty.handler.codec.mqtt._
@@ -40,7 +41,12 @@ import com.thing2x.smqd.session.SessionState.{SessionState => State}
 class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
   extends SessionContext with StrictLogging {
 
-  val channelId = MqttChannelId(listenerName, channel.asInstanceOf[SocketChannel].remoteAddress(), smqd.nodeName)
+  val channelId: MqttChannelId = channel match {
+    case socketChannel: SocketChannel =>
+      MqttChannelId(listenerName, socketChannel.remoteAddress(), smqd.nodeName)
+    case _: EmbeddedChannel =>
+      MqttChannelId(listenerName)
+  }
 
   private var _state: State = SessionState.Initiated
   override def state: State = _state

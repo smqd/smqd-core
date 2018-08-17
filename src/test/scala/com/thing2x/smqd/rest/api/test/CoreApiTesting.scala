@@ -88,9 +88,9 @@ abstract class CoreApiTesting extends WordSpec
 
   var smqdInstance: Smqd = _
   var routes: Route = _
-  val shutdownPromise = Promise[Boolean]
+  val shutdownPromise: Promise[Boolean] = Promise[Boolean]
 
-  implicit def default(implicit system: ActorSystem) = RouteTestTimeout(5.seconds)
+  implicit def default(implicit system: ActorSystem): RouteTestTimeout = RouteTestTimeout(5.seconds)
 
   override def beforeAll(): Unit = {
 

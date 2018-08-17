@@ -55,6 +55,6 @@ trait MqttPipelineAppender {
     pipeline.addLast(PUBLISH_HANDLER, MqttPublishHandler())
     pipeline.addLast(SUBSCRIBE_HANDLER, MqttSubscribeHandler())
     pipeline.addLast(CONNECT_HANDER, MqttConnectHandler(clientIdentifierFormat))
-    pipeline.addLast("exception.handler", MqttExceptionHandler())
+    pipeline.addLast(EXCEPTION_HANDLER, MqttExceptionHandler())
   }
 }
