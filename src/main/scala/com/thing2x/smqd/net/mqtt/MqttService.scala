@@ -56,24 +56,19 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
     logger.debug(s"Mqtt Service [$name] transport is $transport")
 
+    def eventLoopGroup(count: Int): EventLoopGroup = transport match {
+      case "epoll" =>
+        new io.netty.channel.epoll.EpollEventLoopGroup(count)
+      case "kqueue" =>
+        new io.netty.channel.kqueue.KQueueEventLoopGroup(count)
+      case "nio" =>
+        new io.netty.channel.nio.NioEventLoopGroup(count)
+    }
+
     val masterGroupThreadCount = config.getInt("thread.master.count")
     val workerGroupThreadCount = config.getInt("thread.worker.count")
-    val masterGroup = transport match {
-      case "epoll" =>
-        new io.netty.channel.epoll.EpollEventLoopGroup(masterGroupThreadCount)
-      case "kqueue" =>
-        new io.netty.channel.kqueue.KQueueEventLoopGroup(masterGroupThreadCount)
-      case "nio" =>
-        new io.netty.channel.nio.NioEventLoopGroup(masterGroupThreadCount)
-    }
-    val workerGroup = transport match {
-      case "epoll" =>
-        new io.netty.channel.epoll.EpollEventLoopGroup(workerGroupThreadCount)
-      case "kqueue" =>
-        new io.netty.channel.kqueue.KQueueEventLoopGroup(workerGroupThreadCount)
-      case "nio" =>
-        new io.netty.channel.nio.NioEventLoopGroup(workerGroupThreadCount)
-    }
+    val masterGroup = eventLoopGroup(masterGroupThreadCount)
+    val workerGroup = eventLoopGroup(workerGroupThreadCount)
     groups = masterGroup :: workerGroup :: Nil
 
     val leakDetectorLevel: String = config.getString("leak.detector.level").toUpperCase
