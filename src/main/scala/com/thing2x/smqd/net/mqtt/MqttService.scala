@@ -41,7 +41,6 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   private val channelBpsCounter = new MqttBpsCounter(channelThrottlingEnabled, readSizeLimit, checkInterval, waitMax)
   private val channelTpsCounter = new MqttTpsCounter(channelThrottlingEnabled, readCountLimit, checkInterval)
 
-  private val defaultKeepAliveTime: Int = math.min(config.getDuration("keepalive.time").toMillis/1000, 65536).toInt
   private val messageMaxSize: Int = config.getBytes("message.max.size").toInt
 
   private val clientIdentifierFormat: Regex = smqdInstance.config.getString("smqd.registry.client.identifier.format").r
@@ -151,7 +150,6 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       channelTpsCounter,
       messageMaxSize,
       clientIdentifierFormat,
-      defaultKeepAliveTime,
       metrics
     )
   }
@@ -166,7 +164,6 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       channelTpsCounter,
       messageMaxSize,
       clientIdentifierFormat,
-      defaultKeepAliveTime,
       metrics
     )
   }

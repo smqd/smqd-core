@@ -93,15 +93,9 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
 
   private var _lastTimeMessageReceived: Long = 0
   def lastTimeMessageReceived: Long = _lastTimeMessageReceived
-  def lastTimeMessageReceived_= (time: Long): Unit = {
-    _lastTimeMessageReceived = time
+  def lastTimeMessageReceived_= (time: Long): Unit = _lastTimeMessageReceived = time
 
-    val session = channel.attr(ATTR_SESSION).get
-    if (session != null) // only when a session actor exists
-      session ! SessionActor.UpdateTimer
-  }
-
-  private var _keepAliveTimeSeconds: Int = 60
+  private var _keepAliveTimeSeconds: Int = 0
   override def keepAliveTimeSeconds: Int = _keepAliveTimeSeconds
   def keepAliveTimeSeconds_= (timeInSeconds: Int): Unit = _keepAliveTimeSeconds = math.min(math.max(timeInSeconds, 0), 0xFFFF)
 
@@ -116,13 +110,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
 
   override def sessionStopped(): Unit = {
     logger.trace(s"[$clientId] session stopped")
-    if (channel.isOpen)
-      channel.close()
-  }
-
-  override def sessionTimeout(): Unit = {
-    logger.trace(s"[$clientId] session timedout")
-    if (channel.isOpen)
+    if (channel.isOpen && !channel.eventLoop().isShutdown)
       channel.close()
   }
 

@@ -69,15 +69,21 @@ class MqttWsHandshakeHandler(channelBpsCounter: ChannelHandler,
         }
         else {
           handshaker.handshake(ctx.channel, req).addListener { future: ChannelFuture =>
-            //logger.debug("Handshake is done")
+            if (future.isSuccess) {
+              //logger.debug("Handshake is done")
 
-            val pipeline = ctx.pipeline
+              val pipeline = ctx.pipeline
 
-            //Adding new handler to the existing pipeline to handle WebSocket Messages
-            pipeline.replace(MqttWsHandshakeHandler.this, "WebSocketFrameInbound", new MqttWsFrameInboundHandler())
-            pipeline.addLast("WebSocketFrameOutbound", new MqttWsFrameOutboundHandler())
+              //Adding new handler to the existing pipeline to handle WebSocket Messages
+              pipeline.replace(MqttWsHandshakeHandler.this, "WebSocketFrameInbound", new MqttWsFrameInboundHandler())
+              pipeline.addLast("WebSocketFrameOutbound", new MqttWsFrameOutboundHandler())
 
-            appendMqttPipeline(pipeline, None, channelBpsCounter, channelTpsCounter, messageMaxSize, clientIdentifierFormat)
+              appendMqttPipeline(pipeline, None, channelBpsCounter, channelTpsCounter, messageMaxSize, clientIdentifierFormat)
+            }
+            else {
+              logger.debug("Handshake failed", future.cause)
+              ctx.close()
+            }
           }
         }
 
@@ -90,21 +96,38 @@ class MqttWsHandshakeHandler(channelBpsCounter: ChannelHandler,
 
 class MqttWsFrameInboundHandler extends ChannelInboundHandlerAdapter with StrictLogging {
 
+  private var lastFrameType = "n/a" // "bin", "txt", "n/a"
+
   override def channelRead(ctx: ChannelHandlerContext, msg: Any): Unit = {
     msg match {
       case bf: BinaryWebSocketFrame =>
         //logger.trace(s"BinaryWebSocketFrame Received : ${bf.content.readableBytes} bytes")
         ctx.fireChannelRead(bf.content)
+        lastFrameType = "bin"
 
       case tf: TextWebSocketFrame =>
         //logger.trace(s"TextWebSocketFrame Received : ${tf.text}")
         ctx.fireChannelRead(tf.text)
+        lastFrameType = "txt"
+
+      case cf: ContinuationWebSocketFrame =>
+        lastFrameType match {
+          case "bin" =>
+            ctx.fireChannelRead(cf.content)
+          case "txt" =>
+            ctx.fireChannelRead(cf.text)
+          case _ =>
+            logger.debug("Invalid state of continuation frame")
+            ctx.close()
+        }
 
       case ping: PingWebSocketFrame =>
         logger.trace(s"PingWebSocketFrame Received : ${ping.content}")
+        ctx.fireChannelReadComplete()
 
       case pong: PongWebSocketFrame =>
         logger.trace(s"PongWebSocketFrame Received : ${pong.content}")
+        ctx.fireChannelReadComplete()
 
       case cf: CloseWebSocketFrame =>
         logger.trace(s"CloseWebSocketFrame Received")
@@ -112,6 +135,7 @@ class MqttWsFrameInboundHandler extends ChannelInboundHandlerAdapter with Strict
 
       case _ =>
         logger.debug(s"Received unsupported WebSocketFrame: ${msg.getClass.getName}")
+        ctx.close()
     }
   }
 }

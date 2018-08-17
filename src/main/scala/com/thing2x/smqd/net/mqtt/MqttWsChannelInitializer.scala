@@ -41,7 +41,6 @@ class MqttWsChannelInitializer(smqd: Smqd,
                                channelTpsCounter: ChannelHandler,
                                messageMaxSize: Int,
                                clientIdentifierFormat: Regex,
-                               defaultKeepAliveTime: Int,
                                metrics: MqttMetrics)
   extends ChannelInitializer[SocketChannel]
     with ActorIdentifying
@@ -72,7 +71,6 @@ class MqttWsChannelInitializer(smqd: Smqd,
     super.handlerAdded(ctx)
 
     val channelContext = MqttSessionContext(ctx.channel, smqd, listenerName)
-    channelContext.keepAliveTimeSeconds = defaultKeepAliveTime
 
     ctx.channel.attr(ATTR_SESSION_CTX).set(channelContext)
     ctx.channel.attr(ATTR_SESSION_MANAGER).set(sessionManager)

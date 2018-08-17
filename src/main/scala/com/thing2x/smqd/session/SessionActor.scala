@@ -58,11 +58,6 @@ object SessionActor {
   case class OutboundPublishComp(msgId: Int)
   case class ChannelClosed(clearSession: Boolean)
   case object InboundDisconnect
-
-  case object UpdateTimer
-
-  private case object TimeoutKey
-  private case object Timeout
 }
 
 class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken)
@@ -77,8 +72,6 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
 
   override def preStart(): Unit = {
     ctx.sessionStarted()
-    // start timer for session timeout trigger
-    updateTimer()
   }
 
   override def postStop(): Unit = {
@@ -88,10 +81,6 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
 
     sstore.flushSession(stoken)
     ctx.sessionStopped()
-  }
-
-  private def timeout(): Unit = {
-    ctx.sessionTimeout()
   }
 
   override def receive: Receive = {
@@ -104,8 +93,6 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     case ocomp: OutboundPublishComp =>  outboundComp(ocomp)
     case ChannelClosed(clearSession) => channelClosed(clearSession)
     case InboundDisconnect =>           inboundDisconnect()
-    case UpdateTimer =>                 updateTimer()
-    case Timeout =>                     timeout()
     case challenge: NewSessionChallenge => challengeChannel(sender, challenge)
   }
 
@@ -347,11 +334,6 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
       case Failure(ex) =>
         promise.failure(ex)
     }
-  }
-
-  private def updateTimer(): Unit = {
-    //logger.trace(s"[${ctx.sessionId}] Session timer updated")
-    timers.startSingleTimer(TimeoutKey, Timeout, (ctx.keepAliveTimeSeconds*1.5) seconds)
   }
 
   private def channelClosed(clearSession: Boolean): Unit = {

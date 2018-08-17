@@ -40,7 +40,6 @@ class MqttChannelInitializer(smqd: Smqd,
                              channelTpsCounter: ChannelHandler,
                              messageMaxSize: Int,
                              clientIdentifierFormat: Regex,
-                             defaultKeepAliveTime: Int,
                              metrics: MqttMetrics)
   extends ChannelInitializer[SocketChannel]
     with MqttPipelineAppender
@@ -64,7 +63,6 @@ class MqttChannelInitializer(smqd: Smqd,
     super.handlerAdded(ctx)
 
     val sessionCtx = MqttSessionContext(ctx.channel, smqd, listenerName)
-    sessionCtx.keepAliveTimeSeconds = defaultKeepAliveTime
 
     ctx.channel.attr(ATTR_SESSION_CTX).set(sessionCtx)
     ctx.channel.attr(ATTR_SESSION_MANAGER).set(sessionManager)

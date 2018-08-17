@@ -17,6 +17,7 @@ package com.thing2x.smqd.net.mqtt
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.{ChannelHandlerContext, ChannelInboundHandlerAdapter}
 import io.netty.handler.codec.mqtt.MqttMessage
+import io.netty.handler.timeout.{IdleState, IdleStateEvent}
 
 /**
   * 2018. 6. 26. - Created by Kwon, Yeong Eon
@@ -45,6 +46,21 @@ class MqttKeepAliveHandler extends ChannelInboundHandlerAdapter with StrictLoggi
         val sessionCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
         logger.warn(s"[${sessionCtx.clientId}] ${sessionCtx.channelId} unknown message: $msg")
         ctx.close()
+    }
+  }
+
+  override def userEventTriggered(ctx: ChannelHandlerContext, evt: scala.Any): Unit = {
+    evt match {
+      case idle: IdleStateEvent => // event from IdleStateHandler that comes from MqttConnectHandler
+        idle.state match {
+          case IdleState.READER_IDLE =>
+            logger.debug(s"KeepAliveTimeout")
+            ctx.close()
+          case IdleState.WRITER_IDLE => // not use
+            logger.debug(s"Idle State ==> ${idle.isFirst}")
+          case IdleState.ALL_IDLE =>
+            logger.debug(s"Idle State ==> ${idle.isFirst}")
+        }
     }
   }
 }

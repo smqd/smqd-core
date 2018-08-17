@@ -26,6 +26,7 @@ import io.netty.handler.codec.mqtt.MqttConnectReturnCode._
 import io.netty.handler.codec.mqtt.MqttMessageType._
 import io.netty.handler.codec.mqtt.MqttQoS._
 import io.netty.handler.codec.mqtt._
+import io.netty.handler.timeout.IdleStateHandler
 
 import scala.concurrent.Promise
 import scala.concurrent.duration._
@@ -43,59 +44,59 @@ object MqttConnectHandler{
 
 class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHandlerAdapter with StrictLogging {
 
-  override def channelRead(channelCtx: ChannelHandlerContext, msg: Any): Unit = {
+  override def channelRead(handlerCtx: ChannelHandlerContext, msg: Any): Unit = {
 
     msg match {
       //////////////////////////////////
       // CONNECT(1)
       case m: MqttConnectMessage =>
-        channelCtx.fireChannelReadComplete()
-        processConnect(channelCtx, m)
+        handlerCtx.fireChannelReadComplete()
+        processConnect(handlerCtx, m)
 
       //////////////////////////////////
       // CONNACK(2)
       case _: MqttConnAckMessage =>
-        channelCtx.fireChannelReadComplete()
-        val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+        handlerCtx.fireChannelReadComplete()
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
         if (sessionCtx != null) sessionCtx.smqd.notifyFault(NotAllowedMqttMessage("CONNACK"))
-        channelCtx.close()
+        handlerCtx.close()
 
       //////////////////////////////////
       // DISCONNECT(14)
       case m: MqttMessage if m.fixedHeader.messageType == DISCONNECT =>
-        channelCtx.fireChannelReadComplete()
+        handlerCtx.fireChannelReadComplete()
         // [MQTT-3.14.4-3] Server MUST discard any Will Message associated with the current connection without publishing
-        val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
         if (sessionCtx != null) sessionCtx.will = None
-        val session = channelCtx.channel.attr(ATTR_SESSION).get
+        val session = handlerCtx.channel.attr(ATTR_SESSION).get
         if (session != null) session ! InboundDisconnect
 
       //////////////////////////////////
       // PINGREQ(12)
       case m: MqttMessage if m.fixedHeader.messageType == PINGREQ =>
-        channelCtx.fireChannelReadComplete()
+        handlerCtx.fireChannelReadComplete()
         // [MQTT-3.12.4-1] Server MUST send a PINGRESP Packet in response to a PINGREQ Packet
         val rsp = new MqttMessage(new MqttFixedHeader(PINGRESP, false, AT_MOST_ONCE, false, 0))
-        channelCtx.channel.writeAndFlush(rsp)
+        handlerCtx.channel.writeAndFlush(rsp)
 
       //////////////////////////////////
       // PINGRESP(13)
       case m: MqttMessage if m.fixedHeader.messageType == PINGRESP =>
-        channelCtx.fireChannelReadComplete()
-        val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+        handlerCtx.fireChannelReadComplete()
+        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
         if (sessionCtx != null) sessionCtx.smqd.notifyFault(NotAllowedMqttMessage("PINGRESP"))
-        channelCtx.close()
+        handlerCtx.close()
 
       //////////////////////////////////
       // other messages
       case _ =>
-        channelCtx.fireChannelRead(msg)
+        handlerCtx.fireChannelRead(msg)
     }
   }
 
-  private def processConnect(channelCtx: ChannelHandlerContext, m: MqttConnectMessage): Unit = {
+  private def processConnect(handlerCtx: ChannelHandlerContext, m: MqttConnectMessage): Unit = {
 
-    val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+    val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
 
     // prevent multiple CONNECT messages
     sessionCtx.state = SessionState.ConnectReceived
@@ -103,7 +104,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.1.0-2] A client can only send the CONNECT Packet once over a Network Connection.
       // The Server MUST process a second CONNECT Packet sent from Client as a protocol violation and disconnect the Client
       sessionCtx.smqd.notifyFault(MutipleConnectRejected)
-      channelCtx.close()
+      handlerCtx.close()
       return
     }
 
@@ -117,7 +118,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.1.2-2] The Server MUST respond to the CONNECT Packet with CONNACK return code 0x01
       // (unacceptable_protocol_level) and then disconnect the Client if the Protocol Level is not supported by the Server
       sessionCtx.smqd.notifyFault(UnacceptableProtocolVersion(protocolName, protocolLevel))
-      connectAck(channelCtx, CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION, false, true)
+      connectAck(handlerCtx, CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION, sessionPresent = false, close = true)
       return
     }
 
@@ -127,8 +128,10 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // Clean Session
     sessionCtx.cleanSession = vh.isCleanSession
 
-    // Keep Alive Time
-    sessionCtx.keepAliveTimeSeconds = vh.keepAliveTimeSeconds()
+    // Keep Alive Time - replace existing IdleStateHandler with time value from Connect message.
+    //                   The timeout event 'IdleStateEvent' will come to 'userEventTriggered()' in MqttKeepAliveHandler.
+    val keepAliveTimeSeconds = vh.keepAliveTimeSeconds
+    handlerCtx.pipeline.replace(IDLE_STATE_HANDLER, IDLE_STATE_HANDLER, new IdleStateHandler((keepAliveTimeSeconds * 1.5).toInt, 0, 0))
 
     // Will
     sessionCtx.will = if (vh.isWillFlag) {
@@ -145,11 +148,11 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     }
 
     // Validate Client Identifier Regularations
-    if (!isValidClientIdentifierFormat(channelCtx)) {
+    if (!isValidClientIdentifierFormat(handlerCtx)) {
       // [MQTT-3.1.3-9] If the Server rejects the ClientId it MUST respond to CONNECT Packet with a CONNACK
       // return code 0x02 (Identifier rejected) and then close the Network Connection
       sessionCtx.smqd.notifyFault(IdentifierRejected(sessionCtx.clientId.toString, "clientid is not a valid format"))
-      connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = false, close = true)
+      connectAck(handlerCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = false, close = true)
       return
     }
 
@@ -171,7 +174,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       case Success(SmqSuccess(_)) =>
         sessionCtx.authorized = true
 
-        val sessionManager = channelCtx.channel.attr(ATTR_SESSION_MANAGER).get
+        val sessionManager = handlerCtx.channel.attr(ATTR_SESSION_MANAGER).get
 
         // [MQTT-3.1.3-2] Each Client connecting to the Server has a unique ClientId. The ClientId MUST be used by Clients
         // and by Servers to identify state that they hold relating to this MQTT Session between the Client and the Server
@@ -204,13 +207,13 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
         createResult.future.map {
           case r: CreatedSessionSuccess => // success to create a session
             logger.debug(s"[${r.clientId}] Session created, clean session: ${sessionCtx.cleanSession}, session present: ${r.hadPreviousSession}")
-            channelCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
-            connectAck(channelCtx, CONNECTION_ACCEPTED, r.hadPreviousSession, close = false)
+            handlerCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
+            connectAck(handlerCtx, CONNECTION_ACCEPTED, r.hadPreviousSession, close = false)
 
           case r: CreateSessionFailure => // fail to create a clean session
             logger.debug(s"[${r.clientId}] Session creation failed: ${r.reason}")
             sessionCtx.smqd.notifyFault(MutipleConnectRejected)
-            connectAck(channelCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = true, close = true)
+            connectAck(handlerCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = true, close = true)
         }
 
       case Success(result) => // if result != SmqSuccess
@@ -222,27 +225,27 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
           case _: NotAuthorized => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
           case _ => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
         }
-        connectAck(channelCtx, code, sessionPresent = false, close = true)
+        connectAck(handlerCtx, code, sessionPresent = false, close = true)
 
       case Failure(_) =>
-        connectAck(channelCtx, CONNECTION_REFUSED_SERVER_UNAVAILABLE, sessionPresent = false, close = true)
+        connectAck(handlerCtx, CONNECTION_REFUSED_SERVER_UNAVAILABLE, sessionPresent = false, close = true)
     }
 
     sessionCtx.state = SessionState.ConnectAcked
   }
 
-  private def connectAck(channelCtx: ChannelHandlerContext, returnCode: MqttConnectReturnCode, sessionPresent: Boolean, close: Boolean): Unit = {
-    channelCtx.channel.writeAndFlush(
+  private def connectAck(handlerCtx: ChannelHandlerContext, returnCode: MqttConnectReturnCode, sessionPresent: Boolean, close: Boolean): Unit = {
+    handlerCtx.channel.writeAndFlush(
       new MqttConnAckMessage(
         new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
         new MqttConnAckVariableHeader(returnCode, sessionPresent)))
 
-    if (close) channelCtx.close()
+    if (close) handlerCtx.close()
   }
 
-  private def isValidClientIdentifierFormat(channelCtx: ChannelHandlerContext): Boolean = {
+  private def isValidClientIdentifierFormat(handlerCtx: ChannelHandlerContext): Boolean = {
 
-    val sessionCtx = channelCtx.channel.attr(ATTR_SESSION_CTX).get
+    val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
 
     // [MQTT-3.1.3-3] The Client Identifier (ClientId) MUST be present and MUST be the first field in the CONNECT packet payload
     // [MQTT-3.1.3-4] The ClientId MUST be a UTF-8 encoded string
@@ -263,7 +266,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
             // [MQTT-3.1.3-6] A Server MAY allow a Client to supply zero-length ClientId, however if it does
             // so the Server MUST treat this as a special case and assign a unique ClientId to that Client.
             // It MUST then process the CONNECT packet as if the Client had provided that unique ClientId
-            val newClientId = sessionCtx.channelId.stringId+"."+channelCtx.channel.localAddress.toString
+            val newClientId = sessionCtx.channelId.stringId+"."+handlerCtx.channel.localAddress.toString
             sessionCtx.clientId = newClientId
             true
           }
