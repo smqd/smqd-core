@@ -115,7 +115,9 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     try {
       channels.foreach(closeChannel)
     } finally {
-      groups.foreach(_.shutdownGracefully())
+      groups.map( _.shutdownGracefully(0, 1000, java.util.concurrent.TimeUnit.MILLISECONDS) ).foreach{ f =>
+        f.syncUninterruptibly()
+      }
     }
     logger.info(s"Mqtt Service [$name] Stopped.")
   }
@@ -170,8 +172,8 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   }
 
   private def closeChannel(ch: Channel): Unit = {
-    logger.info(s"close channel ${ch.localAddress().toString}")
-    ch.close.sync
+    logger.info(s"Mqtt Service [$name] close channel ${ch.localAddress().toString}")
+    ch.close().sync()
   }
 
 }
