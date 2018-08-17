@@ -18,6 +18,7 @@ import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd._
 import com.thing2x.smqd.session.{SessionActor, SessionContext}
 import com.typesafe.scalalogging.StrictLogging
+import io.netty.buffer.ByteBuf
 import io.netty.channel.embedded.EmbeddedChannel
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.{Channel, ChannelFuture, ChannelFutureListener}
@@ -146,14 +147,12 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
     }
   })
 
-  override def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit = {
-    logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: ($msgId) ${msg.length}")
-    val buf = channel.alloc.ioBuffer(msg.length)
-    buf.writeBytes(msg)
+  override def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, payload: ByteBuf): Unit = {
+    logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: ($msgId) ${payload.readableBytes}")
     channel.writeAndFlush(new MqttPublishMessage(
       new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, isRetain, 0),
       new MqttPublishVariableHeader(topic, msgId),
-      buf
+      payload
     ))
   }
 

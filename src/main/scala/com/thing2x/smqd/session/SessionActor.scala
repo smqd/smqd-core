@@ -14,6 +14,7 @@
 
 package com.thing2x.smqd.session
 
+import java.nio.charset.{Charset, StandardCharsets}
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import akka.actor.{Actor, ActorRef, Timers}
@@ -26,7 +27,7 @@ import com.thing2x.smqd.session.SessionActor._
 import com.thing2x.smqd.session.SessionManagerActor.SessionActorPostStopNotification
 import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
-import io.netty.buffer.ByteBuf
+import io.netty.buffer.{ByteBuf, Unpooled}
 
 import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
@@ -180,34 +181,30 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
   import spray.json._
 
   private def outboundPublish(opub: OutboundPublish): Unit = {
-    val msg = opub.msg match {
-      case a: Array[Byte] => a
-      case b: ByteBuf =>
-        logger.warn("ByteBuf message has delivered for outgoing message")
-        val arr = new Array[Byte](b.readableBytes)
-        b.readBytes(arr)
-        arr
+    val payload = opub.msg match {
+      case a: Array[Byte] => Unpooled.wrappedBuffer(a)
+      case b: ByteBuf => b
       case x: ProtocolNotification =>
-        x.toJson.toString.getBytes("utf-8")
+        Unpooled.wrappedBuffer(x.toJson.toString.getBytes(StandardCharsets.UTF_8))
       case f: Fault =>
-        f.toJson.toString.getBytes("utf-8")
-      case _ =>
-        opub.msg.toString.getBytes("utf-8")
+        Unpooled.wrappedBuffer(f.toJson.toString.getBytes(StandardCharsets.UTF_8))
+      case x =>
+        Unpooled.wrappedBuffer(x.toString.getBytes(StandardCharsets.UTF_8))
     }
     opub.qos match {
       case QoS.AtMostOnce =>
         //// SPEC: A PUBLISH packet MUST NOT contain a Packet Identifier if its QoS value is set to 0
-        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, 0, msg)
+        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, 0, payload)
 
       case QoS.AtLeastOnce => // wait ack
         val msgId = nextMessageId
-        sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, msg)
-        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
+        sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, payload)
+        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, payload)
 
       case QoS.ExactlyOnce => // wait rec, comp
         val msgId = nextMessageId
-        sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, msg)
-        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
+        sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, payload)
+        sessionCtx.writePub(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, payload)
     }
   }
 

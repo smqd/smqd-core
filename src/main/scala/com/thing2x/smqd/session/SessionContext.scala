@@ -16,6 +16,7 @@ package com.thing2x.smqd.session
 
 import com.thing2x.smqd.ClientId
 import com.thing2x.smqd.QoS.QoS
+import io.netty.buffer.ByteBuf
 
 /**
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
@@ -35,7 +36,7 @@ trait SessionContext {
   def sessionStopped(): Unit
   def close(reason: String): Unit
 
-  def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit
+  def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, payload: ByteBuf): Unit
   def writePubRel(msgId: Int): Unit
 }
 
