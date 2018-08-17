@@ -63,7 +63,7 @@ class MqttChannelInitializer(smqd: Smqd,
   override def handlerAdded(ctx: ChannelHandlerContext): Unit = {
     super.handlerAdded(ctx)
 
-    val channelContext = MqttSessionContext(ctx, smqd, listenerName)
+    val channelContext = MqttSessionContext(ctx.channel, smqd, listenerName)
     channelContext.keepAliveTimeSeconds = defaultKeepAliveTime
 
     ctx.channel.attr(ATTR_SESSION_CTX).set(channelContext)
