@@ -28,7 +28,6 @@ import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
 
-import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
@@ -60,7 +59,7 @@ object SessionActor {
   case object InboundDisconnect
 }
 
-class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken)
+class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken)
   extends Actor with Timers with ActorIdentifying with StrictLogging {
 
   private val localMessageId: AtomicLong = new AtomicLong(1)
@@ -71,16 +70,16 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   private var challengingActor: Option[ActorRef] = None
 
   override def preStart(): Unit = {
-    ctx.sessionStarted()
+    sessionCtx.sessionStarted()
   }
 
   override def postStop(): Unit = {
     // notify session actor's death to session manager actor,
     // so that ddata can remove session actor's registration from ddata
-    context.parent ! SessionActorPostStopNotification(ctx.clientId, self)
+    context.parent ! SessionActorPostStopNotification(sessionCtx.clientId, self)
 
     sstore.flushSession(stoken)
-    ctx.sessionStopped()
+    sessionCtx.sessionStopped()
   }
 
   override def receive: Receive = {
@@ -97,23 +96,23 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   }
 
   private def challengeChannel(replyTo: ActorRef, challenge: NewSessionChallenge): Unit = {
-    logger.trace(s"[${ctx.clientId}] challenged new channel by ${challenge.by}")
-    if (challengingActor.isEmpty && (ctx.state == SessionState.ConnectAcked || ctx.state == SessionState.Failed)) {
+    logger.trace(s"[${sessionCtx.clientId}] challenged new channel by ${challenge.by}")
+    if (challengingActor.isEmpty && (sessionCtx.state == SessionState.ConnectAcked || sessionCtx.state == SessionState.Failed)) {
       // if requestor (SessionManager) is in the same local node, it sends promise directly
       // in other case (remote node), reply as normal message
-      replyTo ! NewSessionChallengeAccepted(ctx.clientId)
+      replyTo ! NewSessionChallengeAccepted(sessionCtx.clientId)
       // the actor picks its successor
       challengingActor = Some(replyTo)
     }
     else {
       // if the session actor is during the CONNECT process or has already successor(challengingAcotr),
       // makes other challengers failed.
-      replyTo ! NewSessionChallengeDenied(ctx.clientId)
+      replyTo ! NewSessionChallengeDenied(sessionCtx.clientId)
     }
   }
 
   private def inboundDisconnect(): Unit = {
-    ctx.sessionDisconnected("received Disconnect")
+    sessionCtx.close("received Disconnect")
   }
 
   private def inboundPublish(ipub: InboundPublish): Unit = {
@@ -125,7 +124,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     // [MQTT-3.3.5-2] If a Server implementation does not authorize a PUBLISH to be performed by a Client;
     // It has no way of informing that Client. It MUST either make a positive acknowledgement, according to the
     // normal QoS rules, or close the Network Connection.
-    smqd.allowPublish(ipub.topicPath, ctx.clientId, ctx.userName).onComplete {
+    smqd.allowPublish(ipub.topicPath, sessionCtx.clientId, sessionCtx.userName).onComplete {
       // FIXME: asynchronous calls 'allowPublish()' can make messages to be delivered in dis-ordered
       case Success(canPublish) if canPublish =>
         if (ipub.isRetain) {
@@ -172,8 +171,8 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
           case None =>
         }
       case _ =>
-        smqd.notifyFault(InvalidTopicToPublish(ctx.clientId.toString, ipub.topicPath.toString))
-        ctx.sessionDisconnected(s"publishing message on prohibited topic ${ipub.topicPath.toString}")
+        smqd.notifyFault(InvalidTopicToPublish(sessionCtx.clientId.toString, ipub.topicPath.toString))
+        sessionCtx.close(s"publishing message on prohibited topic ${ipub.topicPath.toString}")
     }
   }
 
@@ -181,7 +180,6 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   import spray.json._
 
   private def outboundPublish(opub: OutboundPublish): Unit = {
-    val msgId = nextMessageId
     val msg = opub.msg match {
       case a: Array[Byte] => a
       case b: ByteBuf =>
@@ -198,15 +196,18 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     }
     opub.qos match {
       case QoS.AtMostOnce =>
-        ctx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
+        //// SPEC: A PUBLISH packet MUST NOT contain a Packet Identifier if its QoS value is set to 0
+        sessionCtx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, 0, msg)
 
       case QoS.AtLeastOnce => // wait ack
+        val msgId = nextMessageId
         sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, msg)
-        ctx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
+        sessionCtx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
 
       case QoS.ExactlyOnce => // wait rec, comp
+        val msgId = nextMessageId
         sstore.storeBeforeDelivery(stoken, opub.topicPath, opub.qos, opub.isRetain, msgId, msg)
-        ctx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
+        sessionCtx.deliver(opub.topicPath.toString, opub.qos, opub.isRetain, msgId, msg)
     }
   }
 
@@ -231,7 +232,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
       // check if the topic name is valid
       TPath.parseForFilter(s.topicName) match {
         case Some(filterPath) =>
-          smqd.allowSubscribe(filterPath, s.qos, ctx.clientId, ctx.userName).map { qos =>
+          smqd.allowSubscribe(filterPath, s.qos, sessionCtx.clientId, sessionCtx.userName).map { qos =>
             // check if subscription is allowed by registry
             (qos, s.topicName, if(qos == QoS.Failure) "NotAllowed" else "Allowed")
           }.recover {
@@ -241,7 +242,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
           }.map { case (qos, topicName, msg) =>
             // actual subscription, only for topics that are passed allowance check point
             if (qos != QoS.Failure) {
-              val finalQoS = smqd.subscribe(topicName, self, ctx.clientId, qos)
+              val finalQoS = smqd.subscribe(topicName, self, sessionCtx.clientId, qos)
               (finalQoS, topicName, if (finalQoS == QoS.Failure) "RegistryFailure" else msg)
             }
             else {
@@ -259,23 +260,23 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
           if (qos == QoS.Failure) {
             reason match {
               case "NotAllowed" =>       // subscription not allowed
-                smqd.notifyFault(TopicNotAllowedToSubscribe(ctx.clientId.toString, s"Subscribe not allowed: $topic"))
+                smqd.notifyFault(TopicNotAllowedToSubscribe(sessionCtx.clientId.toString, s"Subscribe not allowed: $topic"))
               case "InvalidTopic" =>     // failure if the topicName is unable to parse
-                smqd.notifyFault(InvalidTopicNameToSubscribe(ctx.clientId.toString, s"Invalid topic to subscribe: $topic"))
+                smqd.notifyFault(InvalidTopicNameToSubscribe(sessionCtx.clientId.toString, s"Invalid topic to subscribe: $topic"))
               case "DelegateFailure" =>  // subscription failure on registry delegate, so no retained messages
-                smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe failed by delegate: $topic"))
+                smqd.notifyFault(UnknownErrorToSubscribe(sessionCtx.clientId.toString, s"Subscribe failed by delegate: $topic"))
               case "RegistryFailure" =>  // subscription failure on registry
-                smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe filaed by registry"))
+                smqd.notifyFault(UnknownErrorToSubscribe(sessionCtx.clientId.toString, s"Subscribe filaed by registry"))
               case ex =>  // subscription failure, so no retained messages
-                smqd.notifyFault(UnknownErrorToSubscribe(ctx.clientId.toString, s"Subscribe failed $ex: $topic"))
+                smqd.notifyFault(UnknownErrorToSubscribe(sessionCtx.clientId.toString, s"Subscribe failed $ex: $topic"))
             }
           }
           else {
             // protocol tracking may make endless echo, to prevent it, remove protocol handlers from pipeline
             if (topic == "$SYS/protocols" || topic.startsWith("$SYS/protocols/")) {
-              ctx match {
+              sessionCtx match {
                 case mqttCtx: MqttSessionContext =>
-                  logger.info(s"[${ctx.clientId}] echo cancelling for protocol notification")
+                  logger.info(s"[${sessionCtx.clientId}] echo cancelling for protocol notification")
                   mqttCtx.removeProtocolNotification()
                 case _ =>
               }
@@ -321,7 +322,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
             smqd.unsubscribe(filterPath, self)
           case _=>
             // failure if the topicName is unable to parse
-            smqd.notifyFault(InvalidTopicNameToUnsubscribe(ctx.clientId.toString, topicName))
+            smqd.notifyFault(InvalidTopicNameToUnsubscribe(sessionCtx.clientId.toString, topicName))
             false
         }
       }
@@ -337,7 +338,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   }
 
   private def channelClosed(clearSession: Boolean): Unit = {
-    logger.trace(s"[${ctx.clientId}] channel closed, clearSession: $clearSession")
+    logger.trace(s"[${sessionCtx.clientId}] channel closed, clearSession: $clearSession")
     if (noOfSubscription.get > 0)
       smqd.unsubscribe(self)
     context.stop(self)

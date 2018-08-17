@@ -33,7 +33,7 @@ trait SessionContext {
 
   def sessionStarted(): Unit
   def sessionStopped(): Unit
-  def sessionDisconnected(reason: String): Unit
+  def close(reason: String): Unit
 
   def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit
 }

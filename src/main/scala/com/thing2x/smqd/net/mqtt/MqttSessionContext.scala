@@ -104,17 +104,23 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
     channel.pipeline.remove(PROTO_IN_HANDLER)
   }
 
+  /**
+    * Called by SessionActor when it started in `preStart()`
+    */
   override def sessionStarted(): Unit = {
     logger.trace(s"[$clientId] session started")
   }
 
+  /**
+    * Called by SessionActor when it stopped in `postStop()`
+    */
   override def sessionStopped(): Unit = {
     logger.trace(s"[$clientId] session stopped")
     if (channel.isOpen && !channel.eventLoop().isShutdown)
       channel.close()
   }
 
-  override def sessionDisconnected(reason: String): Unit = {
+  override def close(reason: String): Unit = {
     logger.trace(s"[$clientId] session disconnect: $reason")
     if (channel.isOpen)
       channel.close()
