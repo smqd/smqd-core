@@ -126,7 +126,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
   }
 
   private def inboundDisconnect(): Unit = {
-    ctx.sessionDisconnect("received Disconnect")
+    ctx.sessionDisconnected("received Disconnect")
   }
 
   private def inboundPublish(ipub: InboundPublish): Unit = {
@@ -186,7 +186,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
         }
       case _ =>
         smqd.notifyFault(InvalidTopicToPublish(ctx.clientId.toString, ipub.topicPath.toString))
-        ctx.sessionDisconnect(s"publishing message on prohibited topic ${ipub.topicPath.toString}")
+        ctx.sessionDisconnected(s"publishing message on prohibited topic ${ipub.topicPath.toString}")
     }
   }
 
@@ -289,7 +289,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
               ctx match {
                 case mqttCtx: MqttSessionContext =>
                   logger.info(s"[${ctx.clientId}] echo cancelling for protocol notification")
-                  mqttCtx.cancelProtocolNotification()
+                  mqttCtx.removeProtocolNotification()
                 case _ =>
               }
             }

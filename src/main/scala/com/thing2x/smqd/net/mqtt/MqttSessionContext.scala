@@ -19,7 +19,7 @@ import com.thing2x.smqd._
 import com.thing2x.smqd.session.{SessionActor, SessionContext}
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.socket.SocketChannel
-import io.netty.channel.{Channel, ChannelFuture, ChannelHandlerContext}
+import io.netty.channel.{Channel, ChannelFuture}
 import io.netty.handler.codec.mqtt._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,14 +54,6 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
       case _ => state
     }
   }
-
-//  // Did we have received CONNECT?
-//  private var _haveConnectMessage: Boolean = false
-//  def haveConnectMessage: Boolean = _haveConnectMessage
-//  def haveConnectMessage_= (flag: Boolean): Unit = {
-//    if (_haveConnectMessage) return // allow only one time change
-//    _haveConnectMessage = flag
-//  }
 
   private var _clientId: ClientId = _
   override def clientId: ClientId = _clientId
@@ -107,7 +99,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
   override def keepAliveTimeSeconds: Int = _keepAliveTimeSeconds
   def keepAliveTimeSeconds_= (timeInSeconds: Int): Unit = _keepAliveTimeSeconds = math.min(math.max(timeInSeconds, 0), 0xFFFF)
 
-  def cancelProtocolNotification(): Unit = {
+  def removeProtocolNotification(): Unit = {
     channel.pipeline.remove(PROTO_OUT_HANDLER)
     channel.pipeline.remove(PROTO_IN_HANDLER)
   }
@@ -128,7 +120,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
       channel.close()
   }
 
-  override def sessionDisconnect(reason: String): Unit = {
+  override def sessionDisconnected(reason: String): Unit = {
     logger.trace(s"[$clientId] session disconnect: $reason")
     if (channel.isOpen)
       channel.close()

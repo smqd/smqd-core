@@ -34,7 +34,7 @@ trait SessionContext {
   def sessionStarted(): Unit
   def sessionStopped(): Unit
   def sessionTimeout(): Unit
-  def sessionDisconnect(reason: String): Unit
+  def sessionDisconnected(reason: String): Unit
 
   def deliver(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, msg: Array[Byte]): Unit
 }
