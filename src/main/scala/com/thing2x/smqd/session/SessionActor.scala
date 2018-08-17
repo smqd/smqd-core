@@ -139,6 +139,7 @@ class SessionActor(ctx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken
     // It has no way of informing that Client. It MUST either make a positive acknowledgement, according to the
     // normal QoS rules, or close the Network Connection.
     smqd.allowPublish(ipub.topicPath, ctx.clientId, ctx.userName).onComplete {
+      // FIXME: asynchronous calls 'allowPublish()' can make messages to be delivered in dis-ordered
       case Success(canPublish) if canPublish =>
         if (ipub.isRetain) {
           // [MQTT-3.3.1-5] If the RETAIN flag is set to 1, in a PUBLISH Packet sent by a Client to Server,
