@@ -23,7 +23,7 @@ import scala.util.Random
 // 2018. 7. 11. - Created by Kwon, Yeong Eon
 
 class TPathTrieTest extends FlatSpec with StrictLogging{
-  val trie = TPathTrie[String]()
+  var trie = TPathTrie[String]()
 
   "TPathTrie" should "append children" in {
     trie.add(FilterPath(""), context = "empty")
@@ -69,5 +69,47 @@ class TPathTrieTest extends FlatSpec with StrictLogging{
 
     m1 = trie.matches(TopicPath("$SYS/protocols"))
     assert(m1.toSet == Set("#", "protocol"))
+  }
+
+  "Sub/UnSub" should "selective unsubscription" in {
+    trie = TPathTrie[String]()
+
+    trie.add(FilterPath("$SYS/requestors/test-01/#"), context = "r1")
+    trie.add(FilterPath("$local/$SYS/faults/#"), context = "f1")
+    trie.add(FilterPath("$SYS/protocols"), context = "p1")
+    trie.add(FilterPath("$local/$SYS/protocols/#"), context = "p2")
+
+    val sb = new StringBuilder()
+    trie.dump(sb)
+    logger.info(s"\n${sb.toString}")
+
+    var m = trie.matches(TopicPath("$SYS/requestors/test-01/1"))
+    assert(m.length == 1 && m.head == "r1")
+
+    m = trie.matches(TopicPath("$SYS/faults"))
+    assert(m.length == 1 && m.head == "f1")
+
+    m = trie.matches(TopicPath("$SYS/protocols"))
+    assert(m.length == 2 && m.contains("p1") && m.contains("p2"))
+
+    // remove only one item from trie
+    val rs = trie.filter(_ == "p1")
+    rs.foreach{ r =>
+      val noRemains = trie.remove(FilterPath("$SYS/protocols"), r)
+      logger.info(s"===> $r   $noRemains")
+    }
+
+    sb.clear()
+    trie.dump(sb)
+    logger.info(s"\n${sb.toString}")
+
+    m = trie.matches(TopicPath("$SYS/requestors/test-01/1"))
+    assert(m.length == 1 && m.head == "r1")
+
+    m = trie.matches(TopicPath("$SYS/faults"))
+    assert(m.length == 1 && m.head == "f1")
+
+    m = trie.matches(TopicPath("$SYS/protocols"))
+    assert(m.length == 1 && m.head == "p2")
   }
 }

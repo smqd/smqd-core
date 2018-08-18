@@ -28,3 +28,10 @@ The below result shows the performance of the data structure that network intera
 |---------------|--------------|------------|----------------|----------------|
 | 1K x 1K       |  9,953 ms.   | 8,662 ms.  |    5,165 ms.   |                |
 | 1M            |  10,380 ms   | 8,747 ms.  |    4,747 ms.   |  2,408 ms.     |
+
+#### Test: 2018-Oct-18 (fix unregistration bug)
+
+| Scenario      | Registration | Filtering  | Unregistration | Snapshot&Count |
+|---------------|--------------|------------|----------------|----------------|
+| 1K x 1K       |  9,125 ms.   | 10,219 ms. |    9,634 ms.   |                |
+| 1M            |  11,629 ms   |  8,090 ms. |   12,481 ms.   |  2,379 ms.     |
