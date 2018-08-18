@@ -148,7 +148,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
   })
 
   override def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, payload: ByteBuf): Unit = {
-    logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: ($msgId) ${payload.readableBytes}")
+    logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: $msgId length: ${payload.readableBytes}")
     channel.writeAndFlush(new MqttPublishMessage(
       new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, isRetain, 0),
       new MqttPublishVariableHeader(topic, msgId),
