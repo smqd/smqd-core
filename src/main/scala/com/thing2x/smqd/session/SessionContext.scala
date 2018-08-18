@@ -30,7 +30,6 @@ trait SessionContext {
   def cleanSession: Boolean
 
   def state: SessionState.SessionState
-  def state_= (state: SessionState.SessionState): Unit
 
   def sessionStarted(): Unit
   def sessionStopped(): Unit

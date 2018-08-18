@@ -53,7 +53,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
 
   private var _state: State = SessionState.Initiated
   override def state: State = _state
-  override def state_= (state: State): Unit = {
+  def state_= (state: State): Unit = {
     import SessionState._
     _state = _state match {
       case Failed => Failed
