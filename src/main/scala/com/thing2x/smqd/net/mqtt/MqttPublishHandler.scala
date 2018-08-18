@@ -100,52 +100,35 @@ class MqttPublishHandler extends ChannelInboundHandlerAdapter with StrictLogging
     val topicName = vh.topicName()
     val payload = m.payload()
 
-    val topicPath = TPath.parseForTopic(topicName) match {
-      case Some(tp) => tp
+    val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
+    val sessionActor = handlerCtx.channel.attr(ATTR_SESSION).get
+
+    TPath.parseForTopic(topicName) match {
+      case Some(topicPath) => // valid topic name
+        import sessionCtx.smqd.Implicit._
+
+        // check if this client has permission to publish messages on this topic
+        //
+        // [MQTT-3.3.5-2] If a Server implementation does not authorize a PUBLISH to be performed by a Client;
+        // It has no way of informing that Client. It MUST either make a positive acknowledgement, according to the
+        // normal QoS rules, or close the Network Connection.
+        sessionCtx.smqd.allowPublish(topicPath, sessionCtx.clientId, sessionCtx.userName).onComplete {
+          case Success(canPublish) if canPublish =>
+            // publishing is authorized
+            val array = new Array[Byte](payload.readableBytes)
+            payload.readBytes(array)
+            payload.release()
+
+            sessionActor ! InboundPublish(topicPath, qosLevel, isRetain, isDup, array, pktId)
+          case _ =>
+            // publishing is not authorized
+            sessionCtx.smqd.notifyFault(InvalidTopicToPublish(sessionCtx.clientId.toString, topicName))
+            sessionCtx.close(s"publishing message on prohibited topic $topicName")
+        }
       case _ => // invalid topic name
-        val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
         sessionCtx.smqd.notifyFault(InvalidTopicToPublish(sessionCtx.clientId.toString, topicName))
         handlerCtx.close()
-        return
     }
-
-    // AuthorizePublish
-    val sessionCtx = handlerCtx.channel.attr(ATTR_SESSION_CTX).get
-    import sessionCtx.smqd.Implicit._
-
-    val sessionActor = handlerCtx.channel.attr(ATTR_SESSION).get
-    val array = new Array[Byte](payload.readableBytes)
-    payload.readBytes(array)
-    payload.release()
-
-    val promise = if (qosLevel == AT_LEAST_ONCE || qosLevel == EXACTLY_ONCE) Some(Promise[Boolean]) else None
-    sessionActor ! InboundPublish(topicPath, qosLevel, isRetain, array, promise)
-
-    promise match {
-      case Some(p) =>
-        p.future.onComplete {
-          case Success(_) =>
-            qosLevel match {
-              case AT_MOST_ONCE =>  // 0,  no ack
-
-              case AT_LEAST_ONCE => // 1,  ack
-                handlerCtx.channel.writeAndFlush(new MqttPubAckMessage(
-                  new MqttFixedHeader(PUBACK, false, AT_LEAST_ONCE, false, 0),
-                  MqttMessageIdVariableHeader.from(pktId)))
-
-              case EXACTLY_ONCE => // 2, exactly_once
-                handlerCtx.channel.writeAndFlush(new MqttMessage(
-                  new MqttFixedHeader(PUBREC, false, AT_LEAST_ONCE, false, 0),
-                  MqttMessageIdVariableHeader.from(pktId)))
-
-              case _ =>
-            }
-
-          case Failure(_) =>
-        }
-      case None =>
-    }
-
   }
 
   //// Scenario: Receiving Message from Client, QoS 2

@@ -28,6 +28,7 @@ import com.thing2x.smqd.session.SessionManagerActor.SessionActorPostStopNotifica
 import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.{ByteBuf, Unpooled}
+import io.netty.handler.codec.mqtt.MqttQoS.{AT_LEAST_ONCE, AT_MOST_ONCE}
 
 import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
@@ -51,7 +52,7 @@ object SessionActor {
   case class Subscribe(subs: Seq[Subscription], promise: Promise[Seq[QoS]])
   case class Unsubscribe(subs: Seq[String], promise: Promise[Seq[Boolean]])
 
-  case class InboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, msg: Array[Byte], promise: Option[Promise[Boolean]])
+  case class InboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, isDup: Boolean, payload: Array[Byte], packetId: Int)
   case class OutboundPublish(topicPath: TopicPath, qos: QoS, isRetain: Boolean, msg: Any)
   case class OutboundPublishAck(msgId: Int)
   case class OutboundPublishRec(msgId: Int)
@@ -117,63 +118,52 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
   }
 
   private def inboundPublish(ipub: InboundPublish): Unit = {
+    // Retain
+    if (ipub.isRetain) {
+      // [MQTT-3.3.1-5] If the RETAIN flag is set to 1, in a PUBLISH Packet sent by a Client to Server,
+      // the Server MUST store the Application Message and its QoS, so that it can be delivered to future subscribers
+      // whose subscriptions match its topic name
 
-    import smqd.Implicit._
+      val isZeroSizePayload = ipub.payload.length == 0
 
-    // check if this client has permission to publish message on this topic
+      if (isZeroSizePayload) {
+        // [MQTT-3.3.1-10] A PUBILSH Packet with a RETAIN flag set to 1 and playload containing zero bytes will be
+        // processed as normal by the Server and sent to Client with subscription matching the topic name. Additionally
+        // any existing retained message with the same topic name MUST be removed and any future subscribers for
+        // the topic will not receive a retained message
+
+        // [MQTT-3.3.1-11] A zero byte retained message MUST NOT be stored as a retained message on the Server
+
+        // delete retained message
+        smqd.unretain(ipub.topicPath)
+      }
+      else {
+        // [MQTT-3.3.1-7] If the Server receives a QoS 0 message with the RETAIN flag set to 1 it MUST discard
+        // any message previously retained for that topic. It SHOULD store the new QoS 0 message as the new retained
+        // message for that topic, buf MAY choose to discard it at any time - if this happens there will be no
+        // retained message for that topic
+
+        // store retained message
+        smqd.retain(ipub.topicPath, ipub.payload)
+      }
+    }
+    else {
+      // [MQTT-3.3.1-12] If the RETAIN flag is 0, in a PUBLISH Packet sent by a Client to Server, the Server
+      // MUST NOT store the message and MUST NOT remove or replace any existing retained message
+    }
+
+    // inter-nodes routing messaging
     //
-    // [MQTT-3.3.5-2] If a Server implementation does not authorize a PUBLISH to be performed by a Client;
-    // It has no way of informing that Client. It MUST either make a positive acknowledgement, according to the
-    // normal QoS rules, or close the Network Connection.
-    smqd.allowPublish(ipub.topicPath, sessionCtx.clientId, sessionCtx.userName).onComplete {
-      // FIXME: asynchronous calls 'allowPublish()' can make messages to be delivered in dis-ordered
-      case Success(canPublish) if canPublish =>
-        if (ipub.isRetain) {
-          // [MQTT-3.3.1-5] If the RETAIN flag is set to 1, in a PUBLISH Packet sent by a Client to Server,
-          // the Server MUST store the Application Message and its QoS, so that it can be delivered to future subscribers
-          // whose subscriptions match its topic name
+    // [MQTT-3.3.1-9] The server MUST set the RETAIN flag to 0 when a PUBLISH Packet is sent to a Client
+    // because it matches an established subscription regardless of how the flag was set in the message it received
+    smqd.publish(ipub.topicPath, ipub.payload)
 
-          val isZeroSizePayload = ipub.msg.length == 0
-
-          if (isZeroSizePayload) {
-            // [MQTT-3.3.1-10] A PUBILSH Packet with a RETAIN flag set to 1 and playload containing zero bytes will be
-            // processed as normal by the Server and sent to Client with subscription matching the topic name. Additionally
-            // any existing retained message with the same topic name MUST be removed and any future subscribers for
-            // the topic will not receive a retained message
-
-            // [MQTT-3.3.1-11] A zero byte retained message MUST NOT be stored as a retained message on the Server
-
-            // delete retained message
-            smqd.unretain(ipub.topicPath)
-          }
-          else {
-            // [MQTT-3.3.1-7] If the Server receives a QoS 0 message with the RETAIN flag set to 1 it MUST discard
-            // any message previously retained for that topic. It SHOULD store the new QoS 0 message as the new retained
-            // message for that topic, buf MAY choose to discard it at any time - if this happens there will be no
-            // retained message for that topic
-
-            // store retained message
-            smqd.retain(ipub.topicPath, ipub.msg)
-          }
-        }
-        else {
-          // [MQTT-3.3.1-12] If the RETAIN flag is 0, in a PUBLISH Packet sent by a Client to Server, the Server
-          // MUST NOT store the message and MUST NOT remove or replace any existing retained message
-        }
-
-        // inter-nodes routing messaging
-        //
-        // [MQTT-3.3.1-9] The server MUST set the RETAIN flag to 0 when a PUBLISH Packet is sent to a Client
-        // because it matches an established subscription regardless of how the flag was set in the message it received
-        smqd.publish(ipub.topicPath, ipub.msg)
-
-        ipub.promise match {
-          case Some(p) => p.success(true)
-          case None =>
-        }
-      case _ =>
-        smqd.notifyFault(InvalidTopicToPublish(sessionCtx.clientId.toString, ipub.topicPath.toString))
-        sessionCtx.close(s"publishing message on prohibited topic ${ipub.topicPath.toString}")
+    ipub.qos match {
+      case QoS.AtMostOnce =>  // 0, no ack
+      case QoS.AtLeastOnce => // 1, ack
+        sessionCtx.writePubAck(ipub.packetId)
+      case QoS.ExactlyOnce => // 2, exactly once
+        sessionCtx.writePubRec(ipub.packetId)
     }
   }
 

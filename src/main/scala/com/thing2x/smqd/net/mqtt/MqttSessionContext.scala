@@ -22,7 +22,7 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel.embedded.EmbeddedChannel
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.{Channel, ChannelFuture, ChannelFutureListener}
-import io.netty.handler.codec.mqtt.MqttMessageType.PUBREL
+import io.netty.handler.codec.mqtt.MqttMessageType.{PUBACK, PUBREC, PUBREL}
 import io.netty.handler.codec.mqtt.MqttQoS.AT_LEAST_ONCE
 import io.netty.handler.codec.mqtt._
 
@@ -161,5 +161,17 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
       new MqttFixedHeader(PUBREL, false, AT_LEAST_ONCE, false, 0),
       MqttMessageIdVariableHeader.from(msgId)
     ))
+  }
+
+  override def writePubAck(msgId: Int): Unit = {
+    channel.writeAndFlush(new MqttPubAckMessage(
+      new MqttFixedHeader(PUBACK, false, AT_LEAST_ONCE, false, 0),
+      MqttMessageIdVariableHeader.from(msgId)))
+  }
+
+  override def writePubRec(msgId: Int): Unit = {
+    channel.writeAndFlush(new MqttMessage(
+      new MqttFixedHeader(PUBREC, false, AT_LEAST_ONCE, false, 0),
+      MqttMessageIdVariableHeader.from(msgId)))
   }
 }

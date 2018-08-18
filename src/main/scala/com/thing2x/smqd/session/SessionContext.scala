@@ -37,6 +37,8 @@ trait SessionContext {
 
   def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, payload: ByteBuf): Unit
   def writePubRel(msgId: Int): Unit
+  def writePubAck(msgId: Int): Unit
+  def writePubRec(msgId: Int): Unit
 }
 
 object SessionState extends Enumeration {
