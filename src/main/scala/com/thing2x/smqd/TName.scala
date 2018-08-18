@@ -356,11 +356,11 @@ class TPathTrie[T] {
           val current = des.head
           children.get(current) match {
             case Some(child) =>
-              val noOfContexts = child.removeDescendants(des.tail)(contextMatcher)
+              val noOfContextsChildHas = child.removeDescendants(des.tail)(contextMatcher)
               if (child.contexts.isEmpty && child.children.isEmpty) {
                 children.remove(current)
               }
-              noOfContexts
+              noOfContextsChildHas
             case _ => // Question: can we silently ignore?
               if (children.isEmpty)
                 contexts.length * -1 // ask parent not to remove me, i still have contexts
@@ -386,11 +386,11 @@ class TPathTrie[T] {
           val current = des.head
           children.get(current) match {
             case Some(child) =>
-              val noOfContexts = child.removeDescendants(des.tail, context)
+              val noOfContextsChildHas = child.removeDescendants(des.tail, context)
               if (child.contexts.isEmpty && child.children.isEmpty) {
                 children.remove(current)
               }
-              noOfContexts
+              noOfContextsChildHas
             case _ => // Question: can we silently ignore?
               if (children.isEmpty)
                 contexts.length * -1 // ask parent not to remove me, i still have contexts
