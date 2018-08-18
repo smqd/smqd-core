@@ -43,8 +43,8 @@ class MqttProtocolInboundHandler extends ChannelInboundHandlerAdapter with MqttP
   override def userEventTriggered(ctx: ChannelHandlerContext, evt: scala.Any): Unit = {
     evt match {
       case RemoveProtocolHandler =>
-        ctx.pipeline.remove(PROTO_OUT_HANDLER)
-        ctx.pipeline.remove(PROTO_IN_HANDLER)
+        ctx.pipeline.remove(HANDLER_PROTO_OUT)
+        ctx.pipeline.remove(HANDLER_PROTO_IN)
       case _ =>
         ctx.fireUserEventTriggered(evt)
     }

@@ -73,28 +73,28 @@ class MqttSimpleTest extends WordSpec
 
     channel = new EmbeddedChannel()
     val pipeline = channel.pipeline()
-    pipeline.addLast(CHANNEL_BPS_HANDLER, channelBpsCounter)
+    pipeline.addLast(HANDLER_CHANNEL_BPS, channelBpsCounter)
 
     //    if (sslEngine.isDefined) {
     //      pipeline.addLast(SSL_HANDLER, new SslHandler(sslEngine.get))
     //    }
 
-    pipeline.addLast(DECODING_HANDLER, new MqttDecoder(messageMaxSize))
-    pipeline.addLast(ENCODING_HANDLER, MqttEncoder.INSTANCE)
+    pipeline.addLast(HANDLER_DECODING, new MqttDecoder(messageMaxSize))
+    pipeline.addLast(HANDLER_ENCODING, MqttEncoder.INSTANCE)
 
     //pipeline.addLast("loggingHandler", new io.netty.handler.logging.LoggingHandler("mqtt.logger", LogLevel.INFO))
 
-    pipeline.addLast(CHANNEL_TPS_HANDLER, channelTpsCounter)
+    pipeline.addLast(HANDLER_CHANNEL_TPS, channelTpsCounter)
 
-    pipeline.addLast(IDLE_STATE_HANDLER, new IdleStateHandler(7, 0, 0))
+    pipeline.addLast(HANDLER_IDLE_STATE, new IdleStateHandler(7, 0, 0))
 
-    pipeline.addLast(KEEPALIVE_HANDLER, MqttKeepAliveHandler())
-    pipeline.addLast(PROTO_OUT_HANDLER, MqttProtocolOutboundHandler())
-    pipeline.addLast(PROTO_IN_HANDLER, MqttProtocolInboundHandler())
-    pipeline.addLast(PUBLISH_HANDLER, MqttPublishHandler())
-    pipeline.addLast(SUBSCRIBE_HANDLER, MqttSubscribeHandler())
-    pipeline.addLast(CONNECT_HANDER, MqttConnectHandler(clientIdentifierFormat))
-    pipeline.addLast(EXCEPTION_HANDLER, MqttExceptionHandler())
+    pipeline.addLast(HANDLER_KEEPALIVE, MqttKeepAliveHandler())
+    pipeline.addLast(HANDLER_PROTO_OUT, MqttProtocolOutboundHandler())
+    pipeline.addLast(HANDLER_PROTO_IN, MqttProtocolInboundHandler())
+    pipeline.addLast(HANDLER_PUBLISH, MqttPublishHandler())
+    pipeline.addLast(HANDLER_SUBSCRIBE, MqttSubscribeHandler())
+    pipeline.addLast(HANDLER_CONNECT, MqttConnectHandler(clientIdentifierFormat))
+    pipeline.addLast(HANDLER_EXCEPTION, MqttExceptionHandler())
 
     val sessionCtx = MqttSessionContext(channel, smqdInstance, listenerName)
     sessionCtx.keepAliveTimeSeconds = 60

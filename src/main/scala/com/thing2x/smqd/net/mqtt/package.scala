@@ -29,22 +29,22 @@ package object mqtt {
   val TLS = "TLS"
   val PROTOCOL_LEVEL = 4
 
-  val CHANNEL_BPS_HANDLER = "channel.traffic.bps.handler"
-  val CHANNEL_TPS_HANDLER = "channel.traffic.tps.handler"
-  val IDLE_STATE_HANDLER = "idle.state.handler"
+  val HANDLER_CHANNEL_BPS = "channel.traffic.bps.handler"
+  val HANDLER_CHANNEL_TPS = "channel.traffic.tps.handler"
+  val HANDLER_IDLE_STATE = "idle.state.handler"
 
-  val SSL_HANDLER = "ssl.handler"
-  val DECODING_HANDLER = "decoder.handler"
-  val ENCODING_HANDLER = "encoder.handler"
+  val HANDLER_SSL = "ssl.handler"
+  val HANDLER_DECODING = "decoder.handler"
+  val HANDLER_ENCODING = "encoder.handler"
 
-  val KEEPALIVE_HANDLER = "keepalive.handler"
-  val PROTO_OUT_HANDLER = "protocol.outbound.handler"
-  val PROTO_IN_HANDLER = "protocol.inbound.handler"
-  val PUBLISH_HANDLER = "publish.handler"
-  val SUBSCRIBE_HANDLER = "subscribe.handler"
-  val CONNECT_HANDER = "connect.handler"
+  val HANDLER_KEEPALIVE = "keepalive.handler"
+  val HANDLER_PROTO_OUT = "protocol.outbound.handler"
+  val HANDLER_PROTO_IN = "protocol.inbound.handler"
+  val HANDLER_PUBLISH = "publish.handler"
+  val HANDLER_SUBSCRIBE = "subscribe.handler"
+  val HANDLER_CONNECT = "connect.handler"
 
-  val EXCEPTION_HANDLER = "exception.handler"
+  val HANDLER_EXCEPTION = "exception.handler"
 
   val ATTR_SESSION_CTX: AttributeKey[MqttSessionContext] = AttributeKey.newInstance("attr.session.context")
 

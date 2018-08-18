@@ -131,7 +131,7 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
     // Keep Alive Time - replace existing IdleStateHandler with time value from Connect message.
     //                   The timeout event 'IdleStateEvent' will come to 'userEventTriggered()' in MqttKeepAliveHandler.
     val keepAliveTimeSeconds = vh.keepAliveTimeSeconds
-    handlerCtx.pipeline.replace(IDLE_STATE_HANDLER, IDLE_STATE_HANDLER, new IdleStateHandler((keepAliveTimeSeconds * 1.5).toInt, 0, 0))
+    handlerCtx.pipeline.replace(HANDLER_IDLE_STATE, HANDLER_IDLE_STATE, new IdleStateHandler((keepAliveTimeSeconds * 1.5).toInt, 0, 0))
 
     // Will
     sessionCtx.will = if (vh.isWillFlag) {
