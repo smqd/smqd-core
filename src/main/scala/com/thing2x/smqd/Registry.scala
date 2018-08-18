@@ -33,7 +33,7 @@ import scala.concurrent.{Await, Future}
 trait Registry {
   def subscribe(filterPath: FilterPath, actor: ActorRef, sessionId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): QoS
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean
-  def unsubscribeAll(actor: ActorRef): Boolean
+  def unsubscribe(actor: ActorRef): Boolean
   def filter(topicPath: TopicPath): Seq[Registration]
 
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef
@@ -103,7 +103,7 @@ abstract class AbstractRegistry(smqd: Smqd) extends Registry with ActorIdentifyi
     unsubscribe0(actor, filterPath)
   }
 
-  def unsubscribeAll(actor: ActorRef): Boolean = {
+  def unsubscribe(actor: ActorRef): Boolean = {
     unsubscribe0(actor)
   }
 

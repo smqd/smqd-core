@@ -229,7 +229,7 @@ class Smqd(val config: Config,
 
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean = unsubscribe(actor, Some(filterPath))
   def unsubscribe(actor: ActorRef, filterPath: Option[FilterPath] = None): Boolean =
-    filterPath match { case Some(filter) => registry.unsubscribe(filter, actor) case _ => registry.unsubscribeAll(actor) }
+    filterPath match { case Some(filter) => registry.unsubscribe(filter, actor) case _ => registry.unsubscribe(actor) }
 
   def publish(topicPath: TopicPath, message: Any, isRetain: Boolean = false): Unit =
     router.routes(RoutableMessage(topicPath, message, isRetain))
