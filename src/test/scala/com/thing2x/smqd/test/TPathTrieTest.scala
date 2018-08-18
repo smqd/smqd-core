@@ -97,6 +97,7 @@ class TPathTrieTest extends FlatSpec with StrictLogging{
     rs.foreach{ r =>
       val noRemains = trie.remove(FilterPath("$SYS/protocols"), r)
       logger.info(s"===> $r   $noRemains")
+      assert(noRemains == 0)
     }
 
     sb.clear()
