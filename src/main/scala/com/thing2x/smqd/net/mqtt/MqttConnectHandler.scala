@@ -118,7 +118,9 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.1.2-2] The Server MUST respond to the CONNECT Packet with CONNACK return code 0x01
       // (unacceptable_protocol_level) and then disconnect the Client if the Protocol Level is not supported by the Server
       sessionCtx.smqd.notifyFault(UnacceptableProtocolVersion(protocolName, protocolLevel))
-      connectAck(handlerCtx, CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION, sessionPresent = false, close = true)
+      handlerCtx.channel.writeAndFlush(MqttMessageBuilders.connAck
+        .returnCode(CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION).sessionPresent(false).build)
+      handlerCtx.close()
       return
     }
 
@@ -152,7 +154,9 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
       // [MQTT-3.1.3-9] If the Server rejects the ClientId it MUST respond to CONNECT Packet with a CONNACK
       // return code 0x02 (Identifier rejected) and then close the Network Connection
       sessionCtx.smqd.notifyFault(IdentifierRejected(sessionCtx.clientId.toString, "clientid is not a valid format"))
-      connectAck(handlerCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = false, close = true)
+      handlerCtx.channel.writeAndFlush(MqttMessageBuilders.connAck
+        .returnCode(CONNECTION_REFUSED_IDENTIFIER_REJECTED).sessionPresent(false).build)
+      handlerCtx.close()
       return
     }
 
@@ -208,12 +212,15 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
           case r: CreatedSessionSuccess => // success to create a session
             logger.debug(s"[${r.clientId}] Session created, clean session: ${sessionCtx.cleanSession}, session present: ${r.hadPreviousSession}")
             handlerCtx.channel.attr(ATTR_SESSION).set(r.sessionActor)
-            connectAck(handlerCtx, CONNECTION_ACCEPTED, r.hadPreviousSession, close = false)
+            handlerCtx.channel.writeAndFlush(MqttMessageBuilders.connAck
+              .returnCode(CONNECTION_ACCEPTED).sessionPresent(r.hadPreviousSession).build)
 
           case r: CreateSessionFailure => // fail to create a clean session
             logger.debug(s"[${r.clientId}] Session creation failed: ${r.reason}")
             sessionCtx.smqd.notifyFault(MutipleConnectRejected)
-            connectAck(handlerCtx, CONNECTION_REFUSED_IDENTIFIER_REJECTED, sessionPresent = true, close = true)
+            handlerCtx.channel.writeAndFlush(MqttMessageBuilders.connAck
+              .returnCode(CONNECTION_REFUSED_IDENTIFIER_REJECTED).sessionPresent(true).build)
+            handlerCtx.close()
         }
 
       case Success(result) => // if result != SmqSuccess
@@ -225,22 +232,17 @@ class MqttConnectHandler(clientIdentifierFormat: Regex) extends ChannelInboundHa
           case _: NotAuthorized => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
           case _ => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
         }
-        connectAck(handlerCtx, code, sessionPresent = false, close = true)
+        handlerCtx.channel.writeAndFlush(MqttMessageBuilders.connAck
+          .returnCode(code).sessionPresent(false).build)
+        handlerCtx.close()
 
       case Failure(_) =>
-        connectAck(handlerCtx, CONNECTION_REFUSED_SERVER_UNAVAILABLE, sessionPresent = false, close = true)
+        handlerCtx.channel.writeAndFlush(MqttMessageBuilders.connAck
+          .returnCode(CONNECTION_REFUSED_SERVER_UNAVAILABLE).sessionPresent(false).build)
+        handlerCtx.close()
     }
 
     sessionCtx.state = SessionState.ConnectAcked
-  }
-
-  private def connectAck(handlerCtx: ChannelHandlerContext, returnCode: MqttConnectReturnCode, sessionPresent: Boolean, close: Boolean): Unit = {
-    handlerCtx.channel.writeAndFlush(
-      new MqttConnAckMessage(
-        new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0),
-        new MqttConnAckVariableHeader(returnCode, sessionPresent)))
-
-    if (close) handlerCtx.close()
   }
 
   private def isValidClientIdentifierFormat(handlerCtx: ChannelHandlerContext): Boolean = {

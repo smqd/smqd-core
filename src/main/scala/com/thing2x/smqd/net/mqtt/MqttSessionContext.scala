@@ -21,7 +21,7 @@ import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
 import io.netty.channel.embedded.EmbeddedChannel
 import io.netty.channel.socket.SocketChannel
-import io.netty.channel.{Channel, ChannelFuture, ChannelFutureListener}
+import io.netty.channel.{Channel, ChannelFuture}
 import io.netty.handler.codec.mqtt.MqttMessageType.{PUBACK, PUBREC, PUBREL}
 import io.netty.handler.codec.mqtt.MqttQoS.AT_LEAST_ONCE
 import io.netty.handler.codec.mqtt._
@@ -149,11 +149,9 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
 
   override def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, payload: ByteBuf): Unit = {
     logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: $msgId length: ${payload.readableBytes}")
-    channel.writeAndFlush(new MqttPublishMessage(
-      new MqttFixedHeader(MqttMessageType.PUBLISH, false, qos, isRetain, 0),
-      new MqttPublishVariableHeader(topic, msgId),
-      payload
-    ))
+    channel.writeAndFlush(
+      MqttMessageBuilders.publish.topicName(topic).messageId(msgId)
+        .retained(isRetain).qos(qos).payload(payload).build)
   }
 
   override def writePubRel(msgId: Int): Unit = {
