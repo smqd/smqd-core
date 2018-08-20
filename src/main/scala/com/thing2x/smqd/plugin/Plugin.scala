@@ -65,32 +65,36 @@ abstract class AbstractPlugin(val name: String, val smqdInstance: Smqd, val conf
   }
 
   final def execStart(): Unit = {
-    try {
-      _cause = None
-      preStarting()
-      setStatus(InstanceStatus.STARTING)
-      start()
-      setStatus(InstanceStatus.RUNNING)
-      postStarted()
-    }
-    catch {
-      case th: Throwable =>
-        failure(th)
+    if (status != InstanceStatus.RUNNING) {
+      try {
+        _cause = None
+        preStarting()
+        setStatus(InstanceStatus.STARTING)
+        start()
+        setStatus(InstanceStatus.RUNNING)
+        postStarted()
+      }
+      catch {
+        case th: Throwable =>
+          failure(th)
+      }
     }
   }
 
   final def execStop(): Unit = {
-    try {
-      _cause = None
-      preStopping()
-      setStatus(InstanceStatus.STOPPING)
-      stop()
-      setStatus(InstanceStatus.STOPPED)
-      postStopped()
-    }
-    catch {
-      case th: Throwable =>
-        failure(th)
+    if (status != InstanceStatus.STOPPED) {
+      try {
+        _cause = None
+        preStopping()
+        setStatus(InstanceStatus.STOPPING)
+        stop()
+        setStatus(InstanceStatus.STOPPED)
+        postStopped()
+      }
+      catch {
+        case th: Throwable =>
+          failure(th)
+      }
     }
   }
 

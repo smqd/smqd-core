@@ -14,7 +14,7 @@
 
 package com.thing2x.smqd.session
 
-import java.nio.charset.{Charset, StandardCharsets}
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import akka.actor.{Actor, ActorRef, Timers}
@@ -28,7 +28,6 @@ import com.thing2x.smqd.session.SessionManagerActor.SessionActorPostStopNotifica
 import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.{ByteBuf, Unpooled}
-import io.netty.handler.codec.mqtt.MqttQoS.{AT_LEAST_ONCE, AT_MOST_ONCE}
 
 import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps

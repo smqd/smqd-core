@@ -74,6 +74,8 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     logger.info(s"Setting resource leak detector level to $leakDetectorLevel")
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.valueOf(leakDetectorLevel))
 
+    channels = Nil
+
     // MQTT
     if ( config.getBoolean("local.enabled") ) {
       val localAddress: String = config.getString("local.address")
@@ -113,10 +115,12 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     logger.info(s"Mqtt Service [$name] Stopping...")
     try {
       channels.foreach(closeChannel)
+      channels = Nil
     } finally {
       groups.map( _.shutdownGracefully(0, 1000, java.util.concurrent.TimeUnit.MILLISECONDS) ).foreach{ f =>
         f.syncUninterruptibly()
       }
+      groups = Nil
     }
     logger.info(s"Mqtt Service [$name] Stopped.")
   }

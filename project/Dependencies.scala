@@ -46,7 +46,8 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-testkit" % Versions.akka % Test,
     "com.typesafe.akka" %% "akka-stream-testkit" % Versions.akka % Test,
     "com.typesafe.akka" %% "akka-http-testkit" % Versions.akkaHttp % Test,
-    "org.scalatest" %% "scalatest" % "3.0.5" % Test
+    "org.scalatest" %% "scalatest" % "3.0.5" % Test,
+    "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2" % Test
   )
 
   val netty: Seq[ModuleID] = Seq(
