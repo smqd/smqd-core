@@ -23,14 +23,13 @@ import com.thing2x.smqd.{Smqd, SmqdBuilder}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.embedded.EmbeddedChannel
-import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttConnectOptions, MqttMessage}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttConnectOptions, MqttMessage}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import spray.json.DefaultJsonProtocol
 
-import scala.concurrent.{Await, Promise}
-import scala.util.Success
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Promise}
 
 // 2018. 8. 17. - Created by Kwon, Yeong Eon
 
