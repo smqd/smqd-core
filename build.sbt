@@ -2,6 +2,7 @@
 import sbt.Keys._
 
 import scala.sys.process._
+import scala.language.postfixOps
 
 val versionString = "0.4.3-SNAPSHOT"
 
