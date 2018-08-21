@@ -21,7 +21,7 @@ import com.thing2x.smqd.fault._
 import com.thing2x.smqd.session.SessionActor.{InboundPublish, Subscribe, Subscription, Unsubscribe}
 import com.thing2x.smqd.session.SessionManagerActor.{CreateSession, CreateSessionFailure, CreateSessionResult, CreatedSessionSuccess}
 import com.thing2x.smqd.session.{SessionActor, SessionState}
-import com.thing2x.smqd.{SmqSuccess, Smqd, TPath, Will}
+import com.thing2x.smqd._
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.{Channel, ChannelFuture}
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode._
@@ -79,7 +79,7 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
         case _ =>
       }
 
-      sessionCtx.publishWill()
+      publishWill()
     }
   }
 
@@ -278,7 +278,7 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
   private def processDisconnect(m: MqttMessage): Unit = {
     // [MQTT-3.14.4-3] Server MUST discard any Will Message associated with the current connection without publishing
     sessionCtx.will = None
-    // FIXME: it is better to make the client to close socket first
+    // FIXME: it is better to make the client to close socket first, to avoid TIME_WAIT
     sessionCtx.close("received Disconnect")
   }
 
@@ -449,6 +449,17 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
       case _ =>
         smqdInstance.notifyFault(MalformedMessage("no message id in PUBCOMP"))
         channel.close()
+    }
+  }
+
+  private def publishWill(): Unit = {
+    if (sessionCtx.authorized) {
+      sessionCtx.will match {
+        case Some(w) =>
+          logger.debug(s"[${sessionCtx.clientId}] publish Will: [${w.topicPath}] isRetain=${w.retain} msg=${w.msg}")
+          smqdInstance.publish(RoutableMessage(w.topicPath, io.netty.buffer.Unpooled.copiedBuffer(w.msg), w.retain))
+        case _ =>
+      }
     }
   }
 

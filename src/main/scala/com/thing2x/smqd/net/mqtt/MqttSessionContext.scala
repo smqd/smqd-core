@@ -83,17 +83,6 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
 
   var will: Option[Will] = None
 
-  def publishWill(): Unit = {
-    if (!authorized) return
-
-    will match {
-      case Some(w) =>
-        logger.debug(s"[$clientId] publish Will: [${w.topicPath}] isRetain=${w.retain} msg=${w.msg}")
-        smqd.publish(RoutableMessage(w.topicPath, io.netty.buffer.Unpooled.copiedBuffer(w.msg), w.retain))
-      case _ =>
-    }
-  }
-
   private var _keepAliveTimeSeconds: Int = 0
   override def keepAliveTimeSeconds: Int = _keepAliveTimeSeconds
   def keepAliveTimeSeconds_= (timeInSeconds: Int): Unit = _keepAliveTimeSeconds = math.min(math.max(timeInSeconds, 0), 0xFFFF)
