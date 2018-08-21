@@ -89,8 +89,7 @@ class MqttSimpleTest extends WordSpec
   override def createActorSystem(): ActorSystem = ActorSystem(actorSystemNameFrom(getClass), config)
 
   private var smqdInstance: Smqd = _
-  private var shutdownPromise = Promise[Boolean]
-  private var channel: EmbeddedChannel = _
+  private val shutdownPromise = Promise[Boolean]
 
   override def beforeAll(): Unit = {
     smqdInstance = new SmqdBuilder(config).setActorSystem(system).build()

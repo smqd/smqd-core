@@ -21,6 +21,7 @@ object Dependencies {
     // akka cluster and distributed data
     "com.typesafe.akka" %% "akka-cluster" % Versions.akka,
     "com.typesafe.akka" %% "akka-distributed-data" % Versions.akka,
+    "com.typesafe.akka" %% "akka-cluster-sharding" % Versions.akka,
     //////////////////////////////////
     // akka http
     "com.typesafe.akka" %% "akka-http"   % Versions.akkaHttp,

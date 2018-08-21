@@ -16,6 +16,7 @@ package com.thing2x.smqd.impl
 
 import java.io.File
 
+import akka.actor.ActorSystem
 import com.thing2x.smqd._
 import com.typesafe.config.Config
 
@@ -26,7 +27,7 @@ import scala.concurrent.ExecutionContext
 /**
   *
   */
-class DefaultFacilityFactory(config: Config, ec: ExecutionContext) extends FacilityFactory {
+class DefaultFacilityFactory(config: Config, system: ActorSystem, ec: ExecutionContext) extends FacilityFactory {
 
   protected val configDirectory: File = {
     val confFile = System.getProperty("config.file")

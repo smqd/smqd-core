@@ -14,6 +14,7 @@
 
 package com.thing2x.smqd
 
+import akka.actor.ActorSystem
 import com.typesafe.config.Config
 
 import scala.concurrent.ExecutionContext
@@ -32,10 +33,29 @@ trait FacilityFactory {
 }
 
 object FacilityFactory {
-  def apply(config: Config)(implicit ec: ExecutionContext): FacilityFactory = {
+  def apply(config: Config)(implicit system: ActorSystem, ec: ExecutionContext): FacilityFactory = {
     val factoryClassName = config.getString("smqd.facility_factory")
     val factoryClass = this.getClass.getClassLoader.loadClass(factoryClassName)
-    val factoryConstructor = factoryClass.getConstructor(classOf[Config], classOf[ExecutionContext])
-    factoryConstructor.newInstance(config, ec).asInstanceOf[FacilityFactory]
+    val constructors = factoryClass.getConstructors
+    var params = Array[java.lang.Object]()
+    // A custom facility factory class can have flexible parameters on a constructor.
+    val factoryConstructor = constructors.find{ p =>
+      val ts = p.getParameterTypes
+      var result = true
+      params = ts.map {
+        case t if t == classOf[Config] => config
+        case t if t == classOf[ActorSystem] => system
+        case t if t == classOf[ExecutionContext] => ec
+        case _ =>
+          result = false
+          null
+      }
+      result
+    }
+
+    factoryConstructor match {
+      case Some(cons) => cons.newInstance(params:_*).asInstanceOf[FacilityFactory]
+      case None => throw new NoSuchMethodException("Valid constructor not found")
+    }
   }
 }

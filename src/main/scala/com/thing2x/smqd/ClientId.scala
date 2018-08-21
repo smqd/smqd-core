@@ -33,7 +33,7 @@ object ClientId {
   def toActorName(id: String): String = "_" + id
 }
 
-class ClientId(val id: String, val channelId: Option[String] = None) extends Serializable {
+class ClientId(val id: String, val channelId: Option[String] = None) extends Serializable with ClientIdentifying {
   val actorName: String = ClientId.toActorName(id)
 
   override def toString: String = {
@@ -44,4 +44,10 @@ class ClientId(val id: String, val channelId: Option[String] = None) extends Ser
   }
 
   override def hashCode(): Int = id.hashCode
+
+  override val clientId: ClientId = this
+}
+
+trait ClientIdentifying {
+  def clientId: ClientId
 }
