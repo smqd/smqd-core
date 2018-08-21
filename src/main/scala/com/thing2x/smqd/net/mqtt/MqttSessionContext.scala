@@ -95,22 +95,6 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
   }
 
   /**
-    * Called by SessionActor when it started in `preStart()`
-    */
-  override def sessionStarted(): Unit = {
-    logger.trace(s"[$clientId] session started")
-  }
-
-  /**
-    * Called by SessionActor when it stopped in `postStop()`
-    */
-  override def sessionStopped(): Unit = {
-    logger.trace(s"[$clientId] session stopped")
-    if (channel.isOpen && !channel.eventLoop().isShutdown)
-      channel.close()
-  }
-
-  /**
     * Called by SessionActor when it force to close the connection
     * @param reason why SessionActor decide to close the connection
     */

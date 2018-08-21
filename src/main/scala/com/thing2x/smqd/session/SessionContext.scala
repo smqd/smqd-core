@@ -31,8 +31,6 @@ trait SessionContext {
 
   def state: SessionState.SessionState
 
-  def sessionStarted(): Unit
-  def sessionStopped(): Unit
   def close(reason: String): Unit
 
   def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, payload: ByteBuf): Unit

@@ -17,7 +17,7 @@ package com.thing2x.smqd.session
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
-import akka.actor.{Actor, ActorRef, Timers}
+import akka.actor.{Actor, ActorRef, PoisonPill, Timers}
 import com.thing2x.smqd.QoS._
 import com.thing2x.smqd.SessionStore.SessionStoreToken
 import com.thing2x.smqd._
@@ -56,7 +56,8 @@ object SessionActor {
   case class OutboundPublishAck(msgId: Int)
   case class OutboundPublishRec(msgId: Int)
   case class OutboundPublishComp(msgId: Int)
-  case class ChannelClosed(clearSession: Boolean)
+  case class ChannelOpened(channelActor: ActorRef)
+  case class ChannelClosed(channelActor: ActorRef, clearSession: Boolean)
 }
 
 class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken)
@@ -69,8 +70,10 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
 
   private var challengingActor: Option[ActorRef] = None
 
+  private var channelActor: Option[ActorRef] = None
+
   override def preStart(): Unit = {
-    sessionCtx.sessionStarted()
+    logger.info(s"-----------------preStart() ${self.path}")
   }
 
   override def postStop(): Unit = {
@@ -80,7 +83,10 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     context.parent ! SessionActorPostStopNotification(sessionCtx.clientId, self)
 
     sstore.flushSession(stoken)
-    sessionCtx.sessionStopped()
+    channelActor match {
+      case Some(actor) => actor ! PoisonPill
+      case None =>
+    }
   }
 
   override def receive: Receive = {
@@ -91,7 +97,8 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     case oack: OutboundPublishAck =>    outboundAck(oack)
     case orec: OutboundPublishRec =>    outboundRec(orec)
     case ocomp: OutboundPublishComp =>  outboundComp(ocomp)
-    case ChannelClosed(clearSession) => channelClosed(clearSession)
+    case ChannelOpened(actor) =>        channelOpened(actor)
+    case ChannelClosed(actor, clearSession) => channelClosed(actor, clearSession)
     case challenge: NewSessionChallenge => challengeChannel(sender, challenge)
   }
 
@@ -113,38 +120,9 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
 
   private def inboundPublish(ipub: InboundPublish): Unit = {
     logger.info(s"--------------------------- ${self.path}")
-    // Retain
+
     if (ipub.isRetain) {
-      // [MQTT-3.3.1-5] If the RETAIN flag is set to 1, in a PUBLISH Packet sent by a Client to Server,
-      // the Server MUST store the Application Message and its QoS, so that it can be delivered to future subscribers
-      // whose subscriptions match its topic name
-
-      val isZeroSizePayload = ipub.payload.length == 0
-
-      if (isZeroSizePayload) {
-        // [MQTT-3.3.1-10] A PUBILSH Packet with a RETAIN flag set to 1 and playload containing zero bytes will be
-        // processed as normal by the Server and sent to Client with subscription matching the topic name. Additionally
-        // any existing retained message with the same topic name MUST be removed and any future subscribers for
-        // the topic will not receive a retained message
-
-        // [MQTT-3.3.1-11] A zero byte retained message MUST NOT be stored as a retained message on the Server
-
-        // delete retained message
-        smqd.unretain(ipub.topicPath)
-      }
-      else {
-        // [MQTT-3.3.1-7] If the Server receives a QoS 0 message with the RETAIN flag set to 1 it MUST discard
-        // any message previously retained for that topic. It SHOULD store the new QoS 0 message as the new retained
-        // message for that topic, buf MAY choose to discard it at any time - if this happens there will be no
-        // retained message for that topic
-
-        // store retained message
-        smqd.retain(ipub.topicPath, ipub.payload)
-      }
-    }
-    else {
-      // [MQTT-3.3.1-12] If the RETAIN flag is 0, in a PUBLISH Packet sent by a Client to Server, the Server
-      // MUST NOT store the message and MUST NOT remove or replace any existing retained message
+      retain(ipub)
     }
 
     // inter-nodes routing messaging
@@ -162,10 +140,10 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     }
   }
 
-  import com.thing2x.smqd.protocol._
-  import spray.json._
-
   private def outboundPublish(opub: OutboundPublish): Unit = {
+    import com.thing2x.smqd.protocol._
+    import spray.json._
+
     val payload = opub.msg match {
       case a: Array[Byte] => Unpooled.wrappedBuffer(a)
       case b: ByteBuf => b
@@ -204,6 +182,41 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
 
   private def outboundComp(ocomp: OutboundPublishComp): Unit = {
     sstore.deleteAfterDeliveryComplete(stoken, ocomp.msgId)
+  }
+
+  private def retain(ipub: InboundPublish): Unit = {
+    if (ipub.isRetain) {
+      // [MQTT-3.3.1-5] If the RETAIN flag is set to 1, in a PUBLISH Packet sent by a Client to Server,
+      // the Server MUST store the Application Message and its QoS, so that it can be delivered to future subscribers
+      // whose subscriptions match its topic name
+
+      val isZeroSizePayload = ipub.payload.length == 0
+
+      if (isZeroSizePayload) {
+        // [MQTT-3.3.1-10] A PUBILSH Packet with a RETAIN flag set to 1 and playload containing zero bytes will be
+        // processed as normal by the Server and sent to Client with subscription matching the topic name. Additionally
+        // any existing retained message with the same topic name MUST be removed and any future subscribers for
+        // the topic will not receive a retained message
+
+        // [MQTT-3.3.1-11] A zero byte retained message MUST NOT be stored as a retained message on the Server
+
+        // delete retained message
+        smqd.unretain(ipub.topicPath)
+      }
+      else {
+        // [MQTT-3.3.1-7] If the Server receives a QoS 0 message with the RETAIN flag set to 1 it MUST discard
+        // any message previously retained for that topic. It SHOULD store the new QoS 0 message as the new retained
+        // message for that topic, buf MAY choose to discard it at any time - if this happens there will be no
+        // retained message for that topic
+
+        // store retained message
+        smqd.retain(ipub.topicPath, ipub.payload)
+      }
+    }
+    else {
+      // [MQTT-3.3.1-12] If the RETAIN flag is 0, in a PUBLISH Packet sent by a Client to Server, the Server
+      // MUST NOT store the message and MUST NOT remove or replace any existing retained message
+    }
   }
 
   private def subscribe(subs: Seq[Subscription], promise: Promise[Seq[QoS]]): Unit = {
@@ -279,7 +292,6 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
 
         // first, reply SUBACK
         promise.success(acks)
-        //callback(acks)
 
         // then, sending retained messages
         //
@@ -320,10 +332,29 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     }
   }
 
-  private def channelClosed(clearSession: Boolean): Unit = {
+  private def channelOpened(actor: ActorRef): Unit = {
+    logger.trace(s"[${sessionCtx.clientId}] channel opened, ${actor.path.name}")
+    if (channelActor.isDefined) {
+      val oldActor = channelActor.get
+      oldActor ! PoisonPill
+
+      // clear previous state
+      if (noOfSubscription.get > 0)
+        smqd.unsubscribe(self)
+      noOfSubscription.set(0)
+    }
+    channelActor = Some(actor)
+  }
+
+  private def channelClosed(actor: ActorRef, clearSession: Boolean): Unit = {
     logger.trace(s"[${sessionCtx.clientId}] channel closed, clearSession: $clearSession")
-    if (noOfSubscription.get > 0)
-      smqd.unsubscribe(self)
-    context.stop(self)
+    if (channelActor.isDefined && channelActor.get == actor) {
+      channelActor = None
+
+      // clear previous state
+      if (noOfSubscription.get > 0)
+        smqd.unsubscribe(self)
+      noOfSubscription.set(0)
+    }
   }
 }

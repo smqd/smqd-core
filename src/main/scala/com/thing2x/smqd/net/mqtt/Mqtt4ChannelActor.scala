@@ -18,7 +18,7 @@ import akka.actor.{Actor, ActorRef, PoisonPill}
 import akka.util.Timeout
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.fault._
-import com.thing2x.smqd.session.SessionActor.{InboundPublish, Subscribe, Subscription, Unsubscribe}
+import com.thing2x.smqd.session.SessionActor._
 import com.thing2x.smqd.session.SessionManagerActor.{CreateSession, CreateSessionFailure, CreateSessionResult, CreatedSessionSuccess}
 import com.thing2x.smqd.session.{SessionActor, SessionState}
 import com.thing2x.smqd._
@@ -72,10 +72,14 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
   override def postStop(): Unit = {
     logger.debug(s"[${sessionCtx.clientId}] channel closed (authorized = ${sessionCtx.authorized}, isCleanSession = ${sessionCtx.cleanSession}, hasWill = ${sessionCtx.will.isDefined})")
 
+    if (channel.isOpen && !channel.eventLoop().isShutdown) {
+      channel.close()
+    }
+
     if (sessionCtx.authorized) {
       sessionActor match {
         case Some(actor) =>
-          actor ! SessionActor.ChannelClosed(sessionCtx.cleanSession)
+          actor ! SessionActor.ChannelClosed(self, sessionCtx.cleanSession)
         case _ =>
       }
 
@@ -137,6 +141,24 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
       smqdInstance.notifyFault(MutipleConnectRejected)
       channel.close()
   }
+
+  /*
+  private def challengeChannel(replyTo: ActorRef, challenge: NewSessionChallenge): Unit = {
+    logger.trace(s"[${sessionCtx.clientId}] challenged new channel by ${challenge.by}")
+    if (challengingActor.isEmpty && (sessionCtx.state == SessionState.ConnectAcked || sessionCtx.state == SessionState.Failed)) {
+      // if requestor (SessionManager) is in the same local node, it sends promise directly
+      // in other case (remote node), reply as normal message
+      replyTo ! NewSessionChallengeAccepted(sessionCtx.clientId)
+      // the actor picks its successor
+      challengingActor = Some(replyTo)
+    }
+    else {
+      // if the session actor is during the CONNECT process or has already successor(challengingAcotr),
+      // makes other challengers failed.
+      replyTo ! NewSessionChallengeDenied(sessionCtx.clientId)
+    }
+  }
+  */
 
   private def processConnect(m: MqttConnectMessage): Unit = {
     sessionCtx.state = SessionState.ConnectReceived
@@ -244,6 +266,7 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
             sessionActor = Some(r.sessionActor)
             channel.writeAndFlush(MqttMessageBuilders.connAck
               .returnCode(CONNECTION_ACCEPTED).sessionPresent(r.hadPreviousSession).build)
+            r.sessionActor ! SessionActor.ChannelOpened(self)
 
           case r: CreateSessionFailure => // fail to create a clean session
             logger.debug(s"[${r.clientId}] Session creation failed: ${r.reason}")
