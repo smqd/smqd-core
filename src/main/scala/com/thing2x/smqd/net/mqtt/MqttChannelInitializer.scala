@@ -36,7 +36,6 @@ class MqttChannelInitializer(smqd: Smqd,
                              channelBpsCounter: ChannelHandler,
                              channelTpsCounter: ChannelHandler,
                              messageMaxSize: Int,
-                             clientIdentifierFormat: Regex,
                              metrics: MqttMetrics)
   extends io.netty.channel.ChannelInitializer[SocketChannel]
     with com.thing2x.smqd.session.ChannelBuilder
@@ -59,28 +58,17 @@ class MqttChannelInitializer(smqd: Smqd,
       case Some(provider) => provider.sslEngine
       case _ => None
     }
-    appendMqttPipeline(pipeline, sslEngine, channelBpsCounter, channelTpsCounter, messageMaxSize, clientIdentifierFormat)
+    appendMqttPipeline(pipeline, sslEngine, channelBpsCounter, channelTpsCounter, messageMaxSize)
 
-    val sessionCtx = MqttSessionContext(ch, smqd, listenerName)
-    val channelActor = channelManager.createChannelActor(ch)
+    val channelActor = channelManager.createChannelActor(ch, listenerName)
 
     ch.attr(ATTR_CHANNEL_ACTOR).set(channelActor)
-    ch.attr(ATTR_SESSION_CTX).set(sessionCtx)
     ch.attr(ATTR_SESSION_MANAGER).set(sessionManager)
     ch.attr(ATTR_METRICS).set(metrics)
   }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = {
-    val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-    if (channelCtx != null) {
-      val channelId = channelCtx.channelId
-      val sessionId = channelCtx.clientId
-
-      logger.error(s"[$sessionId] $channelId Unexpected Exception", cause)
-    }
-    else {
-      logger.error("Unexpected exception", cause)
-    }
+    logger.error("Unexpected exception", cause)
     ctx.close()
   }
 }

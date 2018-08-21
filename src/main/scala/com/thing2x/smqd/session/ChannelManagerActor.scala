@@ -17,6 +17,7 @@ package com.thing2x.smqd.session
 import java.net.{InetSocketAddress, SocketAddress}
 
 import akka.actor.{Actor, ActorRef, Props}
+import com.thing2x.smqd.net.mqtt.Mqtt4ChannelActor
 import com.thing2x.smqd.session.ChannelManagerActor.InitChannelBuilder
 import com.thing2x.smqd.{ChiefActor, Smqd}
 import com.typesafe.scalalogging.StrictLogging
@@ -45,9 +46,9 @@ class ChannelManagerActor(smqdInstance: Smqd) extends Actor with StrictLogging {
   private def addr(addr: SocketAddress): String =
     s"${addr.asInstanceOf[InetSocketAddress].getHostString}:${addr.asInstanceOf[InetSocketAddress].getPort}"
 
-  def createChannelActor(channel: Channel): ActorRef = {
+  def createChannelActor(channel: Channel, listenerName: String): ActorRef = {
     val name = s"${addr(channel.remoteAddress)}-${addr(channel.localAddress)}"
-    context.actorOf(Props(classOf[ChannelActor], channel), name)
+    context.actorOf(Props(classOf[Mqtt4ChannelActor], smqdInstance, channel, listenerName), name)
   }
 
   def receive0: Receive = {

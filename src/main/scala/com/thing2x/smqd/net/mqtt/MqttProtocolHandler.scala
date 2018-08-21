@@ -76,7 +76,7 @@ trait MqttProtocolNotifier {
       msg match {
         case _: MqttConnectMessage =>
           msg.asInstanceOf[MqttConnectMessage].payload.clientIdentifier
-        case _ => "unknown clientId"
+        case _ => "unknown_clientId"
       }
     }
     val channelId = channelCtx.channelId.stringId

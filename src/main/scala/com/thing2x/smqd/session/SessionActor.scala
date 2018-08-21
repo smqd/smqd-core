@@ -57,7 +57,6 @@ object SessionActor {
   case class OutboundPublishRec(msgId: Int)
   case class OutboundPublishComp(msgId: Int)
   case class ChannelClosed(clearSession: Boolean)
-  case object InboundDisconnect
 }
 
 class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken)
@@ -75,6 +74,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
   }
 
   override def postStop(): Unit = {
+    logger.info(s"-----------------postStop() ${self.path}")
     // notify session actor's death to session manager actor,
     // so that ddata can remove session actor's registration from ddata
     context.parent ! SessionActorPostStopNotification(sessionCtx.clientId, self)
@@ -84,15 +84,14 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
   }
 
   override def receive: Receive = {
-    case Subscribe(subs, promise) =>   subscribe(subs, promise)
-    case Unsubscribe(subs, promise) => unsubscribe(subs, promise)
+    case Subscribe(subs, promise) =>    subscribe(subs, promise)
+    case Unsubscribe(subs, promise) =>  unsubscribe(subs, promise)
     case ipub: InboundPublish =>        inboundPublish(ipub)
     case opub: OutboundPublish =>       outboundPublish(opub)
     case oack: OutboundPublishAck =>    outboundAck(oack)
     case orec: OutboundPublishRec =>    outboundRec(orec)
     case ocomp: OutboundPublishComp =>  outboundComp(ocomp)
     case ChannelClosed(clearSession) => channelClosed(clearSession)
-    case InboundDisconnect =>           inboundDisconnect()
     case challenge: NewSessionChallenge => challengeChannel(sender, challenge)
   }
 
@@ -112,11 +111,8 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     }
   }
 
-  private def inboundDisconnect(): Unit = {
-    sessionCtx.close("received Disconnect")
-  }
-
   private def inboundPublish(ipub: InboundPublish): Unit = {
+    logger.info(s"--------------------------- ${self.path}")
     // Retain
     if (ipub.isRetain) {
       // [MQTT-3.3.1-5] If the RETAIN flag is set to 1, in a PUBLISH Packet sent by a Client to Server,

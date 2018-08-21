@@ -31,8 +31,7 @@ trait MqttPipelineAppender {
                          sslEngine: Option[SSLEngine],
                          channelBpsCounter: ChannelHandler,
                          channelTpsCounter: ChannelHandler,
-                         messageMaxSize: Int,
-                         clientIdentifierFormat: Regex): Unit = {
+                         messageMaxSize: Int): Unit = {
 
     pipeline.addLast(HANDLER_CHANNEL_BPS, channelBpsCounter)
 
@@ -43,18 +42,13 @@ trait MqttPipelineAppender {
     pipeline.addLast(HANDLER_DECODING, new MqttDecoder(messageMaxSize))
     pipeline.addLast(HANDLER_ENCODING, MqttEncoder.INSTANCE)
 
-    //pipeline.addLast("loggingHandler", new io.netty.handler.logging.LoggingHandler("mqtt.logger", LogLevel.INFO))
-
     pipeline.addLast(HANDLER_CHANNEL_TPS, channelTpsCounter)
 
     pipeline.addLast(HANDLER_IDLE_STATE, new IdleStateHandler(7, 0, 0))
 
-    pipeline.addLast(HANDLER_KEEPALIVE, MqttKeepAliveHandler())
     pipeline.addLast(HANDLER_PROTO_OUT, MqttProtocolOutboundHandler())
     pipeline.addLast(HANDLER_PROTO_IN, MqttProtocolInboundHandler())
-    pipeline.addLast(HANDLER_PUBLISH, MqttPublishHandler())
-    pipeline.addLast(HANDLER_SUBSCRIBE, MqttSubscribeHandler())
-    pipeline.addLast(HANDLER_CONNECT, MqttConnectHandler(clientIdentifierFormat))
+    pipeline.addLast(HANDLER_MQTT4, Mqtt4Handler())
     pipeline.addLast(HANDLER_EXCEPTION, MqttExceptionHandler())
   }
 }

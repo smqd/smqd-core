@@ -19,18 +19,13 @@ import io.netty.buffer.ByteBuf
 import io.netty.channel._
 import io.netty.handler.codec.http.HttpRequest
 import io.netty.handler.codec.http.websocketx._
-import io.netty.handler.codec.mqtt.{MqttDecoder, MqttEncoder}
-import io.netty.handler.timeout.IdleStateHandler
-
-import scala.util.matching.Regex
 
 /**
   * 2018. 6. 25. - Created by Kwon, Yeong Eon
   */
 class MqttWsHandshakeHandler(channelBpsCounter: ChannelHandler,
                              channelTpsCounter: ChannelHandler,
-                             messageMaxSize: Int,
-                             clientIdentifierFormat: Regex)
+                             messageMaxSize: Int)
   extends ChannelInboundHandlerAdapter
     with MqttPipelineAppender
     with StrictLogging {
@@ -70,7 +65,7 @@ class MqttWsHandshakeHandler(channelBpsCounter: ChannelHandler,
         else {
           handshaker.handshake(ctx.channel, req).addListener { future: ChannelFuture =>
             if (future.isSuccess) {
-              //logger.debug("Handshake is done")
+              //logger.debug("Handshake has done")
 
               val pipeline = ctx.pipeline
 
@@ -78,7 +73,7 @@ class MqttWsHandshakeHandler(channelBpsCounter: ChannelHandler,
               pipeline.replace(MqttWsHandshakeHandler.this, "WebSocketFrameInbound", new MqttWsFrameInboundHandler())
               pipeline.addLast("WebSocketFrameOutbound", new MqttWsFrameOutboundHandler())
 
-              appendMqttPipeline(pipeline, None, channelBpsCounter, channelTpsCounter, messageMaxSize, clientIdentifierFormat)
+              appendMqttPipeline(pipeline, None, channelBpsCounter, channelTpsCounter, messageMaxSize)
             }
             else {
               logger.debug("Handshake failed", future.cause)

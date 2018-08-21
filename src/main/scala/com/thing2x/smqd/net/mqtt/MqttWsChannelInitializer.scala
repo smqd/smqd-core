@@ -20,13 +20,12 @@ import com.thing2x.smqd.session.{ChannelManagerActor, SessionManagerActor}
 import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.socket.SocketChannel
-import io.netty.channel.{ChannelHandler, ChannelHandlerContext, ChannelInitializer}
+import io.netty.channel.{ChannelHandler, ChannelHandlerContext}
 import io.netty.handler.codec.http.HttpServerCodec
 import io.netty.handler.ssl.SslHandler
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
-import scala.util.matching.Regex
 
 /**
   * 2018. 5. 30. - Created by Kwon, Yeong Eon
@@ -38,7 +37,6 @@ class MqttWsChannelInitializer(smqd: Smqd,
                                channelBpsCounter: ChannelHandler,
                                channelTpsCounter: ChannelHandler,
                                messageMaxSize: Int,
-                               clientIdentifierFormat: Regex,
                                metrics: MqttMetrics)
   extends io.netty.channel.ChannelInitializer[SocketChannel]
     with com.thing2x.smqd.session.ChannelBuilder
@@ -65,30 +63,19 @@ class MqttWsChannelInitializer(smqd: Smqd,
     if (sslEngine.isDefined) {
       pipeline.addLast(HANDLER_SSL, new SslHandler(sslEngine.get))
     }
-    //pipeline.addLast("loggingHandler", new io.netty.handler.logging.LoggingHandler("mqtt.logger", LogLevel.INFO))
-    pipeline.addLast("httpServerCodec", new HttpServerCodec)
-    pipeline.addLast("wsMqttHandshaker", new MqttWsHandshakeHandler(channelBpsCounter, channelTpsCounter, messageMaxSize, clientIdentifierFormat))
 
-    val channelContext = MqttSessionContext(ch, smqd, listenerName)
-    val channelActor = channelManager.createChannelActor(ch)
+    pipeline.addLast("httpServerCodec", new HttpServerCodec)
+    pipeline.addLast("wsMqttHandshaker", new MqttWsHandshakeHandler(channelBpsCounter, channelTpsCounter, messageMaxSize))
+
+    val channelActor = channelManager.createChannelActor(ch, listenerName)
 
     ch.attr(ATTR_CHANNEL_ACTOR).set(channelActor)
-    ch.attr(ATTR_SESSION_CTX).set(channelContext)
     ch.attr(ATTR_SESSION_MANAGER).set(sessionManager)
     ch.attr(ATTR_METRICS).set(metrics)
   }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = {
-    val channelCtx = ctx.channel.attr(ATTR_SESSION_CTX).get
-    if (channelCtx != null) {
-      val channelId = channelCtx.channelId
-      val sessionId = channelCtx.clientId
-
-      logger.error(s"[$sessionId] $channelId Unexpected Exception", cause)
-    }
-    else {
-      logger.error("Unexpected exception", cause)
-    }
+    logger.error("Unexpected exception", cause)
     ctx.close()
   }
 }

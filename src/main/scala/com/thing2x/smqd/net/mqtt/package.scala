@@ -40,9 +40,7 @@ package object mqtt {
   val HANDLER_KEEPALIVE = "keepalive.handler"
   val HANDLER_PROTO_OUT = "protocol.outbound.handler"
   val HANDLER_PROTO_IN = "protocol.inbound.handler"
-  val HANDLER_PUBLISH = "publish.handler"
-  val HANDLER_SUBSCRIBE = "subscribe.handler"
-  val HANDLER_CONNECT = "connect.handler"
+  val HANDLER_MQTT4 = "mqtt.v311.handler"
 
   val HANDLER_EXCEPTION = "exception.handler"
 
@@ -51,7 +49,6 @@ package object mqtt {
   val ATTR_METRICS: AttributeKey[MqttMetrics] = AttributeKey.newInstance("attr.metrics")
 
   val ATTR_SESSION_MANAGER: AttributeKey[ActorRef] = AttributeKey.newInstance("attr.session.manager")
-  val ATTR_SESSION: AttributeKey[ActorRef] = AttributeKey.newInstance("attr.session.self")
   val ATTR_CHANNEL_ACTOR: AttributeKey[ActorRef] = AttributeKey.newInstance("attr.channel.actor")
 
   implicit def toMqttQoS(qos: QoS.Value): MqttQoS = qos match {

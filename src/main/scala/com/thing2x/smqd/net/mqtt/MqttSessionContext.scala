@@ -83,7 +83,7 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
 
   var will: Option[Will] = None
 
-  private def publishWill(): Unit = {
+  def publishWill(): Unit = {
     if (!authorized) return
 
     will match {
@@ -93,10 +93,6 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
       case _ =>
     }
   }
-
-  private var _lastTimeMessageReceived: Long = 0
-  def lastTimeMessageReceived: Long = _lastTimeMessageReceived
-  def lastTimeMessageReceived_= (time: Long): Unit = _lastTimeMessageReceived = time
 
   private var _keepAliveTimeSeconds: Int = 0
   override def keepAliveTimeSeconds: Int = _keepAliveTimeSeconds
@@ -134,18 +130,6 @@ class MqttSessionContext(channel: Channel, val smqd: Smqd, listenerName: String)
     if (channel.isOpen)
       channel.close()
   }
-
-  channel.closeFuture.addListener((future: ChannelFuture) => {
-    logger.debug(s"[$clientId] channel closed (authorized = $authorized, isCleanSession = $cleanSession, hasWill = ${will.isDefined}), closeFuture = ${future.isSuccess}")
-
-    if (authorized) {
-      val session = channel.attr(ATTR_SESSION).getAndSet(null)
-      if (session != null)
-        session ! SessionActor.ChannelClosed(cleanSession)
-
-      publishWill()
-    }
-  })
 
   override def writePub(topic: String, qos: QoS, isRetain: Boolean, msgId: Int, payload: ByteBuf): Unit = {
     logger.trace(s"[$clientId] Message Deliver: $topic qos:${qos.value} msgId: $msgId length: ${payload.readableBytes}")

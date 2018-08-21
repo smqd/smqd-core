@@ -43,8 +43,6 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
   private val messageMaxSize: Int = config.getBytes("message.max.size").toInt
 
-  private val clientIdentifierFormat: Regex = smqdInstance.config.getString("smqd.registry.client.identifier.format").r
-
   private val transport =
     if (io.netty.channel.epoll.Epoll.isAvailable) try { io.netty.channel.epoll.Epoll.ensureAvailability(); "epoll" } catch { case _: Throwable => "nio" }
     else if (io.netty.channel.kqueue.KQueue.isAvailable) try { io.netty.channel.kqueue.KQueue.ensureAvailability(); "kqueue" } catch { case _: Throwable => "nio" }
@@ -153,7 +151,6 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       channelBpsCounter,
       channelTpsCounter,
       messageMaxSize,
-      clientIdentifierFormat,
       metrics
     )
   }
@@ -167,7 +164,6 @@ class MqttService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       channelBpsCounter,
       channelTpsCounter,
       messageMaxSize,
-      clientIdentifierFormat,
       metrics
     )
   }
