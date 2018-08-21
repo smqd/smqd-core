@@ -21,7 +21,7 @@ import akka.util.Timeout
 import com.thing2x.smqd.delivery.DeliveryManagerActor
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.protocol.ProtocolNotificationManager
-import com.thing2x.smqd.session.{ClusterModeSessionManagerActor, LocalModeSessionManagerActor, SessionManagerActor}
+import com.thing2x.smqd.session.{ChannelManagerActor, ClusterModeSessionManagerActor, LocalModeSessionManagerActor, SessionManagerActor}
 import com.thing2x.smqd.util.{JvmMonitoringActor, MetricActor}
 import com.typesafe.scalalogging.StrictLogging
 
@@ -55,6 +55,7 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
     context.actorOf(Props(classOf[DeliveryManagerActor]), DeliveryManagerActor.actorName)
     context.actorOf(Props(classOf[RegistryCallbackManagerActor], smqd), RegistryCallbackManagerActor.actorName)
     context.actorOf(Props(classOf[RequestManagerActor], smqd, requestor), RequestManagerActor.actorName)
+    context.actorOf(Props(classOf[ChannelManagerActor], smqd), ChannelManagerActor.actorName)
 
     if (smqd.isClusterMode) {
       context.actorOf(Props(classOf[ClusterModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)

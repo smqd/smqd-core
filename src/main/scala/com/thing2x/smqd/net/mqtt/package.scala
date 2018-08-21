@@ -52,6 +52,7 @@ package object mqtt {
 
   val ATTR_SESSION_MANAGER: AttributeKey[ActorRef] = AttributeKey.newInstance("attr.session.manager")
   val ATTR_SESSION: AttributeKey[ActorRef] = AttributeKey.newInstance("attr.session.self")
+  val ATTR_CHANNEL_ACTOR: AttributeKey[ActorRef] = AttributeKey.newInstance("attr.channel.actor")
 
   implicit def toMqttQoS(qos: QoS.Value): MqttQoS = qos match {
     case QoS.AtMostOnce => MqttQoS.AT_MOST_ONCE

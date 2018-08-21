@@ -15,15 +15,12 @@
 package com.thing2x.smqd.net.mqtt
 
 import akka.actor.ActorRef
+import com.thing2x.smqd._
+import com.thing2x.smqd.session.{ChannelManagerActor, SessionManagerActor}
+import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.socket.SocketChannel
-import io.netty.channel.{ChannelHandler, ChannelHandlerContext, ChannelInitializer, ChannelPipeline}
-import io.netty.handler.codec.mqtt._
-import io.netty.handler.timeout.IdleStateHandler
-import javax.net.ssl.SSLEngine
-import com.thing2x.smqd._
-import com.thing2x.smqd.session.SessionManagerActor
-import com.thing2x.smqd.util.ActorIdentifying
+import io.netty.channel.{ChannelHandler, ChannelHandlerContext}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
@@ -41,32 +38,36 @@ class MqttChannelInitializer(smqd: Smqd,
                              messageMaxSize: Int,
                              clientIdentifierFormat: Regex,
                              metrics: MqttMetrics)
-  extends ChannelInitializer[SocketChannel]
+  extends io.netty.channel.ChannelInitializer[SocketChannel]
+    with com.thing2x.smqd.session.ChannelBuilder
     with MqttPipelineAppender
     with ActorIdentifying
     with StrictLogging {
 
   import smqd.Implicit._
-  private val sessionManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+SessionManagerActor.actorName)
+  private val sessionManager: ActorRef = identifyManagerActor(SessionManagerActor.actorName)
+  private val channelManagerActor: ActorRef = identifyManagerActor(ChannelManagerActor.actorName)
+  private var channelManager: ChannelManagerActor = _
+
+  channelManagerActor ! ChannelManagerActor.InitChannelBuilder(this)
+
+  override def channelManager(manager: ChannelManagerActor): Unit = channelManager = manager
 
   override def initChannel(ch: SocketChannel): Unit = {
-
     val pipeline = ch.pipeline
     val sslEngine = sslProvider match {
       case Some(provider) => provider.sslEngine
       case _ => None
     }
     appendMqttPipeline(pipeline, sslEngine, channelBpsCounter, channelTpsCounter, messageMaxSize, clientIdentifierFormat)
-  }
 
-  override def handlerAdded(ctx: ChannelHandlerContext): Unit = {
-    super.handlerAdded(ctx)
+    val sessionCtx = MqttSessionContext(ch, smqd, listenerName)
+    val channelActor = channelManager.createChannelActor(ch)
 
-    val sessionCtx = MqttSessionContext(ctx.channel, smqd, listenerName)
-
-    ctx.channel.attr(ATTR_SESSION_CTX).set(sessionCtx)
-    ctx.channel.attr(ATTR_SESSION_MANAGER).set(sessionManager)
-    ctx.channel.attr(ATTR_METRICS).set(metrics)
+    ch.attr(ATTR_CHANNEL_ACTOR).set(channelActor)
+    ch.attr(ATTR_SESSION_CTX).set(sessionCtx)
+    ch.attr(ATTR_SESSION_MANAGER).set(sessionManager)
+    ch.attr(ATTR_METRICS).set(metrics)
   }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = {
