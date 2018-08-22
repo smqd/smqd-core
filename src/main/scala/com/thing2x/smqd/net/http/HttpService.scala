@@ -49,12 +49,14 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   val localPort: Int = config.getOptionInt("local.port").getOrElse(80)
   val localBindAddress: String = config.getOptionString("local.bind.address").getOrElse("0.0.0.0")
   val localBindPort: Int = config.getOptionInt("local.bind.port").getOrElse(localPort)
+  val localParallelism: Int = config.getOptionInt("local.parallelism").getOrElse(1)
 
   val localSecureEnabled: Boolean = config.getOptionBoolean("local.secure.enabled").getOrElse(false)
   val localSecureAddress: String = config.getOptionString("local.secure.address").getOrElse("127.0.0.1")
   val localSecurePort: Int = config.getOptionInt("local.secure.port").getOrElse(443)
   val localSecureBindAddress: String = config.getOptionString("local.secure.bind.address").getOrElse("0.0.0.0")
   val localSecureBindPort: Int = config.getOptionInt("local.secure.bind.port").getOrElse(localSecurePort)
+  val localSecureParallelism: Int = config.getOptionInt("local.secure.parallelism").getOrElse(1)
 
   private val oauth2SecretKey: String = config.getOptionString("oauth2.secret_key").getOrElse("default_key")
   val oauth2TokenExpire: Duration = config.getOptionDuration("oauth2.token_expire").getOrElse(30.minutes)
@@ -116,7 +118,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     if (localEnabled) {
       val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(actorSystem), logAdapter)
       val bindingFuture = serverSource.to(Sink.foreach{ connection =>
-        connection.handleWithAsyncHandler(handler(connection.remoteAddress))
+        connection.handleWithAsyncHandler(handler(connection.remoteAddress), localParallelism)
       }).run()
 
       bindingFuture.onComplete {
@@ -139,7 +141,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
             val connectionContext = ConnectionContext.https(sslContext)
             val serverSource = Http().bind(localSecureBindAddress, localSecureBindPort, connectionContext, ServerSettings(actorSystem), logAdapter)
             val tlsBindingFuture = serverSource.to(Sink.foreach{ connection =>
-              connection.handleWithAsyncHandler(handler(connection.remoteAddress))
+              connection.handleWithAsyncHandler(handler(connection.remoteAddress), localSecureParallelism)
             }).run()
 
             tlsBindingFuture.onComplete {
