@@ -15,21 +15,25 @@
 package com.thing2x.smqd.net.mqtt
 
 import akka.actor.ActorRef
+import akka.pattern._
+import akka.util.Timeout
 import com.thing2x.smqd._
+import com.thing2x.smqd.session.ChannelManagerActor.{CreateChannelActorRequest, CreateChannelActorResponse}
 import com.thing2x.smqd.session.{ChannelManagerActor, SessionManagerActor}
 import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.{ChannelHandler, ChannelHandlerContext}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
-import scala.util.matching.Regex
+
+// 2018. 5. 30. - Created by Kwon, Yeong Eon
 
 /**
-  * 2018. 5. 30. - Created by Kwon, Yeong Eon
+  *
   */
-
 class MqttChannelInitializer(smqd: Smqd,
                              listenerName: String,
                              sslProvider: Option[TlsProvider],
@@ -38,7 +42,6 @@ class MqttChannelInitializer(smqd: Smqd,
                              messageMaxSize: Int,
                              metrics: MqttMetrics)
   extends io.netty.channel.ChannelInitializer[SocketChannel]
-    with com.thing2x.smqd.session.ChannelBuilder
     with MqttPipelineAppender
     with ActorIdentifying
     with StrictLogging {
@@ -46,11 +49,6 @@ class MqttChannelInitializer(smqd: Smqd,
   import smqd.Implicit._
   private val sessionManager: ActorRef = identifyManagerActor(SessionManagerActor.actorName)
   private val channelManagerActor: ActorRef = identifyManagerActor(ChannelManagerActor.actorName)
-  private var channelManager: ChannelManagerActor = _
-
-  channelManagerActor ! ChannelManagerActor.InitChannelBuilder(this)
-
-  override def channelManager(manager: ChannelManagerActor): Unit = channelManager = manager
 
   override def initChannel(ch: SocketChannel): Unit = {
     val pipeline = ch.pipeline
@@ -60,7 +58,10 @@ class MqttChannelInitializer(smqd: Smqd,
     }
     appendMqttPipeline(pipeline, sslEngine, channelBpsCounter, channelTpsCounter, messageMaxSize)
 
-    val channelActor = channelManager.createChannelActor(ch, listenerName)
+    implicit val timeout: Timeout = 2.second
+    val f = channelManagerActor.ask(CreateChannelActorRequest(ch, listenerName)).asInstanceOf[Future[CreateChannelActorResponse]]
+    // intended synchronous waiting
+    val channelActor = Await.result(f, timeout.duration).channelActor
 
     ch.attr(ATTR_CHANNEL_ACTOR).set(channelActor)
     ch.attr(ATTR_SESSION_MANAGER).set(sessionManager)

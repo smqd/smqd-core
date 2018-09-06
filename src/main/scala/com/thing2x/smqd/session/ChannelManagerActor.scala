@@ -18,7 +18,7 @@ import java.net.{InetSocketAddress, SocketAddress}
 
 import akka.actor.{Actor, ActorRef, Props}
 import com.thing2x.smqd.net.mqtt.Mqtt4ChannelActor
-import com.thing2x.smqd.session.ChannelManagerActor.InitChannelBuilder
+import com.thing2x.smqd.session.ChannelManagerActor.{CreateChannelActorRequest, CreateChannelActorResponse}
 import com.thing2x.smqd.{ChiefActor, Smqd}
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.channel.Channel
@@ -28,11 +28,11 @@ import io.netty.channel.Channel
 /**
   *
   */
-
 object ChannelManagerActor {
   val actorName = "channels"
 
-  case class InitChannelBuilder(builder: ChannelBuilder)
+  case class CreateChannelActorRequest(channel: Channel, listenerName: String)
+  case class CreateChannelActorResponse(channelActor: ActorRef)
 }
 
 class ChannelManagerActor(smqdInstance: Smqd) extends Actor with StrictLogging {
@@ -52,9 +52,9 @@ class ChannelManagerActor(smqdInstance: Smqd) extends Actor with StrictLogging {
   }
 
   def receive0: Receive = {
-    case InitChannelBuilder(builder) =>
-      builder.channelManager(this)
-
-    case _ =>
+    case CreateChannelActorRequest(channel, listenerName) =>
+      val name = s"${addr(channel.remoteAddress)}-${addr(channel.localAddress)}"
+      val channelActor = context.actorOf(Props(classOf[Mqtt4ChannelActor], smqdInstance, channel, listenerName), name)
+      sender ! CreateChannelActorResponse(channelActor)
   }
 }

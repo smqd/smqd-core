@@ -15,7 +15,10 @@
 package com.thing2x.smqd.net.mqtt
 
 import akka.actor.ActorRef
+import akka.pattern._
+import akka.util.Timeout
 import com.thing2x.smqd._
+import com.thing2x.smqd.session.ChannelManagerActor.{CreateChannelActorRequest, CreateChannelActorResponse}
 import com.thing2x.smqd.session.{ChannelManagerActor, SessionManagerActor}
 import com.thing2x.smqd.util.ActorIdentifying
 import com.typesafe.scalalogging.StrictLogging
@@ -24,13 +27,15 @@ import io.netty.channel.{ChannelHandler, ChannelHandlerContext}
 import io.netty.handler.codec.http.HttpServerCodec
 import io.netty.handler.ssl.SslHandler
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
-/**
-  * 2018. 5. 30. - Created by Kwon, Yeong Eon
-  */
+// 2018. 5. 30. - Created by Kwon, Yeong Eon
 
+/**
+  *
+  */
 class MqttWsChannelInitializer(smqd: Smqd,
                                listenerName: String,
                                sslProvider: Option[TlsProvider],
@@ -39,7 +44,6 @@ class MqttWsChannelInitializer(smqd: Smqd,
                                messageMaxSize: Int,
                                metrics: MqttMetrics)
   extends io.netty.channel.ChannelInitializer[SocketChannel]
-    with com.thing2x.smqd.session.ChannelBuilder
     with ActorIdentifying
     with StrictLogging {
 
@@ -47,9 +51,6 @@ class MqttWsChannelInitializer(smqd: Smqd,
 
   private val sessionManager: ActorRef = identifyManagerActor(SessionManagerActor.actorName)
   private val channelManagerActor: ActorRef = identifyManagerActor(ChannelManagerActor.actorName)
-  private var channelManager: ChannelManagerActor = _
-
-  override def channelManager(manager: ChannelManagerActor): Unit = channelManager = manager
 
   override def initChannel(ch: SocketChannel): Unit = {
 
@@ -67,7 +68,10 @@ class MqttWsChannelInitializer(smqd: Smqd,
     pipeline.addLast("httpServerCodec", new HttpServerCodec)
     pipeline.addLast("wsMqttHandshaker", new MqttWsHandshakeHandler(channelBpsCounter, channelTpsCounter, messageMaxSize))
 
-    val channelActor = channelManager.createChannelActor(ch, listenerName)
+    implicit val timeout: Timeout = 2.second
+    val f = channelManagerActor.ask(CreateChannelActorRequest(ch, listenerName)).asInstanceOf[Future[CreateChannelActorResponse]]
+    // intended synchronous waiting
+    val channelActor = Await.result(f, timeout.duration).channelActor
 
     ch.attr(ATTR_CHANNEL_ACTOR).set(channelActor)
     ch.attr(ATTR_SESSION_MANAGER).set(sessionManager)
