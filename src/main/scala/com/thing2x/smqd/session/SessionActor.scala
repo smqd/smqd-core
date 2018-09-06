@@ -119,7 +119,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
   }
 
   private def inboundPublish(ipub: InboundPublish): Unit = {
-    logger.info(s"--------------------------- ${self.path}")
+    // logger.info(s"--------------------------- ${self.path}")
 
     if (ipub.isRetain) {
       retain(ipub)

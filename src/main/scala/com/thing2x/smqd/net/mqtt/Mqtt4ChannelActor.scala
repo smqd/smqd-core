@@ -402,7 +402,7 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
             payload.release()
             sessionActor match {
               case Some(actor) =>
-                logger.info(s"=========================== ${actor.path}")
+                //logger.info(s"=========================== ${actor.path}")
                 actor ! InboundPublish(topicPath, qosLevel, isRetain, isDup, array, pktId)
               case _ =>
                 logger.error("no session actor exists")

@@ -15,6 +15,7 @@
 package com.thing2x.smqd.net.mqtt.test
 
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.testkit.ScalatestRouteTest
@@ -22,7 +23,6 @@ import akka.testkit.TestKit
 import com.thing2x.smqd.{Smqd, SmqdBuilder}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
-import io.netty.channel.embedded.EmbeddedChannel
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttConnectOptions, MqttMessage}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
@@ -50,7 +50,8 @@ class MqttSimpleTest extends WordSpec
       |
       |  core-mqtt {
       |    config {
-      |      leak.detector.level = PARANOID
+      |      # leak.detector.level = PARANOID
+      |      leak.detector.level = SIMPLE
       |
       |      local {
       |        enabled = true
@@ -59,19 +60,19 @@ class MqttSimpleTest extends WordSpec
       |      }
       |
       |      local.secure {
-      |        enabled = true
+      |        enabled = false
       |        address = 0.0.0.0
       |        port = 4883
       |      }
       |
       |      ws {
-      |        enabled = true
+      |        enabled = false
       |        address = 0.0.0.0
       |        port = 8086
       |      }
       |
       |      ws.secure {
-      |        enabled = true
+      |        enabled = false
       |        address = 0.0.0.0
       |        port = 8083
       |      }
@@ -113,22 +114,38 @@ class MqttSimpleTest extends WordSpec
       connOpt.setCleanSession(true)
       connOpt.setAutomaticReconnect(true)
 
+      val count = 200000
+      val eol = s"hello world - ${count - 1}"
+      val received = new AtomicInteger()
+
       val subscriber = new MqttClient(broker, "test-sub", new MemoryPersistence())
       subscriber.connect(connOpt)
       subscriber.subscribe("sensor/+/temp", 0, new IMqttMessageListener {
         override def messageArrived(topic: String, message: MqttMessage): Unit = {
           val text = new String(message.getPayload, StandardCharsets.UTF_8)
-          logger.debug(s"Received: $topic $text")
-          assert(text == "hello world")
-          promise.success(text == "hello world")
+          //logger.debug(s"Received: $topic, $text")
+          assert(text.startsWith("hello world - "))
+
+          received.incrementAndGet()
+
+          if (text == eol)
+            promise.success(text == eol)
         }
       })
 
       val publisher = new MqttClient(broker, "test-pub", new MemoryPersistence())
       publisher.connect(connOpt)
-      publisher.publish("sensor/1/temp", "hello world".getBytes(StandardCharsets.UTF_8), 0, false)
 
-      Await.result(promise.future, 1.second)
+      val t1 = System.currentTimeMillis()
+      for( n <- 0 until count) {
+        publisher.publish(s"sensor/$n/temp", s"hello world - $n".getBytes(StandardCharsets.UTF_8), 0, false)
+      }
+      val t2 = System.currentTimeMillis()
+
+      Await.result(promise.future, 60.second)
+
+      val t = (t2 - t1).toDouble
+      logger.debug(f"Time ${t/1000}%.3f sec. ${count.toDouble/t}%.4f message/ms  ${received.intValue} received.")
 
       publisher.disconnect()
       subscriber.disconnect()
