@@ -18,8 +18,10 @@ import com.thing2x.smqd.ClientId
 import com.thing2x.smqd.QoS.QoS
 import io.netty.buffer.ByteBuf
 
+// 2018. 6. 3. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 3. - Created by Kwon, Yeong Eon
+  *
   */
 trait SessionContext {
   def clientId: ClientId
@@ -38,9 +40,3 @@ trait SessionContext {
   def writePubAck(msgId: Int): Unit
   def writePubRec(msgId: Int): Unit
 }
-
-object SessionState extends Enumeration {
-  type SessionState = super.Value
-  val Failed, Initiated, ConnectReceived, ConnectAcked = Value
-}
-

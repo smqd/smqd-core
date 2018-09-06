@@ -31,8 +31,10 @@ import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise, TimeoutException}
 import scala.util.{Failure, Success}
 
+// 2018. 6. 2. - Created by Kwon, Yeong Eon
+
 /**
-  * 2018. 6. 2. - Created by Kwon, Yeong Eon
+  * Session Management Actor
   */
 object SessionManagerActor {
   val actorName = "sessions"

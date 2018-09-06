@@ -114,7 +114,9 @@ class MqttSimpleTest extends WordSpec
       connOpt.setCleanSession(true)
       connOpt.setAutomaticReconnect(true)
 
-      val count = 200000
+      // reducing number of testing messages for ci tool
+      //val count = 200000
+      val count = 20
       val eol = s"hello world - ${count - 1}"
       val received = new AtomicInteger()
 
