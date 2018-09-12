@@ -74,4 +74,4 @@ val `smqd-core` = project.in(file(".")).settings(
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
   headerMappings := headerMappings.value + (HeaderFileType.conf -> HeaderCommentStyle.hashLineComment)
-).enablePlugins(AutomateHeaderPlugin)
+).enablePlugins(AutomateHeaderPlugin, MultiJvmPlugin).configs(MultiJvm)

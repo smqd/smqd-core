@@ -432,3 +432,17 @@ A plugin manifest file contains multiple desciptions of plugin packages. A packa
 ```bash
 sbt '; set javaOptions ++= Seq("-Dconfig.file=./src/test/conf/smqd-1.conf", "-Dlogback.configurationFile=./src/test/conf/logback.xml", "-Djava.net.preferIPv4Stack=true"); runMain com.thing2x.smqd.Main'
 ```
+
+- Multi Jvm Test
+
+Run all multi-jvm test cases
+
+```bash
+sbt multi-jvm:test
+```
+
+Run a specific multi-jvm test case
+
+```bash
+sbt multi-jvm:testOnly <test class>
+```
