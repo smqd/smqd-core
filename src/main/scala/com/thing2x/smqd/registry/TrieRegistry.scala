@@ -15,7 +15,6 @@
 package com.thing2x.smqd.registry
 
 import akka.actor.ActorRef
-import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.util.ActorIdentifying
 import com.thing2x.smqd.{FilterPath, Smqd, TopicPath}
 
@@ -34,7 +33,7 @@ final class TrieRegistry(smqd: Smqd, debugDump: Boolean) extends Registry with A
 
   private val trie: TPathTrie[Registration] = TPathTrie()
 
-  override def subscribe0(reg: Registration): QoS ={
+  override def subscribe0(reg: Registration): Unit ={
     logger.debug("subscribe0 {}{}", reg.actor.path, if (reg.filterPath == null) "" else ": "+reg.filterPath.toString)
 
     val nrOfRemains = trie.add(reg.filterPath, reg)
@@ -43,7 +42,6 @@ final class TrieRegistry(smqd: Smqd, debugDump: Boolean) extends Registry with A
     }
     if (debugDump)
       logger.debug(s"\n{}", dump)
-    reg.qos
   }
 
   override def unsubscribe0(actor: ActorRef, filterPath: FilterPath = null): Boolean = {
@@ -82,7 +80,6 @@ final class TrieRegistry(smqd: Smqd, debugDump: Boolean) extends Registry with A
   override def filter(topicPath: TopicPath): Seq[Registration] =
     trie.matches(topicPath)
 
-  override def snapshot: Seq[Registration] = {
+  override def snapshot: Seq[Registration] =
     trie.snapshot
-  }
 }

@@ -238,8 +238,8 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
           }.map { case (qos, topicName, msg) =>
             // actual subscription, only for topics that are passed allowance check point
             if (qos != QoS.Failure) {
-              val finalQoS = smqd.subscribe(topicName, self, sessionCtx.clientId, qos)
-              (finalQoS, topicName, if (finalQoS == QoS.Failure) "RegistryFailure" else msg)
+              smqd.subscribe(topicName, self, sessionCtx.clientId, qos)
+              (qos, topicName, msg)
             }
             else {
               (qos, topicName, msg)

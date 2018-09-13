@@ -15,14 +15,11 @@
 package com.thing2x.smqd.registry
 
 import akka.actor.ActorRef
-import akka.pattern.ask
-import akka.util.Timeout
 import com.thing2x.smqd.QoS._
 import com.thing2x.smqd._
 import com.thing2x.smqd.registry.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 
 // 2018. 6. 3. - Created by Kwon, Yeong Eon
@@ -30,33 +27,30 @@ import scala.language.postfixOps
 /**
   * Subscription management registry. Hold all subscriber's [[Registration]]
   */
-trait Registry {
-
+object Registry {
   type RegistryCallback = PartialFunction[(TopicPath, Any), Unit]
+}
+
+trait Registry {
 
   private[registry] def callbackManager: ActorRef
 
-  def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef = {
-    implicit val timeout: Timeout = 1 second
-
-    val f = callbackManager ? CreateCallback(callback)
-    val actor = Await.result(f, timeout.duration).asInstanceOf[ActorRef]
-    subscribe(filterPath, actor)
-    actor
+  def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): Future[ActorRef] = {
+    val promise = Promise[ActorRef]
+    callbackManager ! CreateCallback(filterPath, callback, promise)
+    promise.future
   }
 
-  def subscribe(filterPath: FilterPath)(callback: RegistryCallback): ActorRef = {
-    implicit val timeout: Timeout = 1 second
-    val f = callbackManager ? CreateCallbackPF(callback)
-    val actor = Await.result(f, timeout.duration).asInstanceOf[ActorRef]
-    subscribe(filterPath, actor)
-    actor
+  def subscribe(filterPath: FilterPath)(callback: Registry.RegistryCallback): Future[ActorRef] = {
+    val promise = Promise[ActorRef]
+    callbackManager ! CreateCallbackPF(filterPath, callback, promise)
+    promise.future
   }
 
-  def subscribe(filterPath: FilterPath, actor: ActorRef, clientId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): QoS =
+  def subscribe(filterPath: FilterPath, actor: ActorRef, clientId: Option[ClientId] = None, qos: QoS = QoS.AtMostOnce): Unit =
     subscribe0(Registration(filterPath, qos, actor, clientId))
 
-  def subscribe0(reg: Registration): QoS = QoS.Failure
+  def subscribe0(reg: Registration): Unit
 
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean = unsubscribe0(actor, filterPath)
 

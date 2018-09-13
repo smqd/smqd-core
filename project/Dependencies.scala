@@ -45,7 +45,7 @@ object Dependencies {
     //////////////////////////////////
     // Test
     "com.typesafe.akka" %% "akka-testkit" % Versions.akka % Test,
-    "com.typesafe.akka" %% "akka-multi-node-testkit" % Versions.akka,
+    "com.typesafe.akka" %% "akka-multi-node-testkit" % Versions.akka % Test,
     "com.typesafe.akka" %% "akka-stream-testkit" % Versions.akka % Test,
     "com.typesafe.akka" %% "akka-http-testkit" % Versions.akkaHttp % Test,
     "org.scalatest" %% "scalatest" % "3.0.5" % Test,

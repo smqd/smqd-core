@@ -18,6 +18,8 @@ import akka.actor.ActorRef
 import com.thing2x.smqd.{FilterPath, LifeCycle, TopicPath}
 import com.typesafe.scalalogging.StrictLogging
 
+import scala.util.{Failure, Success}
+
 // 2018. 7. 7. - Created by Kwon, Yeong Eon
 
 trait Bridge extends LifeCycle with StrictLogging with Ordered[Bridge] {
@@ -40,8 +42,16 @@ abstract class AbstractBridge(val driver: BridgeDriver, val index: Long, val fil
   private var subr: Option[ActorRef] = None
 
   override def start(): Unit = {
-    subr = Some(driver.smqdInstance.subscribe(filterPath, bridge _))
-    logger.info(s"Bridge '${filterPath.toString}' started.")
+    import driver.smqdInstance.Implicit._
+    val f = driver.smqdInstance.subscribe(filterPath, bridge _)
+    f.onComplete {
+      case Success(actor) =>
+        subr = Some(actor)
+        logger.info(s"Bridge '${filterPath.toString}' started.")
+      case Failure(ex) =>
+        subr = None
+        logger.warn(s"Bridge '${filterPath.toString}' failed to start.", ex)
+    }
   }
 
   override def stop(): Unit = {

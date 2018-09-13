@@ -22,6 +22,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.io.AnsiColor
+import scala.util.Success
 
 /**
   * 2018. 5. 31. - Created by Kwon, Yeong Eon
@@ -49,11 +50,18 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
   private var subr: Option[ActorRef] = None
 
   override def start(): Unit = {
+    import smqd.Implicit._
+
     val topic = config.getString("subscribe.topic")
-    val s = smqd.subscribe(FilterPath(topic)) {
+    val f = smqd.subscribe(FilterPath(topic)) {
       case (topicPath, msg) => notified(topicPath, msg)
     }
-    subr = Some(s)
+    f.onComplete {
+      case Success(actor) =>
+        subr = Some(actor)
+      case _ =>
+        subr = None
+    }
 
     val coloring = config.getBoolean("coloring")
     colored = if(coloring) colored_do else colored_no

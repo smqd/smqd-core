@@ -15,7 +15,6 @@
 package com.thing2x.smqd.registry
 
 import akka.actor.ActorRef
-import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.util.ActorIdentifying
 import com.thing2x.smqd.{FilterPath, Smqd, TopicPath}
 
@@ -34,7 +33,7 @@ final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends Registry wit
 
   protected val registry: mutable.HashMap[FilterPath, Set[Registration]] = mutable.HashMap[FilterPath, Set[Registration]]()
 
-  override def subscribe0(reg: Registration): QoS = {
+  override def subscribe0(reg: Registration): Unit = {
     //logger.debug("subscribe0 {}{}", reg.actor.path, if (reg.filterPath == null) "" else ": "+reg.filterPath.toString)
     synchronized {
       registry.get(reg.filterPath) match {
@@ -47,7 +46,6 @@ final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends Registry wit
       }
       if (debugDump)
         logger.debug(dump)
-      reg.qos
     }
   }
 

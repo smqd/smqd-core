@@ -27,7 +27,7 @@ import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.plugin.{InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
-import com.thing2x.smqd.registry.{Registration, RegistryDelegate, TrieRegistry}
+import com.thing2x.smqd.registry.{Registration, Registry, RegistryDelegate, TrieRegistry}
 import com.thing2x.smqd.util.ConfigUtil._
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
@@ -215,17 +215,17 @@ class Smqd(val config: Config,
   def subscribe(filterPath: FilterPath, actor: ActorRef): Unit =
     registry.subscribe(filterPath, actor)
 
-  def subscribe(filterPath: FilterPath, actor: ActorRef, clientId: ClientId, qos: QoS): QoS =
+  def subscribe(filterPath: FilterPath, actor: ActorRef, clientId: ClientId, qos: QoS): Unit =
     registry.subscribe(filterPath, actor, Some(clientId), qos)
 
-  def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): ActorRef =
+  def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): Future[ActorRef] =
     registry.subscribe(filterPath, callback)
 
-  def subscribe(filterPath: FilterPath)(callback: PartialFunction[(TopicPath, Any), Unit]): ActorRef =
+  def subscribe(filterPath: FilterPath)(callback: Registry.RegistryCallback): Future[ActorRef] =
     registry.subscribe(filterPath)(callback)
 
   /** Java API */
-  def subscribe(filterPath: FilterPath, receivable: MessageReceivable): ActorRef =
+  def subscribe(filterPath: FilterPath, receivable: MessageReceivable): Future[ActorRef] =
     registry.subscribe(filterPath){ case (topic, msg) => receivable.onMessage(topic, msg) }
 
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean = unsubscribe(actor, Some(filterPath))

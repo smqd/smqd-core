@@ -14,19 +14,21 @@
 
 package com.thing2x.smqd.registry
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.registry.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
-import com.thing2x.smqd.{ResponsibleMessage, Smqd, TopicPath}
+import com.thing2x.smqd.{FilterPath, ResponsibleMessage, Smqd, TopicPath}
 import com.typesafe.scalalogging.StrictLogging
+
+import scala.concurrent.Promise
 
 // 2018. 6. 18. - Created by Kwon, Yeong Eon
 
 object RegistryCallbackManagerActor {
   val actorName: String = "registry_callbacks"
 
-  case class CreateCallback(callback: (TopicPath, Any) => Unit)
-  case class CreateCallbackPF(partial: PartialFunction[(TopicPath, Any), Unit])
+  case class CreateCallback(filterPath: FilterPath, callback: (TopicPath, Any) => Unit, prommise: Promise[ActorRef])
+  case class CreateCallbackPF(filterPath: FilterPath, partial: Registry.RegistryCallback, promise: Promise[ActorRef])
 }
 
 class RegistryCallbackManagerActor(smqd: Smqd) extends Actor with StrictLogging {
@@ -37,12 +39,14 @@ class RegistryCallbackManagerActor(smqd: Smqd) extends Actor with StrictLogging 
   }
 
   def receive0: Receive = {
-    case CreateCallback(cb) =>
+    case CreateCallback(filterPath, cb, promise) =>
       val child = context.actorOf(Props(classOf[RegistryCallbackActor], smqd, cb))
-      sender ! child
-    case CreateCallbackPF(cb) =>
+      smqd.subscribe(filterPath, child)
+      promise.success(child)
+    case CreateCallbackPF(filterPath, cb, promise) =>
       val child = context.actorOf(Props(classOf[RegistryCallbackPFActor], smqd, cb))
-      sender ! child
+      smqd.subscribe(filterPath, child)
+      promise.success(child)
   }
 }
 
@@ -51,6 +55,11 @@ class RegistryCallbackManagerActor(smqd: Smqd) extends Actor with StrictLogging 
   * @param callback callback function
   */
 class RegistryCallbackActor(smqd: Smqd, callback: (TopicPath, Any) => Unit) extends Actor with StrictLogging {
+
+  override def postStop(): Unit = {
+    smqd.unsubscribe(self)
+  }
+
   override def receive: Receive = {
     case (topicPath: TopicPath, msg) =>
       try {
@@ -72,7 +81,12 @@ class RegistryCallbackActor(smqd: Smqd, callback: (TopicPath, Any) => Unit) exte
   * Actor works for partial function callback that subscribes a topic
   * @param callback callback partial function
   */
-class RegistryCallbackPFActor(smqd: Smqd, callback: PartialFunction[(TopicPath, Any), Unit]) extends Actor with StrictLogging {
+class RegistryCallbackPFActor(smqd: Smqd, callback: Registry.RegistryCallback) extends Actor with StrictLogging {
+
+  override def postStop(): Unit = {
+    smqd.unsubscribe(self)
+  }
+
   override def receive: Receive = {
     case (topicPath: TopicPath, msg) =>
       try {

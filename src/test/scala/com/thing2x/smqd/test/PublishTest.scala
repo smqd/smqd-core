@@ -14,7 +14,7 @@
 
 package com.thing2x.smqd.test
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -80,39 +80,49 @@ class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseStri
   }
 
   "Callback Subscription" must {
-    "callback - partial function must work" in {
+    "work with partial function" in {
       val origin = self
-      val subr = smqd.subscribe("registry/test/pf/+/temp"){
+      val f = smqd.subscribe("registry/test/pf/+/temp") {
         case (topic, msg) =>
           //logger.info(s"==p==> ${topic} ${msg}")
           origin ! msg
       }
 
+      val actor = Await.result(f, 1.second)
+
       1 to 100 foreach { i =>
         val msg = s"Hello World - $i"
+        //logger.info(s"--p--> ${msg}")
         smqd.publish(s"registry/test/pf/$i/temp", msg)
         expectMsg(msg)
       }
 
-      smqd.unsubscribe(subr)
+      //actor ! PoisonPill
+      smqd.unsubscribe(actor)
     }
+  }
 
-    "callback - function must work" in {
+  "Callback Subscription" must {
+    "work with callback function" in {
       val origin = self
       def callback(topic: TopicPath, msg: Any): Unit = {
         //logger.info(s"==m==> ${topic} ${msg}")
         origin ! msg
       }
 
-      val subr = smqd.subscribe("registry/test/callback/+/temp", callback _ )
+      val f = smqd.subscribe("registry/test/callback/+/temp", callback _ )
+
+      val actor = Await.result(f, 1.second)
 
       1 to 100 foreach { i =>
         val msg = s"Hello World - $i"
+        //logger.info(s"--m--> ${msg}")
         smqd.publish(s"registry/test/callback/$i/temp", msg)
         expectMsg(msg)
       }
 
-      smqd.unsubscribe(subr)
+      actor ! PoisonPill
+      // smqd.unsubscribe(actor)
     }
   }
 
