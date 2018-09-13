@@ -16,6 +16,7 @@ package com.thing2x.smqd.registry
 
 import akka.actor.ActorRef
 import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd.util.ActorIdentifying
 import com.thing2x.smqd.{FilterPath, Smqd, TopicPath}
 
 import scala.collection.mutable
@@ -25,11 +26,15 @@ import scala.collection.mutable
 /**
   *
   */
-final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegistry(smqd)  {
+final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends Registry with ActorIdentifying {
+
+  import smqd.Implicit._
+
+  override lazy val callbackManager: ActorRef = identifyManagerActor(RegistryCallbackManagerActor.actorName)
 
   protected val registry: mutable.HashMap[FilterPath, Set[Registration]] = mutable.HashMap[FilterPath, Set[Registration]]()
 
-  def subscribe0(reg: Registration): QoS = {
+  override def subscribe0(reg: Registration): QoS = {
     //logger.debug("subscribe0 {}{}", reg.actor.path, if (reg.filterPath == null) "" else ": "+reg.filterPath.toString)
     synchronized {
       registry.get(reg.filterPath) match {
@@ -46,7 +51,7 @@ final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegi
     }
   }
 
-  def unsubscribe0(actor: ActorRef, filterPath: FilterPath = null): Boolean = {
+  override def unsubscribe0(actor: ActorRef, filterPath: FilterPath = null): Boolean = {
     //logger.debug("unsubscribe0 {}{}", actor.path, if (filterPath == null) "" else ": "+filterPath.toString)
     var result = false
     synchronized {
@@ -93,7 +98,7 @@ final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegi
     }.mkString("\nRegistry Dump\n      ", "\n      ", "\n")
   }
 
-  def filter(topicPath: TopicPath): Seq[Registration] = {
+  override def filter(topicPath: TopicPath): Seq[Registration] = {
     synchronized {
       registry.filter { case (filterPath, list) =>
         filterPath.matchFor(topicPath)
@@ -103,7 +108,7 @@ final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegi
     }
   }
 
-  def snapshot: Seq[Registration] = {
+  override def snapshot: Seq[Registration] = {
     registry.values.flatten.toSeq
   }
 }

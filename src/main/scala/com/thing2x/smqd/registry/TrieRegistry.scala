@@ -16,6 +16,7 @@ package com.thing2x.smqd.registry
 
 import akka.actor.ActorRef
 import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd.util.ActorIdentifying
 import com.thing2x.smqd.{FilterPath, Smqd, TopicPath}
 
 import scala.collection.mutable
@@ -25,14 +26,19 @@ import scala.collection.mutable
 /**
   *
   */
-final class TrieRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegistry(smqd) {
+final class TrieRegistry(smqd: Smqd, debugDump: Boolean) extends Registry with ActorIdentifying {
+
+  import smqd.Implicit._
+
+  override lazy val callbackManager: ActorRef = identifyManagerActor(RegistryCallbackManagerActor.actorName)
+
   private val trie: TPathTrie[Registration] = TPathTrie()
 
-  def subscribe0(reg: Registration): QoS ={
+  override def subscribe0(reg: Registration): QoS ={
     logger.debug("subscribe0 {}{}", reg.actor.path, if (reg.filterPath == null) "" else ": "+reg.filterPath.toString)
 
-    val noRemains = trie.add(reg.filterPath, reg)
-    if (noRemains == 1) { // if it's a new
+    val nrOfRemains = trie.add(reg.filterPath, reg)
+    if (nrOfRemains == 1) { // if it's a new
       smqd.addRoute(reg.filterPath)
     }
     if (debugDump)
@@ -40,16 +46,16 @@ final class TrieRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegistr
     reg.qos
   }
 
-  def unsubscribe0(actor: ActorRef, filterPath: FilterPath = null): Boolean = {
+  override def unsubscribe0(actor: ActorRef, filterPath: FilterPath = null): Boolean = {
     logger.debug("unsubscribe0 {}{}", actor.path, if (filterPath == null) "" else ": "+filterPath.toString)
 
     var result = false
     if (filterPath != null) { // filter based unregister
-      val noRemains = trie.remove(filterPath){r => r.actor.path == actor.path}
-      if (noRemains == 0)
+      val nrOfRemains = trie.remove(filterPath){ r => r.actor.path == actor.path}
+      if (nrOfRemains == 0)
         smqd.removeRoute(filterPath)
 
-      if (noRemains >= 0) // negative number means non-existing filter path
+      if (nrOfRemains >= 0) // negative number means non-existing filter path
         result = true
     }
     else { // actor based registration
@@ -73,10 +79,10 @@ final class TrieRegistry(smqd: Smqd, debugDump: Boolean) extends AbstractRegistr
     sb.toString()
   }
 
-  def filter(topicPath: TopicPath): Seq[Registration] =
+  override def filter(topicPath: TopicPath): Seq[Registration] =
     trie.matches(topicPath)
 
-  def snapshot: Seq[Registration] = {
+  override def snapshot: Seq[Registration] = {
     trie.snapshot
   }
 }
