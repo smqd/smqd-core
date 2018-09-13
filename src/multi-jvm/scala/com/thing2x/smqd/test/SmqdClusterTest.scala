@@ -74,6 +74,13 @@ object SmqdClusterTest {
       case "ping" => sender ! "pong"
     }
   }
+
+  class Subscriber extends Actor with StrictLogging {
+    def receive: Receive = {
+      case (topic, msg) =>
+        logger.info(s"==========> ${topic.toString}: $msg")
+    }
+  }
 }
 
 class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
@@ -121,7 +128,26 @@ class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
     }
   }
 
-  "SmqdClusterTest" must {
+  "Subscriber with Actor" must {
+    runOn(node1) {
+      "subscribe to test/actor" in {
+        val sub = system.actorOf(Props[Subscriber], "subscriber")
+        smqd.subscribe("test/actor", sub)
+        enterBarrier("actor_sub_ready")
+        Thread.sleep(1000)
+        smqd.publish("test/actor", "Are you ready?")
+      }
+    }
+
+    "be tested" in {
+      runOn(node2) {
+        enterBarrier("actor_sub_ready")
+      }
+      enterBarrier("actor_pub")
+    }
+  }
+
+  "Subscriber with PartialFunction" must {
     val done = Promise[Boolean]
 
     // node1 subscribe to 'test/hello' topic
