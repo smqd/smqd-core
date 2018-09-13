@@ -21,6 +21,7 @@ import akka.cluster.Cluster
 import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata.{DistributedData, ORMultiMap, ORMultiMapKey}
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
+import com.thing2x.smqd.registry.{Registration, Registry}
 import com.thing2x.smqd.session.SessionActor.OutboundPublish
 import com.typesafe.scalalogging.StrictLogging
 import spray.json.{DefaultJsonProtocol, JsObject, JsString, JsValue, RootJsonFormat}

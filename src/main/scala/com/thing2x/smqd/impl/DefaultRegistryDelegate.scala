@@ -15,6 +15,7 @@
 package com.thing2x.smqd.impl
 
 import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd.registry.RegistryDelegate
 import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.{ClientId, _}
 

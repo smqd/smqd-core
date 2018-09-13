@@ -19,6 +19,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd._
 import com.thing2x.smqd.net.http.HttpServiceContext
+import com.thing2x.smqd.registry.Registration
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.scalalogging.StrictLogging
 import spray.json.{RootJsonFormat, _}

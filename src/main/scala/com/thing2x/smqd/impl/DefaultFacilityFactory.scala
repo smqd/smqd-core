@@ -18,6 +18,7 @@ import java.io.File
 
 import akka.actor.ActorSystem
 import com.thing2x.smqd._
+import com.thing2x.smqd.registry.RegistryDelegate
 import com.typesafe.config.Config
 
 import scala.concurrent.ExecutionContext

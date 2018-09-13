@@ -17,6 +17,7 @@ package com.thing2x.smqd
 import akka.actor.{ActorSystem, Address, AddressFromURIString}
 import akka.cluster.Cluster
 import com.thing2x.smqd.discovery.{EtcdClusterDiscovery, FailedClusterDiscovery, ManualClusterDiscovery, StaticClusterDiscovery}
+import com.thing2x.smqd.registry.RegistryDelegate
 import com.thing2x.smqd.util.ClassLoading
 import com.typesafe.config.Config
 

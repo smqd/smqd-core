@@ -15,6 +15,7 @@
 package com.thing2x.smqd
 
 import akka.actor.ActorSystem
+import com.thing2x.smqd.registry.RegistryDelegate
 import com.typesafe.config.Config
 
 import scala.concurrent.ExecutionContext

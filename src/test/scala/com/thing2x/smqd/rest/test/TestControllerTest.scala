@@ -76,7 +76,7 @@ class TestControllerTest extends WordSpec
 
   var smqdInstance: Smqd = _
   var routes: Route = _
-  val shutdownPromise = Promise[Boolean]
+  val shutdownPromise: Promise[Boolean] = Promise[Boolean]
 
   override def beforeAll(): Unit = {
 

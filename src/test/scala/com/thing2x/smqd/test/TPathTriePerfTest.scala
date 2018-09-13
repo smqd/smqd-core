@@ -14,7 +14,8 @@
 
 package com.thing2x.smqd.test
 
-import com.thing2x.smqd.{FilterPath, TPathTrie, TopicPath}
+import com.thing2x.smqd.registry.TPathTrie
+import com.thing2x.smqd.{FilterPath, TopicPath}
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.FlatSpec
 

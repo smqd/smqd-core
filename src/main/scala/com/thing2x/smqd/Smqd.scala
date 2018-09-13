@@ -27,6 +27,7 @@ import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.plugin.{InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
+import com.thing2x.smqd.registry.{Registration, RegistryDelegate, TrieRegistry}
 import com.thing2x.smqd.util.ConfigUtil._
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config

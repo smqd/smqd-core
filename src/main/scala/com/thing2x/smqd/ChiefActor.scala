@@ -21,6 +21,7 @@ import akka.util.Timeout
 import com.thing2x.smqd.delivery.DeliveryManagerActor
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.protocol.ProtocolNotificationManager
+import com.thing2x.smqd.registry.{Registry, RegistryCallbackManagerActor}
 import com.thing2x.smqd.session.{ChannelManagerActor, ClusterModeSessionManagerActor, LocalModeSessionManagerActor, SessionManagerActor}
 import com.thing2x.smqd.util.{JvmMonitoringActor, MetricActor}
 import com.typesafe.scalalogging.StrictLogging

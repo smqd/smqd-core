@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd
+package com.thing2x.smqd.registry
 
 import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd.{ClientId, FilterPath, TopicPath}
 
 import scala.concurrent.Future
 
-// 2018. 8. 13. - Created by Kwon, Yeong Eon
+// 2018. 9. 13. - Created by Kwon, Yeong Eon
 
 /**
   *

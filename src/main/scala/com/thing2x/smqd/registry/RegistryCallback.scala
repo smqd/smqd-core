@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.thing2x.smqd
+package com.thing2x.smqd.registry
 
 import akka.actor.{Actor, Props}
-import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
-import com.thing2x.smqd.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
-import com.thing2x.smqd.session.SessionActor.OutboundPublish
+import com.thing2x.smqd.registry.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
+import com.thing2x.smqd.{ResponsibleMessage, Smqd, TopicPath}
+import com.typesafe.scalalogging.StrictLogging
 
 // 2018. 6. 18. - Created by Kwon, Yeong Eon
 
