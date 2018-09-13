@@ -17,7 +17,6 @@ package com.thing2x.smqd.registry
 import akka.actor.ActorRef
 import com.thing2x.smqd.QoS.QoS
 import com.thing2x.smqd.{FilterPath, Smqd, TopicPath}
-import com.thing2x.smqd.registry.TPathTrie
 
 import scala.collection.mutable
 

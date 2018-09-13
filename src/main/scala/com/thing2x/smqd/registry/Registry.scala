@@ -17,13 +17,6 @@ package com.thing2x.smqd.registry
 import akka.actor.ActorRef
 import com.thing2x.smqd.QoS._
 import com.thing2x.smqd._
-import com.thing2x.smqd.registry.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
-import com.thing2x.smqd.util.ActorIdentifying
-import com.typesafe.scalalogging.StrictLogging
-import spray.json.{DefaultJsonProtocol, JsNumber, JsObject, JsString, JsValue, RootJsonFormat}
-
-import scala.collection.mutable
-import scala.concurrent.Await
 
 // 2018. 6. 3. - Created by Kwon, Yeong Eon
 

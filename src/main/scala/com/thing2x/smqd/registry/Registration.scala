@@ -15,8 +15,8 @@
 package com.thing2x.smqd.registry
 
 import akka.actor.ActorRef
-import com.thing2x.smqd.{ClientId, FilterPath, QoS}
 import com.thing2x.smqd.QoS.QoS
+import com.thing2x.smqd.{ClientId, FilterPath, QoS}
 import spray.json.{DefaultJsonProtocol, JsNumber, JsObject, JsString, JsValue, RootJsonFormat}
 
 // 2018. 9. 13. - Created by Kwon, Yeong Eon
