@@ -28,10 +28,13 @@ object RegistryCallbackManagerActor {
   val actorName: String = "registry_callbacks"
 
   case class CreateCallback(filterPath: FilterPath, callback: (TopicPath, Any) => Unit, prommise: Promise[ActorRef])
-  case class CreateCallbackPF(filterPath: FilterPath, partial: Registry.RegistryCallback, promise: Promise[ActorRef])
+  case class CreateCallbackPF(filterPath: FilterPath, receive: Actor.Receive, promise: Promise[ActorRef])
 }
 
-class RegistryCallbackManagerActor(smqd: Smqd) extends Actor with StrictLogging {
+class RegistryCallbackManagerActor(smqd: Smqd, registry: Registry) extends Actor with StrictLogging {
+
+  override def preStart(): Unit = registry.callbackManager = self
+
   override def receive: Receive = {
     case Ready =>
       context.become(receive0)
@@ -43,8 +46,8 @@ class RegistryCallbackManagerActor(smqd: Smqd) extends Actor with StrictLogging 
       val child = context.actorOf(Props(classOf[RegistryCallbackActor], smqd, cb))
       smqd.subscribe(filterPath, child)
       promise.success(child)
-    case CreateCallbackPF(filterPath, cb, promise) =>
-      val child = context.actorOf(Props(classOf[RegistryCallbackPFActor], smqd, cb))
+    case CreateCallbackPF(filterPath, receive, promise) =>
+      val child = context.actorOf(Props(classOf[RegistryCallbackPFActor], smqd, receive))
       smqd.subscribe(filterPath, child)
       promise.success(child)
   }
@@ -71,8 +74,9 @@ class RegistryCallbackActor(smqd: Smqd, callback: (TopicPath, Any) => Unit) exte
             // in case of request-response model, reply the exception to the requestor
             // so that request manager can make the promise to complete with the failure
             case ResponsibleMessage(replyTo, _) => smqd.publish(replyTo, e)
-            case _ => logger.warn(s"Callback '${topicPath.toString}' throws an error", e)
+            case _ =>
           }
+          throw e
       }
   }
 }
@@ -81,14 +85,15 @@ class RegistryCallbackActor(smqd: Smqd, callback: (TopicPath, Any) => Unit) exte
   * Actor works for partial function callback that subscribes a topic
   * @param callback callback partial function
   */
-class RegistryCallbackPFActor(smqd: Smqd, callback: Registry.RegistryCallback) extends Actor with StrictLogging {
+class RegistryCallbackPFActor(smqd: Smqd, callback: Actor.Receive) extends Actor with StrictLogging {
 
   override def postStop(): Unit = {
     smqd.unsubscribe(self)
   }
 
-  override def receive: Receive = {
-    case (topicPath: TopicPath, msg) =>
+  override def receive: Receive =
+  {
+    case m @ (topicPath: TopicPath, msg) if callback.isDefinedAt(m) =>
       try {
         callback((topicPath, msg))
       }
@@ -98,8 +103,11 @@ class RegistryCallbackPFActor(smqd: Smqd, callback: Registry.RegistryCallback) e
             // in case of request-response model, reply the exception to the requestor
             // so that request manager can make the promise to complete with the failure
             case ResponsibleMessage(replyTo, _) => smqd.publish(replyTo, e)
-            case _ => logger.warn(s"Callback '${topicPath.toString}' throws an error", e)
+            case _ =>
           }
+          throw e
       }
+    case m if callback.isDefinedAt(m) =>
+      callback(m)
   }
 }

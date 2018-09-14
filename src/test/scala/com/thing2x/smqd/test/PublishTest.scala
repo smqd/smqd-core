@@ -14,16 +14,17 @@
 
 package com.thing2x.smqd.test
 
-import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props, UnhandledMessage}
+import akka.remote.transport.AssociationHandle.Unknown
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.util.Timeout
+import com.thing2x.smqd._
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import com.thing2x.smqd._
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
@@ -84,12 +85,26 @@ class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseStri
       val origin = self
       val f = smqd.subscribe("registry/test/pf/+/temp") {
         case (topic, msg) =>
-          //logger.info(s"==p==> ${topic} ${msg}")
+          // logger.info(s"==p==> ${topic} ${msg}")
           origin ! msg
+        case "HELLO" =>
+          // logger.info(s"==p==> Hello")
+          origin ! "hello"
       }
 
+      // wait for actor creation and registration
       val actor = Await.result(f, 1.second)
 
+      // handling normal message
+      actor ! "HELLO"
+      expectMsg("hello")
+
+      // unhandled message test
+      actor ! "Do not handle"
+      system.eventStream.subscribe(testActor, classOf[UnhandledMessage])
+      expectMsg(1 second, UnhandledMessage("Do not handle", self, actor))
+
+      // handling published message
       1 to 100 foreach { i =>
         val msg = s"Hello World - $i"
         //logger.info(s"--p--> ${msg}")
@@ -97,6 +112,8 @@ class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseStri
         expectMsg(msg)
       }
 
+      // unsubscription should work in both of ways
+      //
       //actor ! PoisonPill
       smqd.unsubscribe(actor)
     }

@@ -1,10 +1,10 @@
 package com.thing2x.smqd.test
 
 import akka.actor.{Actor, Props}
-import akka.cluster.Cluster
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.{MultiNodeConfig, MultiNodeSpec}
 import akka.testkit.ImplicitSender
+import com.thing2x.smqd.test.SmqdClusterTestConfig.{debugConfig, nodeConfig, role}
 import com.thing2x.smqd.{SmqdBuilder, TopicPath}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
@@ -60,28 +60,12 @@ object SmqdClusterTestConfig extends MultiNodeConfig {
 
   private val refCfg = ConfigFactory.parseResources("smqd-ref.conf")
 
-  nodeConfig(node1)(node1Cfg, commonCfg, refCfg, debugConfig(true))
-  nodeConfig(node2)(node2Cfg, commonCfg, refCfg, debugConfig(true))
+  nodeConfig(node1)(node1Cfg, commonCfg, refCfg, debugConfig(false))
+  nodeConfig(node2)(node2Cfg, commonCfg, refCfg, debugConfig(false))
 }
 
 class SmqdClusterTestMultiJvmNode1 extends SmqdClusterTest
 class SmqdClusterTestMultiJvmNode2 extends SmqdClusterTest
-
-object SmqdClusterTest {
-
-  class Ponger extends Actor {
-    def receive: Receive = {
-      case "ping" => sender ! "pong"
-    }
-  }
-
-  class Subscriber extends Actor with StrictLogging {
-    def receive: Receive = {
-      case (topic, msg) =>
-        logger.info(s"==========> ${topic.toString}: $msg")
-    }
-  }
-}
 
 class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
   with ClusterTestSpec
@@ -89,7 +73,6 @@ class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
   with ImplicitSender
   with StrictLogging {
 
-  import SmqdClusterTest._
   import SmqdClusterTestConfig._
 
   private val smqd = new SmqdBuilder(system.settings.config).setActorSystem(system).setServices(Map.empty).build()
@@ -106,45 +89,34 @@ class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
     super.multiNodeSpecAfterAll()
   }
 
-  "PingPongTest" must {
-    "wait for all nodes to enter a barrier" in {
-      enterBarrier("startup")
-    }
-
-    // simple ping/pong message test between remote actors
-    "send to and receive from a remote node" in {
-      runOn(node1) {
-        enterBarrier("deployed")
-
-        val ponger = system.actorSelection(node(node2) / "user" / "ponger")
-        ponger ! "ping"
-        expectMsg(10.seconds, "pong")
-      }
-
-      runOn(node2) {
-        system.actorOf(Props[Ponger], "ponger")
-        enterBarrier("deployed")
-      }
-    }
-  }
-
   "Subscriber with Actor" must {
-    runOn(node1) {
-      "subscribe to test/actor" in {
-        val sub = system.actorOf(Props[Subscriber], "subscriber")
-        smqd.subscribe("test/actor", sub)
-        enterBarrier("actor_sub_ready")
+
+    "subscribe to test/actor" in {
+      runOn(node1) {
+        val node1Sender = self
+        val f = smqd.subscribe("test/actor"){
+          case (topic, m: String) =>
+            logger.info(s"======> ${topic.toString}: $m")
+            enterBarrier("actor_sub_ready")
+            node1Sender ! "ACK"
+          case m: String =>
+            logger.info(s"=====> $m")
+        }
+
         Thread.sleep(1000)
+        val node1Receiver = Await.result(f, 3.seconds)
+        node1Receiver ! "*********************************"
+
         smqd.publish("test/actor", "Are you ready?")
+        expectMsg("ACK")
+      }
+
+      runOn(node2) {
+        val node2Sender = self
+        enterBarrier("actor_sub_ready")
       }
     }
 
-    "be tested" in {
-      runOn(node2) {
-        enterBarrier("actor_sub_ready")
-      }
-      enterBarrier("actor_pub")
-    }
   }
 
   "Subscriber with PartialFunction" must {
@@ -153,18 +125,26 @@ class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
     // node1 subscribe to 'test/hello' topic
     runOn(node1) {
       "subscribe to test/hello" in {
-        smqd.subscribe("test/hello"){
-          case (_, "READY") =>
+        val f = smqd.subscribe("test/hello"){
+          case (_: TopicPath, "READY") =>
             logger.info(s"==========> READY.")
             enterBarrier("sub_pub_ready")
-          case (_, "FIN") =>
+          case (_: TopicPath, "FIN") =>
             logger.info(s"==========> FIN.")
             enterBarrier("finish")
             done.success(true)
           case (topic: TopicPath, msg: String) =>
             logger.info(s"==========> ${topic.toString}: $msg")
+          case m: String =>
+            logger.info(s"===========> $m")
+          case m: Any =>
+            logger.info(s"xxxxxxxxxxxxxx ${m.getClass.toString}")
         }
+
         Thread.sleep(1000)
+        val actor = Await.result(f, 3.seconds)
+        actor ! "HELO_____________________________!"
+        actor ! "HELO_____________________________!"
         smqd.publish("test/hello", "READY")
         logger.info("sending........ READY")
       }

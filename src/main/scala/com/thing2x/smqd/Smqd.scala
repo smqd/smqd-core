@@ -14,7 +14,7 @@
 
 package com.thing2x.smqd
 
-import akka.actor.{ActorRef, ActorSystem, Address, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, Address, Props}
 import akka.cluster.Cluster
 import akka.dispatch.MessageDispatcher
 import akka.pattern.ask
@@ -221,12 +221,12 @@ class Smqd(val config: Config,
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): Future[ActorRef] =
     registry.subscribe(filterPath, callback)
 
-  def subscribe(filterPath: FilterPath)(callback: Registry.RegistryCallback): Future[ActorRef] =
-    registry.subscribe(filterPath)(callback)
+  def subscribe(filterPath: FilterPath)(receive: Actor.Receive): Future[ActorRef] =
+    registry.subscribe(filterPath)(receive)
 
   /** Java API */
   def subscribe(filterPath: FilterPath, receivable: MessageReceivable): Future[ActorRef] =
-    registry.subscribe(filterPath){ case (topic, msg) => receivable.onMessage(topic, msg) }
+    registry.subscribe(filterPath){ case (topic: TopicPath, msg: Any) => receivable.onMessage(topic, msg) }
 
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean = unsubscribe(actor, Some(filterPath))
   def unsubscribe(actor: ActorRef, filterPath: Option[FilterPath] = None): Boolean =

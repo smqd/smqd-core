@@ -54,7 +54,7 @@ class DefaultProtocolListener(name: String, smqd: Smqd, config: Config) extends 
 
     val topic = config.getString("subscribe.topic")
     val f = smqd.subscribe(FilterPath(topic)) {
-      case (topicPath, msg) => notified(topicPath, msg)
+      case (topicPath: TopicPath, msg: Any) => notified(topicPath, msg)
     }
     f.onComplete {
       case Success(actor) =>

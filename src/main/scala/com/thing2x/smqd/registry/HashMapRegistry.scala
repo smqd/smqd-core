@@ -27,9 +27,11 @@ import scala.collection.mutable
   */
 final class HashMapRegistry(smqd: Smqd, debugDump: Boolean) extends Registry with ActorIdentifying {
 
-  import smqd.Implicit._
+  private var _callbackManager: ActorRef = _
 
-  override lazy val callbackManager: ActorRef = identifyManagerActor(RegistryCallbackManagerActor.actorName)
+  override lazy val callbackManager: ActorRef = _callbackManager
+
+  override def callbackManager_=(actor: ActorRef): Unit = _callbackManager = actor
 
   protected val registry: mutable.HashMap[FilterPath, Set[Registration]] = mutable.HashMap[FilterPath, Set[Registration]]()
 

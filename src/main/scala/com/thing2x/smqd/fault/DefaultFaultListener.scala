@@ -27,7 +27,7 @@ class DefaultFaultListener(name: String, smqd: Smqd, config: Config) extends Ser
   override def start(): Unit = {
     val topic = config.getString("subscribe.topic")
     smqd.subscribe(FilterPath(topic)) {
-      case (topicPath, msg) => onFault(topicPath, msg)
+      case (topicPath: TopicPath, msg: Any) => onFault(topicPath, msg)
     }
   }
 

@@ -54,7 +54,7 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
     context.actorOf(Props(classOf[FaultNotificationManager], smqd), FaultNotificationManager.actorName)
     context.actorOf(Props(classOf[ProtocolNotificationManager], smqd), ProtocolNotificationManager.actorName)
     context.actorOf(Props(classOf[DeliveryManagerActor]), DeliveryManagerActor.actorName)
-    context.actorOf(Props(classOf[RegistryCallbackManagerActor], smqd), RegistryCallbackManagerActor.actorName)
+    context.actorOf(Props(classOf[RegistryCallbackManagerActor], smqd, registry), RegistryCallbackManagerActor.actorName)
     context.actorOf(Props(classOf[RequestManagerActor], smqd, requestor), RequestManagerActor.actorName)
     context.actorOf(Props(classOf[ChannelManagerActor], smqd), ChannelManagerActor.actorName)
 

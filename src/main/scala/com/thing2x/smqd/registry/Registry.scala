@@ -14,7 +14,7 @@
 
 package com.thing2x.smqd.registry
 
-import akka.actor.ActorRef
+import akka.actor.{Actor, ActorRef}
 import com.thing2x.smqd.QoS._
 import com.thing2x.smqd._
 import com.thing2x.smqd.registry.RegistryCallbackManagerActor.{CreateCallback, CreateCallbackPF}
@@ -35,15 +35,17 @@ trait Registry {
 
   private[registry] def callbackManager: ActorRef
 
+  private[registry] def callbackManager_=(actor: ActorRef)
+
   def subscribe(filterPath: FilterPath, callback: (TopicPath, Any) => Unit): Future[ActorRef] = {
     val promise = Promise[ActorRef]
     callbackManager ! CreateCallback(filterPath, callback, promise)
     promise.future
   }
 
-  def subscribe(filterPath: FilterPath)(callback: Registry.RegistryCallback): Future[ActorRef] = {
+  def subscribe(filterPath: FilterPath)(receive: Actor.Receive): Future[ActorRef] = {
     val promise = Promise[ActorRef]
-    callbackManager ! CreateCallbackPF(filterPath, callback, promise)
+    callbackManager ! CreateCallbackPF(filterPath, receive, promise)
     promise.future
   }
 
