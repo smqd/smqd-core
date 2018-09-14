@@ -27,7 +27,7 @@ import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.fault.FaultNotificationManager
 import com.thing2x.smqd.plugin.{InstanceDefinition, PluginManager, Service}
 import com.thing2x.smqd.protocol.{ProtocolNotification, ProtocolNotificationManager}
-import com.thing2x.smqd.registry.{Registration, Registry, RegistryDelegate, TrieRegistry}
+import com.thing2x.smqd.registry.{Registration, Registry, RegistryDelegate}
 import com.thing2x.smqd.util.ConfigUtil._
 import com.thing2x.smqd.util._
 import com.typesafe.config.Config
@@ -85,7 +85,7 @@ class Smqd(val config: Config,
   private val registryDelegate = registryDelegateOption.getOrElse(facilityFactory.registryDelegate)
   private val sessionStoreDelegate = sessionStoreDelegateOption.getOrElse(facilityFactory.sessionStoreDelegate)
 
-  private val registry       = new TrieRegistry(this, config.getBoolean("smqd.registry.verbose"))
+  private val registry       = Registry(this, config.getBoolean("smqd.registry.verbose"))
   private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)
   private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
   private val sessionStore   = new SessionStore(this, sessionStoreDelegate)
