@@ -17,7 +17,7 @@ package com.thing2x.smqd.rest
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
-import com.thing2x.smqd.net.http.OAuth2.OAuth2Claim
+import com.thing2x.smqd.net.http.OAuth2.{OAuth2Claim, OAuth2RefreshClaim}
 import com.thing2x.smqd.net.http.{HttpServiceContext, OAuth2}
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
@@ -89,7 +89,8 @@ class TestController(name: String, context: HttpServiceContext) extends RestCont
         entity(as[LoginRequest]) { loginReq =>
           if (loginReq.user == "admin" && loginReq.password == "password") {
             val claim = OAuth2Claim(loginReq.user, Map("allow-refresh" -> "true"))
-            oauth2.issueJwt(claim) { jwt =>
+            val refreshClaim = OAuth2RefreshClaim(loginReq.user, Map.empty)
+            oauth2.issueJwt(claim, refreshClaim) { jwt =>
               val response = LoginResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
               complete(StatusCodes.OK, restSuccess(0, response.toJson))
             }

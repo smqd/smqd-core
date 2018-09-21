@@ -20,7 +20,7 @@ import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.SmqSuccess
 import com.thing2x.smqd.UserDelegate.User
 import com.thing2x.smqd.net.http.HttpServiceContext
-import com.thing2x.smqd.net.http.OAuth2.OAuth2Claim
+import com.thing2x.smqd.net.http.OAuth2.{OAuth2Claim, OAuth2RefreshClaim}
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.scalalogging.StrictLogging
 import spray.json._
@@ -86,8 +86,8 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
     path("refresh") {
       post {
         entity(as[LoginRefreshRequest]) { refreshReq =>
-          context.oauth2.refreshTokenIdentifier(refreshReq.refresh_token) match {
-            case Some(identifier) =>
+          context.oauth2.refreshToken(refreshReq.refresh_token) match {
+            case Some(OAuth2RefreshClaim(identifier, _)) =>
               val newClaim = OAuth2Claim(identifier, Map("issuer"-> "smqd-core"))
               context.oauth2.reissueJwt(newClaim, refreshReq.refresh_token) { jwt =>
                 val response = LoginRefreshResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
