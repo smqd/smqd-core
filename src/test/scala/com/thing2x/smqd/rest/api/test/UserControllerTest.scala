@@ -46,6 +46,15 @@ class UserControllerTest extends CoreApiTesting with StrictLogging {
         logger.info(s"token_type = {}", rsp.result("token_type").convertTo[String])
         logger.info(s"access_token_expires_in = {}", rsp.result("access_token_expires_in").convertTo[Long])
         logger.info(s"refresh_token_expires_in = {}", rsp.result("refresh_token_expires_in").convertTo[Long])
+
+        val tokenType = rsp.result("token_type").convertTo[String]
+        assert(tokenType == "Bearer")
+
+        val accessTokenExpire = rsp.result("access_token_expires_in").convertTo[Long]
+        assert(accessTokenExpire == 1800)
+
+        val refreshTokenExpire = rsp.result("refresh_token_expires_in").convertTo[Long]
+        assert(refreshTokenExpire == 14400)
       }
     }
   }
