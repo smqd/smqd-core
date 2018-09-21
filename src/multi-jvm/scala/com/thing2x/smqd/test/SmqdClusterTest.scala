@@ -1,6 +1,6 @@
 package com.thing2x.smqd.test
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, PoisonPill, Props}
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.{MultiNodeConfig, MultiNodeSpec}
 import akka.testkit.ImplicitSender
@@ -109,6 +109,8 @@ class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
 
         smqd.publish("test/actor", "Are you ready?")
         expectMsg("ACK")
+
+        node1Receiver ! PoisonPill
       }
 
       runOn(node2) {
