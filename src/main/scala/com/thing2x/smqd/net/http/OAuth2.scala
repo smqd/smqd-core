@@ -18,7 +18,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{AuthorizationFailedRejection, Directive1}
-import com.thing2x.smqd.net.http.OAuth2.{OAuth2Claim, OAuth2JwtRefreshToken, OAuth2JwtToken}
+import com.thing2x.smqd.net.http.OAuth2.{OAuth2Claim, OAuth2JwtToken, OAuth2RefreshClaim}
 import com.typesafe.scalalogging.StrictLogging
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 import spray.json._
@@ -32,10 +32,16 @@ import scala.util.{Failure, Success}
   *
   */
 object OAuth2 extends DefaultJsonProtocol {
+
   def apply(secretKey: String, algorithmName: String, tokenExpire: Duration, refreshTokenExpire: Duration): OAuth2 = {
     val algorithm = JwtAlgorithm.fromString(algorithmName)
     new OAuth2(secretKey, tokenExpire, refreshTokenExpire, algorithm)
   }
+
+
+  case class OAuth2JwtToken(tokenType: String, accessToken: String, accessTokenExpire: Long, refreshToken: String, refreshTokenExpire: Long)
+  implicit val OAuth2JwtTokenFormat: RootJsonFormat[OAuth2JwtToken] = jsonFormat5(OAuth2JwtToken)
+
 
   case class OAuth2Claim(identifier: String, attributes: Map[String, String] = Map.empty) {
     def contains(key: String): Boolean = attributes.contains(key)
@@ -43,15 +49,29 @@ object OAuth2 extends DefaultJsonProtocol {
     def getString(key: String): Option[String] = if (attributes.contains(key)) Some(attributes(key)) else None
     def getInt(key: String): Option[Int] = if (attributes.contains(key)) Some(attributes(key).toInt) else None
     def getLong(key: String): Option[Long] = if (attributes.contains(key)) Some(attributes(key).toLong) else None
+    def getFloat(key: String): Option[Float] = if (attributes.contains(key)) Some(attributes(key).toFloat) else None
+    def getDouble(key: String): Option[Double] = if (attributes.contains(key)) Some(attributes(key).toDouble) else None
+
   }
 
-  case class OAuth2JwtToken(tokenType: String, accessToken: String, accessTokenExpire: Long, refreshToken: String, refreshTokenExpire: Long)
-
   implicit val OAuth2ClaimFormat: RootJsonFormat[OAuth2Claim] = jsonFormat2(OAuth2Claim)
-  implicit val OAuth2JwtTokenFormat: RootJsonFormat[OAuth2JwtToken] = jsonFormat5(OAuth2JwtToken)
 
-  private[http] case class OAuth2JwtRefreshToken(username: String)
-  private[http] implicit val OAuth2JwtRefreshTokenFormat: RootJsonFormat[OAuth2JwtRefreshToken] = jsonFormat1(OAuth2JwtRefreshToken)
+
+  case class OAuth2RefreshClaim(identifier: String, attributes: Map[String, String] = Map.empty) {
+    def contains(key: String): Boolean = attributes.contains(key)
+    def getBoolean(key: String): Option[Boolean] = if (attributes.contains(key)) Some(attributes(key).toLowerCase.equals("true")) else None
+    def getString(key: String): Option[String] = if (attributes.contains(key)) Some(attributes(key)) else None
+    def getInt(key: String): Option[Int] = if (attributes.contains(key)) Some(attributes(key).toInt) else None
+    def getLong(key: String): Option[Long] = if (attributes.contains(key)) Some(attributes(key).toLong) else None
+    def getFloat(key: String): Option[Float] = if (attributes.contains(key)) Some(attributes(key).toFloat) else None
+    def getDouble(key: String): Option[Double] = if (attributes.contains(key)) Some(attributes(key).toDouble) else None
+  }
+
+  implicit val OAuth2RefreshClaimFormat: RootJsonFormat[OAuth2RefreshClaim] = jsonFormat2(OAuth2RefreshClaim)
+
+
+//  private[http] case class OAuth2JwtRefreshToken(username: String)
+//  private[http] implicit val OAuth2JwtRefreshTokenFormat: RootJsonFormat[OAuth2JwtRefreshToken] = jsonFormat1(OAuth2JwtRefreshToken)
 }
 
 class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Duration, algorithm: JwtAlgorithm) extends StrictLogging {
@@ -98,17 +118,19 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
             case Some(claim: OAuth2Claim) =>
               provide(claim)
             case None =>
+              logger.debug("Jwt authorization rejected: token verification failed")
               reject(AuthorizationFailedRejection)
           }
         case _ =>
+          logger.debug("Jwt authorization rejected: bearerToken not found")
           reject(AuthorizationFailedRejection)
       }
     }
   }
 
-  private def issueJwt0(claim: OAuth2Claim): OAuth2JwtToken = {
+  private def issueJwt0(claim: OAuth2Claim, refreshClaim: OAuth2RefreshClaim): OAuth2JwtToken = {
     val tokenJson = claim.toJson.toString
-    val refreshJson = OAuth2JwtRefreshToken(claim.identifier).toJson.toString
+    val refreshJson = refreshClaim.toJson.toString
 
     val access = Jwt.encode(JwtClaim(tokenJson).issuedNow.expiresIn(tokenExpire.toSeconds), secretKey, algorithm)
     val refresh = Jwt.encode(JwtClaim(refreshJson).issuedNow.expiresIn(refreshTokenExpire.toSeconds), secretKey, algorithm)
@@ -117,15 +139,21 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
   }
 
   def issueJwt(claim: OAuth2Claim): Directive1[OAuth2JwtToken] = {
-    provide(issueJwt0(claim))
+    val refreshClaim = OAuth2RefreshClaim(claim.identifier)
+    provide(issueJwt0(claim, refreshClaim))
   }
 
-  def refreshTokenIdentifier(refreshTokenString: String): Option[String] = {
+  def issueJwt(claim: OAuth2Claim, refreshClaim: OAuth2RefreshClaim): Directive1[OAuth2JwtToken] = {
+    provide(issueJwt0(claim, refreshClaim))
+  }
+
+  def refreshToken(refreshTokenString: String): Option[OAuth2RefreshClaim] = {
     Jwt.decode(refreshTokenString, secretKey, JwtAlgorithm.allHmac) match {
       case Success(tokenString) =>
-        val refreshToken = tokenString.parseJson.convertTo[OAuth2JwtRefreshToken]
-        Option(refreshToken.username)
+        val refreshToken = tokenString.parseJson.convertTo[OAuth2RefreshClaim]
+        Option(refreshToken)
       case _ =>
+        logger.debug("Jwt Refresh failure: unable to decode")
         None
     }
   }
@@ -133,15 +161,17 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
   def reissueJwt(claim: OAuth2Claim, refreshTokenString: String): Directive1[OAuth2JwtToken] = {
     Jwt.decode(refreshTokenString, secretKey, JwtAlgorithm.allHmac) match {
       case Success(tokenString) =>
-        val refreshToken = tokenString.parseJson.convertTo[OAuth2JwtRefreshToken]
-        if (claim.identifier == refreshToken.username) {
-          val newJwt = issueJwt0(claim)
+        val refreshClaim = tokenString.parseJson.convertTo[OAuth2RefreshClaim]
+        if (claim.identifier == refreshClaim.identifier) {
+          val newJwt = issueJwt0(claim, refreshClaim)
           provide(newJwt)
         }
         else {
+          logger.debug("Jwt Re-issue rejected: identifier of refresh token does not match")
           reject(AuthorizationFailedRejection)
         }
       case Failure(ex) =>
+        logger.debug("Jwt Re-issue failure", ex)
         reject(AuthorizationFailedRejection)
     }
   }
