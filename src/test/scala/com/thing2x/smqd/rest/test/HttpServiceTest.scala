@@ -21,6 +21,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.testkit.TestKit
+import akka.util.Timeout
 import com.thing2x.smqd.net.http.HttpService
 import com.thing2x.smqd.rest.api.UserController.LoginResponse
 import com.thing2x.smqd.{Smqd, SmqdBuilder}
@@ -30,6 +31,7 @@ import org.scalatest.{WordSpec, _}
 import spray.json.{JsNumber, JsonParser, ParserInput}
 
 import scala.concurrent.Promise
+import scala.concurrent.duration._
 
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
 
@@ -124,6 +126,8 @@ class HttpServiceTest extends WordSpec
   "OAuthController" must {
     var token: String = ""
     var refreshToken: String = ""
+
+    implicit val timeout: Timeout = 3.seconds
 
     "login" in {
       val loginReq = HttpEntity.apply(ContentTypes.`application/json`,
