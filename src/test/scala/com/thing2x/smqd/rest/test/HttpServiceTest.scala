@@ -21,6 +21,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.testkit.TestKit
+import akka.util.Timeout
 import com.thing2x.smqd.net.http.HttpService
 import com.thing2x.smqd.rest.api.UserController.LoginResponse
 import com.thing2x.smqd.{Smqd, SmqdBuilder}
@@ -30,6 +31,7 @@ import org.scalatest.{WordSpec, _}
 import spray.json.{JsNumber, JsonParser, ParserInput}
 
 import scala.concurrent.Promise
+import scala.concurrent.duration._
 
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
 
@@ -125,7 +127,9 @@ class HttpServiceTest extends WordSpec
     var token: String = ""
     var refreshToken: String = ""
 
-    "login" in {
+    implicit val timeout: Timeout = 3.seconds
+
+    "oauth" in {
       val loginReq = HttpEntity.apply(ContentTypes.`application/json`,
         """
           |{
@@ -134,6 +138,7 @@ class HttpServiceTest extends WordSpec
           |}
         """.stripMargin)
 
+      // 1. login
       Post("/test/login", loginReq) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         // parse json response
@@ -150,25 +155,23 @@ class HttpServiceTest extends WordSpec
         token = loginRsp.access_token
         refreshToken = loginRsp.refresh_token
       }
-    }
 
-    "sanity" in {
-      //logger.info(s"===> token: $token")
+      // 2. sanity check
       Get("/test/sanity").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         //logger.info("============>")
       }
-    }
 
-    "refresh" in {
+      // 3. refresh
       logger.info(s"===> refresh: $refreshToken")
       val refreshReq = HttpEntity(ContentTypes.`application/json`,
         s"""
-          |{
-          |  "refresh_token": "$refreshToken"
-          |}
+           |{
+           |  "refresh_token": "$refreshToken"
+           |}
         """.stripMargin)
 
+      // 4. refresh
       Post("/test/refresh", refreshReq) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         val response = entityAs[String]
@@ -178,9 +181,8 @@ class HttpServiceTest extends WordSpec
         assert(newToken != token)
         token = newToken
       }
-    }
 
-    "refresh_sanity" in {
+      // 5. sanity check after refresh
       Get("/test/sanity").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         //logger.info("============>")
