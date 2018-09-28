@@ -129,7 +129,7 @@ class HttpServiceTest extends WordSpec
 
     implicit val timeout: Timeout = 3.seconds
 
-    "login" in {
+    "oauth" in {
       val loginReq = HttpEntity.apply(ContentTypes.`application/json`,
         """
           |{
@@ -138,6 +138,7 @@ class HttpServiceTest extends WordSpec
           |}
         """.stripMargin)
 
+      // 1. login
       Post("/test/login", loginReq) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         // parse json response
@@ -154,25 +155,23 @@ class HttpServiceTest extends WordSpec
         token = loginRsp.access_token
         refreshToken = loginRsp.refresh_token
       }
-    }
 
-    "sanity" in {
-      //logger.info(s"===> token: $token")
+      // 2. sanity check
       Get("/test/sanity").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         //logger.info("============>")
       }
-    }
 
-    "refresh" in {
+      // 3. refresh
       logger.info(s"===> refresh: $refreshToken")
       val refreshReq = HttpEntity(ContentTypes.`application/json`,
         s"""
-          |{
-          |  "refresh_token": "$refreshToken"
-          |}
+           |{
+           |  "refresh_token": "$refreshToken"
+           |}
         """.stripMargin)
 
+      // 4. refresh
       Post("/test/refresh", refreshReq) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         val response = entityAs[String]
@@ -182,9 +181,8 @@ class HttpServiceTest extends WordSpec
         assert(newToken != token)
         token = newToken
       }
-    }
 
-    "refresh_sanity" in {
+      // 5. sanity check after refresh
       Get("/test/sanity").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         //logger.info("============>")
