@@ -14,24 +14,27 @@
 
 package com.thing2x.smqd.net.http
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{AuthorizationFailedRejection, Directive1}
 import com.thing2x.smqd.net.http.OAuth2.{OAuth2Claim, OAuth2JwtToken, OAuth2RefreshClaim}
 import com.typesafe.scalalogging.StrictLogging
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
-import spray.json._
 
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
+
+import io.circe._
+import io.circe.syntax._
+import io.circe.generic.auto._
+import io.circe.parser._
 
 // 2018. 7. 14. - Created by Kwon, Yeong Eon
 
 /**
   *
   */
-object OAuth2 extends DefaultJsonProtocol {
+object OAuth2 {
 
   def apply(secretKey: String, algorithmName: String, tokenExpire: Duration, refreshTokenExpire: Duration): OAuth2 = {
     val algorithm = JwtAlgorithm.fromString(algorithmName)
@@ -40,7 +43,7 @@ object OAuth2 extends DefaultJsonProtocol {
 
 
   case class OAuth2JwtToken(tokenType: String, accessToken: String, accessTokenExpire: Long, refreshToken: String, refreshTokenExpire: Long)
-  implicit val OAuth2JwtTokenFormat: RootJsonFormat[OAuth2JwtToken] = jsonFormat5(OAuth2JwtToken)
+//  implicit val OAuth2JwtTokenFormat: RootJsonFormat[OAuth2JwtToken] = jsonFormat5(OAuth2JwtToken)
 
 
   case class OAuth2Claim(identifier: String, attributes: Map[String, String] = Map.empty) {
@@ -54,7 +57,7 @@ object OAuth2 extends DefaultJsonProtocol {
 
   }
 
-  implicit val OAuth2ClaimFormat: RootJsonFormat[OAuth2Claim] = jsonFormat2(OAuth2Claim)
+//  implicit val OAuth2ClaimFormat: RootJsonFormat[OAuth2Claim] = jsonFormat2(OAuth2Claim)
 
 
   case class OAuth2RefreshClaim(identifier: String, attributes: Map[String, String] = Map.empty) {
@@ -67,7 +70,7 @@ object OAuth2 extends DefaultJsonProtocol {
     def getDouble(key: String): Option[Double] = if (attributes.contains(key)) Some(attributes(key).toDouble) else None
   }
 
-  implicit val OAuth2RefreshClaimFormat: RootJsonFormat[OAuth2RefreshClaim] = jsonFormat2(OAuth2RefreshClaim)
+//  implicit val OAuth2RefreshClaimFormat: RootJsonFormat[OAuth2RefreshClaim] = jsonFormat2(OAuth2RefreshClaim)
 
 
 //  private[http] case class OAuth2JwtRefreshToken(username: String)
@@ -87,9 +90,19 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
   private def verifyToken(token: String): Option[OAuth2Claim] = {
     Jwt.decode(token, secretKey, JwtAlgorithm.allHmac()) match {
       case Success(claim) =>
-        val decodedClaim = claim.parseJson.convertTo[OAuth2Claim]
-        Option(decodedClaim)
-      case _ =>
+        parse(claim) match {
+          case Right(json) => json.as[OAuth2Claim] match {
+            case Right(parsedClaim) => Some(parsedClaim)
+            case Left(ex) =>
+              logger.debug("JWT Json decoding failure", ex)
+              None
+          }
+          case Left(ex) =>
+            logger.debug("JWT Json parsing failure", ex)
+            None
+        }
+      case Failure(ex) =>
+        logger.debug("JWT token decodeing failure", ex)
         None
     }
   }
@@ -129,8 +142,8 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
   }
 
   private def issueJwt0(claim: OAuth2Claim, refreshClaim: OAuth2RefreshClaim): OAuth2JwtToken = {
-    val tokenJson = claim.toJson.toString
-    val refreshJson = refreshClaim.toJson.toString
+    val tokenJson = claim.asJson.noSpaces
+    val refreshJson = refreshClaim.asJson.noSpaces
 
     val access = Jwt.encode(JwtClaim(tokenJson).issuedNow.expiresIn(tokenExpire.toSeconds), secretKey, algorithm)
     val refresh = Jwt.encode(JwtClaim(refreshJson).issuedNow.expiresIn(refreshTokenExpire.toSeconds), secretKey, algorithm)
@@ -150,8 +163,18 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
   def refreshToken(refreshTokenString: String): Option[OAuth2RefreshClaim] = {
     Jwt.decode(refreshTokenString, secretKey, JwtAlgorithm.allHmac) match {
       case Success(tokenString) =>
-        val refreshToken = tokenString.parseJson.convertTo[OAuth2RefreshClaim]
-        Option(refreshToken)
+        parse(tokenString) match {
+          case Right(json) => json.as[OAuth2RefreshClaim] match {
+            case Right(refreshToken) =>
+              Option(refreshToken)
+            case Left(ex) =>
+              logger.debug("JWT Refresh Token decoding failure", ex)
+              None
+          }
+          case Left(ex) =>
+            logger.debug("JWT Refresh Token parsing failure", ex)
+            None
+        }
       case _ =>
         logger.debug("Jwt Refresh failure: unable to decode")
         None
@@ -160,15 +183,24 @@ class OAuth2(secretKey: String, tokenExpire: Duration, refreshTokenExpire: Durat
 
   def reissueJwt(claim: OAuth2Claim, refreshTokenString: String): Directive1[OAuth2JwtToken] = {
     Jwt.decode(refreshTokenString, secretKey, JwtAlgorithm.allHmac) match {
-      case Success(tokenString) =>
-        val refreshClaim = tokenString.parseJson.convertTo[OAuth2RefreshClaim]
-        if (claim.identifier == refreshClaim.identifier) {
-          val newJwt = issueJwt0(claim, refreshClaim)
-          provide(newJwt)
-        }
-        else {
-          logger.debug("Jwt Re-issue rejected: identifier of refresh token does not match")
-          reject(AuthorizationFailedRejection)
+      case Success(tokenString) => parse(tokenString) match {
+          case Right(json) => json.as[OAuth2RefreshClaim] match {
+            case Right(refreshClaim) =>
+              if (claim.identifier == refreshClaim.identifier) {
+                val newJwt = issueJwt0(claim, refreshClaim)
+                provide(newJwt)
+              }
+              else {
+                logger.debug("Jwt Re-issue rejected: identifier of refresh token does not match")
+                reject(AuthorizationFailedRejection)
+              }
+            case Left(ex) =>
+              logger.debug("Jwt refresh token decoding failure", ex)
+              reject(AuthorizationFailedRejection)
+          }
+          case Left(ex) =>
+            logger.debug("Jwt refresh token parsing failure", ex)
+            reject(AuthorizationFailedRejection)
         }
       case Failure(ex) =>
         logger.debug("Jwt Re-issue failure", ex)

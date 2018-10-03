@@ -14,14 +14,15 @@
 
 package com.thing2x.smqd.rest.api
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd._
 import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.scalalogging.StrictLogging
-import spray.json.{RootJsonFormat, _}
+import io.circe.{Encoder, Json}
+import io.circe.syntax._
+import com.thing2x.smqd.util.FailFastCirceSupport._
 
 
 // 2018. 7. 12. - Created by Kwon, Yeong Eon
@@ -61,13 +62,11 @@ class SubscriptionController(name: String, context: HttpServiceContext) extends 
         }
     }
 
-    implicit object ResultFormat extends RootJsonFormat[(FilterPath, Seq[Registration])] {
-      override def read(json: JsValue): (FilterPath, Seq[Registration]) = ???
-      override def write(obj: (FilterPath, Seq[Registration])): JsValue = {
-        JsObject(
-          "topic" -> JsString(obj._1.toString),
-          "subscribers" -> JsArray(
-            obj._2.map(_.toJson).toVector
+    implicit val resultEncoder: Encoder[(FilterPath, Seq[Registration])] = new Encoder[(FilterPath, Seq[Registration])] {
+      override def apply(r: (FilterPath, Seq[Registration])): Json = {
+        Json.obj(
+          ("topic", Json.fromString(r._1.toString)),
+          ("subscribers", r._2.map(_.asJson).asJson
           ))
       }
     }

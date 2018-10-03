@@ -31,9 +31,6 @@ object Dependencies {
     // alpakka Stream
     "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % Versions.alpakka,
     //////////////////////////////////
-    // json
-    "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.3",
-    //////////////////////////////////
     // plugin package management
     "org.scala-sbt" %% "librarymanagement-ivy" % "1.2.0-M3",
     //////////////////////////////////
@@ -49,6 +46,12 @@ object Dependencies {
     "org.scalatest" %% "scalatest" % "3.0.5" % Test,
     "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2" % Test
   )
+
+  val circe: Seq[ModuleID] = Seq(
+    "io.circe" %% "circe-core",
+    "io.circe" %% "circe-generic",
+    "io.circe" %% "circe-parser"
+  ).map( _ % "0.9.3")
 
   val netty: Seq[ModuleID] = Seq(
     "io.netty" % "netty-buffer" % Versions.netty,

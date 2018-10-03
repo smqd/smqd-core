@@ -15,6 +15,8 @@
 package com.thing2x.smqd.fault
 
 import com.thing2x.smqd.SmqFailure
+import io.circe.Decoder.Result
+import io.circe._
 
 /**
   * 2018. 6. 3. - Created by Kwon, Yeong Eon
@@ -23,6 +25,49 @@ import com.thing2x.smqd.SmqFailure
 @SerialVersionUID(-1)
 abstract sealed class Fault extends SmqFailure with Serializable {
 }
+
+object Fault {
+
+  implicit val faultEncoder: Encoder[Fault] = new Encoder[Fault] {
+    override def apply(ft: Fault): Json = {
+      ft match {
+        case sf: SessionFault =>
+          Json.obj (
+            ("fault",     Json.fromString(sf.getClass.getName)),
+            ("sessionId", Json.fromString(sf.sessionId)),
+            ("message",   Json.fromString(sf.message))
+          )
+        case gf: GeneralFault =>
+          Json.obj (
+            ("fault",   Json.fromString(gf.getClass.getName)),
+            ("message", Json.fromString(gf.message))
+          )
+        case _ =>
+          Json.obj (
+            ("fault", Json.fromString(ft.getClass.getName))
+          )
+      }
+    }
+  }
+
+  implicit val faultDecoder: Decoder[Fault] = new Decoder[Fault] {
+    override def apply(c: HCursor): Result[Fault] = {
+      for {
+        fault <- c.downField("fault").as[String]
+        sessionId <- c.downField("sessionId").as[String]
+        message <- c.downField("message").as[String]
+      } yield {
+        fault match {
+          case "com.thing2x.smqd.fault.SessionFault" =>
+            SessionFault(sessionId, message)
+          case _ =>
+            GeneralFault(fault)
+        }
+      }
+    }
+  }
+}
+
 
 // top level faults
 

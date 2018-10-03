@@ -16,7 +16,6 @@ package com.thing2x.smqd.rest.api
 
 import java.io.File
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.util.ConfigUtil._
@@ -25,8 +24,10 @@ import com.thing2x.smqd.plugin.PluginManager._
 import com.thing2x.smqd.plugin._
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.config.{Config, ConfigFactory}
+import com.thing2x.smqd.util.FailFastCirceSupport._
 import com.typesafe.scalalogging.StrictLogging
-import spray.json._
+import io.circe.Json
+import io.circe.syntax._
 
 // 2018. 7. 6. - Created by Kwon, Yeong Eon
 
@@ -105,7 +106,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
         val rt = pm.packageDefinitions
         rt.find(_.name == pn) match {
           case Some(pkg) =>
-            complete(StatusCodes.OK, restSuccess(0, PluginPackageDefinitionFormat.write(pkg)))
+            complete(StatusCodes.OK, restSuccess(0, pkg.asJson))
           case None =>
             complete(StatusCodes.NotFound, restError(404, s"Package not found: $pn"))
         }
@@ -125,10 +126,10 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
     }
   }
 
-  private def execResult(result: ExecResult): JsValue = {
+  private def execResult(result: ExecResult): Json = {
     result match {
       case ExecSuccess(msg) =>
-        restSuccess(0, JsString(msg))
+        restSuccess(0, Json.fromString(msg))
       case ExecFailure(message, Some(cause)) =>
         restError(StatusCodes.InternalServerError.intValue, s"Command failed - $message, ${cause.getMessage}")
       case ExecFailure(message, None) =>
@@ -154,7 +155,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
             val jval = for {
               rt <- pm.installPackage(smqdInstance, rdef)
               result = rt match {
-                case _: InstallSuccess => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
+                case _: InstallSuccess => restSuccess(0, rdef.asJson)
                 case e: InstallResult => restError(500, e.msg)
               }
             } yield result
@@ -163,7 +164,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
             val jval = for {
               rt <- pm.reloadPackage(smqdInstance, rdef)
               result = rt match {
-                case _: ReloadSuccess => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
+                case _: ReloadSuccess => restSuccess(0, rdef.asJson)
                 case e: ReloadResult => restError(500, e.msg)
               }
             } yield result
@@ -171,7 +172,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
           case command =>
             val params: Map[String, Any] =  if (pm.libDirectory.isDefined) Map("plugin.dir" -> pm.libDirectory.get) else Map.empty
             val result = rdef.exec(command, params) map {
-              case ExecSuccess(_) => restSuccess(0, PluginRepositoryDefinitionFormat.write(rdef))
+              case ExecSuccess(_) => restSuccess(0, rdef.asJson)
               case rt => execResult(rt)
             }
             complete(StatusCodes.OK, result)
@@ -189,7 +190,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
     instanceOpt match {
       case Some(instance) =>
         val result = instance.exec(command.toLowerCase) map {
-          case ExecSuccess(_) => restSuccess(0, PluginInstanceFormat.write(instance))
+          case ExecSuccess(_) => restSuccess(0, instance.asJson)
           case rt => execResult(rt)
         }
         complete(StatusCodes.OK, result)
@@ -204,7 +205,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
       case Some(pname) => // exact match
         pm.pluginDefinition(pname) match {
           case Some(p) =>
-            complete(StatusCodes.OK, restSuccess(0, PluginDefinitionFormat.write(p)))
+            complete(StatusCodes.OK, restSuccess(0, p.asJson))
           case None =>
             complete(StatusCodes.NotFound, s"Plugin not found plugin: $pname")
         }
@@ -229,7 +230,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
       case Some(instName) => // exact match
         pm.instance(pluginName, instName) match {
           case Some(inst) =>
-            complete(StatusCodes.OK, restSuccess(0, PluginInstanceFormat.write(inst)))
+            complete(StatusCodes.OK, restSuccess(0, inst.asJson))
           case None =>
             complete(StatusCodes.NotFound, s"Plugin instance not found plugin: $pluginName, instance: $instName")
         }
@@ -252,9 +253,9 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
     val pm = context.smqdInstance.pluginManager
     pm.pluginDefinition(pluginName) match {
       case Some(pdef) =>
-        val result = JsObject(
-          "default-config" -> pdef.defaultConfig.toJson,
-          "config-schema" -> pdef.configSchema.toJson
+        val result = Json.obj(
+          ("default-config", pdef.defaultConfig.asJson),
+          ("config-schema", pdef.configSchema.asJson)
         )
         complete(StatusCodes.OK, restSuccess(0, result))
       case None =>
@@ -269,14 +270,14 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
         val autoStart = inst.autoStart
         inst.instance match {
           case ap: AbstractPlugin =>
-            complete(StatusCodes.OK, restSuccess(0, JsObject(
-              "auto-start" -> JsBoolean(autoStart),
-              "config" -> ap.config.toJson
+            complete(StatusCodes.OK, restSuccess(0, Json.obj(
+              ("auto-start", Json.fromBoolean(autoStart)),
+              ("config", ap.config.asJson)
             )))
           case _ =>
-            complete(StatusCodes.OK, restSuccess(0, JsObject(
-              "auto-start" -> JsBoolean(autoStart),
-              "config" -> JsObject()
+            complete(StatusCodes.OK, restSuccess(0, Json.obj(
+              ("auto-start", Json.fromBoolean(autoStart)),
+              ("config" -> Json.Null)
             )))
             //complete(StatusCodes.NotAcceptable, s"Plugin instance is not a configurable")
         }
@@ -364,7 +365,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
                 complete(StatusCodes.PreconditionFailed, restError(412, s"plugin instance is still running"))
               case InstanceStatus.STOPPED | InstanceStatus.FAIL =>
                 if (pm.deleteInstanceConfigFile(smqdInstance, pluginName, instanceName, file))
-                  complete(StatusCodes.OK, restSuccess(0, JsObject("success" -> JsString("plugin instance deleted"))))
+                  complete(StatusCodes.OK, restSuccess(0, Json.obj(("success", Json.fromString("plugin instance deleted")))))
                 else
                   complete(StatusCodes.InternalServerError, restError(500, s"Fail to delete instance '$pluginName' '$instanceName'"))
             }

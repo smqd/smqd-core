@@ -15,8 +15,6 @@
 package com.thing2x.smqd.rest.api.test
 
 import akka.actor.ActorSystem
-import spray.json.{DefaultJsonProtocol, JsValue, RootJsonFormat}
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.testkit.TestKit
@@ -25,7 +23,10 @@ import com.thing2x.smqd.net.http.HttpService
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-import spray.json._
+import io.circe._
+import io.circe.parser._
+import io.circe.syntax._
+import io.circe.generic.auto._
 
 import scala.concurrent.duration._
 import scala.concurrent.Promise
@@ -40,23 +41,20 @@ abstract class CoreApiTesting extends WordSpec
   with BeforeAndAfterAll
   with Matchers
   with ScalatestRouteTest
-  with DefaultJsonProtocol
   with StrictLogging {
 
-  case class CoreApiResponseAsMap(code: Int, result: Map[String, JsValue])
-  implicit val CoreApiResponseAsMapFormat: RootJsonFormat[CoreApiResponseAsMap] = jsonFormat2(CoreApiResponseAsMap)
+  case class CoreApiResponseAsMap(code: Int, result: Map[String, Json])
 
   def asCoreApiResponseAsMap(jsonString: String): CoreApiResponseAsMap = {
     logger.debug(jsonString)
-    val json = jsonString.parseJson
-    json.convertTo[CoreApiResponseAsMap]
+    val json = parse(jsonString).getOrElse(Json.Null)
+    json.as[CoreApiResponseAsMap] match {
+      case Right(r) => r
+      case _ => fail()
+    }
   }
 
-  case class CoreApiResponse(code: Int, result: JsValue)
-  implicit val CorePaiResponseFormat: RootJsonFormat[CoreApiResponse] = jsonFormat2(CoreApiResponse)
-
-  implicit val EndpointInfoFormat: RootJsonFormat[EndpointInfo] = jsonFormat2(EndpointInfo)
-  implicit val NodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat7(NodeInfo)
+  case class CoreApiResponse(code: Int, result: Json)
 
   val config: Config = ConfigFactory.parseString(
     """

@@ -16,6 +16,7 @@ package com.thing2x.smqd.rest.api.test
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import com.typesafe.scalalogging.StrictLogging
+import io.circe._
 
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
 
@@ -39,21 +40,21 @@ class UserControllerTest extends CoreApiTesting with StrictLogging {
         status shouldEqual StatusCodes.OK
         val rsp = asCoreApiResponseAsMap(entityAs[String])
         assert(rsp.code == 0)
-        assert(rsp.result("access_token").convertTo[String].length > 30)
+        assert(rsp.result("access_token").as[String].getOrElse(null).length > 30)
 
-        logger.info(s"access_token = {}", rsp.result("access_token").convertTo[String])
-        logger.info(s"refresh_token = {}", rsp.result("refresh_token").convertTo[String])
-        logger.info(s"token_type = {}", rsp.result("token_type").convertTo[String])
-        logger.info(s"access_token_expires_in = {}", rsp.result("access_token_expires_in").convertTo[Long])
-        logger.info(s"refresh_token_expires_in = {}", rsp.result("refresh_token_expires_in").convertTo[Long])
+        logger.info(s"access_token = {}", rsp.result("access_token").as[String])
+        logger.info(s"refresh_token = {}", rsp.result("refresh_token").as[String])
+        logger.info(s"token_type = {}", rsp.result("token_type").as[String])
+        logger.info(s"access_token_expires_in = {}", rsp.result("access_token_expires_in").as[Long])
+        logger.info(s"refresh_token_expires_in = {}", rsp.result("refresh_token_expires_in").as[Long])
 
-        val tokenType = rsp.result("token_type").convertTo[String]
+        val tokenType = rsp.result("token_type").as[String].getOrElse(null)
         assert(tokenType == "Bearer")
 
-        val accessTokenExpire = rsp.result("access_token_expires_in").convertTo[Long]
+        val accessTokenExpire = rsp.result("access_token_expires_in").as[Long].getOrElse(0)
         assert(accessTokenExpire == 1800)
 
-        val refreshTokenExpire = rsp.result("refresh_token_expires_in").convertTo[Long]
+        val refreshTokenExpire = rsp.result("refresh_token_expires_in").as[Long].getOrElse(0)
         assert(refreshTokenExpire == 14400)
       }
     }

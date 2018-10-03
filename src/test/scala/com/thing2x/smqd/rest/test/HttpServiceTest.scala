@@ -15,7 +15,6 @@
 package com.thing2x.smqd.rest.test
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server._
@@ -28,7 +27,10 @@ import com.thing2x.smqd.{Smqd, SmqdBuilder}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.{WordSpec, _}
-import spray.json.{JsNumber, JsonParser, ParserInput}
+import io.circe._
+import io.circe.syntax._
+import io.circe.generic.auto._
+import io.circe.parser._
 
 import scala.concurrent.Promise
 import scala.concurrent.duration._
@@ -106,6 +108,7 @@ class HttpServiceTest extends WordSpec
     "blackhole" in {
       Get("/test/blackhole", HttpEntity.Empty) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
+        logger.info(s"blackhole: ${responseAs[String]}")
         responseAs[String] shouldEqual "OK 0 bytes received"
       }
     }
@@ -113,11 +116,13 @@ class HttpServiceTest extends WordSpec
     "echo" in {
       Post("/test/echo") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
+        logger.info(s"hello: ${responseAs[String]}")
         responseAs[String] shouldEqual "Hello"
       }
 
       Post("/test/echo/World") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
+        logger.info(s"hello world: ${responseAs[String]}")
         responseAs[String] shouldEqual "Hello World"
       }
     }
@@ -143,14 +148,14 @@ class HttpServiceTest extends WordSpec
         status shouldEqual StatusCodes.OK
         // parse json response
         val response = entityAs[String]
-        val responseJson = JsonParser(ParserInput(response)).asJsObject
+        val responseJson = parse(response).getOrElse(Json.Null)
 
         // check result code from json response
-        val responseCode = responseJson.getFields("code").head.asInstanceOf[JsNumber]
-        assert(responseCode.value.intValue == 0)
+        val responseCode = responseJson.hcursor.downField("code").as[Int].getOrElse(-1)
+        assert(responseCode == 0)
 
         // check result body as a LoginResponse
-        val loginRsp = responseJson.getFields("result").head.convertTo[LoginResponse]
+        val loginRsp = responseJson.hcursor.downField("result").as[LoginResponse].getOrElse(null)
         // logger.info(s"===> ${loginRsp.access_token}")
         token = loginRsp.access_token
         refreshToken = loginRsp.refresh_token
@@ -175,8 +180,8 @@ class HttpServiceTest extends WordSpec
       Post("/test/refresh", refreshReq) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         val response = entityAs[String]
-        val responseJson = JsonParser(ParserInput(response)).asJsObject
-        val loginRsp = responseJson.getFields("result").head.convertTo[LoginResponse]
+        val responseJson = parse(response).getOrElse(Json.Null)
+        val loginRsp = responseJson.hcursor.downField("result").as[LoginResponse].getOrElse(null)
         val newToken = loginRsp.access_token
         assert(newToken != token)
         token = newToken

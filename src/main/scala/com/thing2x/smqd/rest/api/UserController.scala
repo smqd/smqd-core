@@ -14,7 +14,6 @@
 
 package com.thing2x.smqd.rest.api
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.SmqSuccess
@@ -23,8 +22,10 @@ import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.net.http.OAuth2.{OAuth2Claim, OAuth2RefreshClaim}
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.scalalogging.StrictLogging
-import spray.json._
-
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.syntax._
+import com.thing2x.smqd.util.FailFastCirceSupport._
 import scala.util.Success
 
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
@@ -32,21 +33,14 @@ import scala.util.Success
 /**
   *
   */
-object UserController extends DefaultJsonProtocol {
+object UserController {
   case class LoginRequest(user: String, password: String)
   case class LoginResponse(token_type: String, access_token: String, access_token_expires_in: Long, refresh_token: String, refresh_token_expires_in: Long)
 
   case class LoginRefreshRequest(refresh_token: String)
   case class LoginRefreshResponse(token_type: String, access_token: String, access_token_expires_in: Long, refresh_token: String, refresh_token_expires_in: Long)
 
-  implicit val LoginRequestFormat: RootJsonFormat[LoginRequest] = jsonFormat2(LoginRequest)
-  implicit val LoginResponseFormat: RootJsonFormat[LoginResponse] = jsonFormat5(LoginResponse)
-  implicit val LoginRefreshRequestFormat: RootJsonFormat[LoginRefreshRequest] = jsonFormat1(LoginRefreshRequest)
-  implicit val LoginRefreshResponseFormat: RootJsonFormat[LoginRefreshResponse] = jsonFormat5(LoginRefreshResponse)
-
   case class UserUpdateRequest(password: String)
-  implicit val UserFormat: RootJsonFormat[User] = jsonFormat2(User)
-  implicit val userUpdateFormat: RootJsonFormat[UserUpdateRequest] = jsonFormat1(UserUpdateRequest)
 }
 
 import com.thing2x.smqd.rest.api.UserController._
@@ -64,7 +58,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
               val claim = OAuth2Claim(loginReq.user, userInfo + ("issuer" -> "smqd-core"))
               context.oauth2.issueJwt(claim) { jwt =>
                 val response = LoginResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
-                complete(StatusCodes.OK, restSuccess(0, response.toJson))
+                complete(StatusCodes.OK, restSuccess(0, response.asJson))
               }
             case _ =>
               complete(StatusCodes.Unauthorized, restError(401, s"Bad username or password"))
@@ -76,8 +70,8 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
 
   def sanity(claim: OAuth2Claim): Route = {
     path("sanity") {
-      complete(StatusCodes.OK, restSuccess(0, JsObject(
-        "identifier" -> JsString(claim.identifier)
+      complete(StatusCodes.OK, restSuccess(0, Json.obj(
+        ("identifier", Json.fromString(claim.identifier))
       )))
     }
   }
@@ -91,7 +85,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
               val newClaim = OAuth2Claim(identifier, Map("issuer"-> "smqd-core"))
               context.oauth2.reissueJwt(newClaim, refreshReq.refresh_token) { jwt =>
                 val response = LoginRefreshResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
-                complete(StatusCodes.OK, restSuccess(0, response.toJson))
+                complete(StatusCodes.OK, restSuccess(0, response.asJson))
               }
             case _ =>
               complete(StatusCodes.Unauthorized, restError(401, s"Invalid refresh token"))
@@ -106,7 +100,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
       get { // list all users
         onComplete(context.smqdInstance.userList) {
           case Success(list) =>
-            complete(StatusCodes.OK, restSuccess(0, JsArray(list.map(_.toJson).toVector)))
+            complete(StatusCodes.OK, restSuccess(0, Json.arr(list.map(_.asJson): _*)))
           case _ =>
             complete(StatusCodes.InternalServerError, restError(500, "Unknown server error"))
         }
@@ -128,7 +122,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
           case Success(list) =>
             list.find(u => u.username == pUsername) match {
               case Some(user) =>
-                complete(StatusCodes.OK, restSuccess(0, user.toJson))
+                complete(StatusCodes.OK, restSuccess(0, user.asJson))
               case _ =>
                 complete(StatusCodes.NotFound, restError(404, s"User '$pUsername' not found"))
             }
@@ -139,7 +133,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
       delete { // delete a user
         onComplete(context.smqdInstance.userDelete(pUsername)) {
           case Success(SmqSuccess(_)) =>
-            complete(StatusCodes.OK, restSuccess(0, JsString(s"User '$pUsername' deleted")))
+            complete(StatusCodes.OK, restSuccess(0, Json.fromString(s"User '$pUsername' deleted")))
           case _ =>
             complete(StatusCodes.InternalServerError, restError(500, "Unknown server error"))
         }
@@ -148,7 +142,7 @@ class UserController(name: String, context: HttpServiceContext) extends RestCont
         entity(as[UserUpdateRequest]) { update =>
           onComplete(context.smqdInstance.userUpdate(User(pUsername, update.password))) {
             case Success(SmqSuccess(_)) =>
-              complete(StatusCodes.OK, restSuccess(0, JsString(s"User '$pUsername' updated")))
+              complete(StatusCodes.OK, restSuccess(0, Json.fromString(s"User '$pUsername' updated")))
             case _ =>
               complete(StatusCodes.NotImplemented, restError(501, "Not implemented"))
           }

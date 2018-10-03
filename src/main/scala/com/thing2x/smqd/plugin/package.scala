@@ -14,13 +14,15 @@
 
 package com.thing2x.smqd
 
-import java.io.{ByteArrayOutputStream, OutputStreamWriter, PrintWriter}
+import io.circe._
+import io.circe.syntax._
+import io.circe.generic.auto._
 
-import spray.json.{DefaultJsonProtocol, JsArray, JsBoolean, JsObject, JsString, JsValue, RootJsonFormat}
+import java.io.{ByteArrayOutputStream, OutputStreamWriter, PrintWriter}
 
 // 2018. 7. 7. - Created by Kwon, Yeong Eon
 
-package object plugin extends DefaultJsonProtocol {
+package object plugin {
 
   implicit object PluginInstanceOrdering extends Ordering[InstanceDefinition[Plugin]] {
     override def compare(x: InstanceDefinition[Plugin], y: InstanceDefinition[Plugin]): Int = {
@@ -28,16 +30,14 @@ package object plugin extends DefaultJsonProtocol {
     }
   }
 
-  implicit object PluginInstanceFormat extends RootJsonFormat[InstanceDefinition[Plugin]] {
-    override def read(json: JsValue): InstanceDefinition[Plugin] = ???
-
-    override def write(obj: InstanceDefinition[Plugin]): JsValue = {
+  implicit val pluginInstanceEncoder: Encoder[InstanceDefinition[Plugin]] = new Encoder[InstanceDefinition[Plugin]] {
+    final def apply(obj: InstanceDefinition[Plugin]): Json = {
       val entities = Map(
-        "name" -> JsString(obj.name),
-        "status" -> JsString(obj.status),
-        "auto-start" -> JsBoolean(obj.autoStart),
-        "plugin" -> JsString(obj.pluginDef.name),
-        "package" -> JsString(obj.pluginDef.packageName))
+        "name" -> Json.fromString(obj.name),
+        "status" -> Json.fromString(obj.status),
+        "auto-start" -> Json.fromBoolean(obj.autoStart),
+        "plugin" -> Json.fromString(obj.pluginDef.name),
+        "package" -> Json.fromString(obj.pluginDef.packageName))
 
       obj.instance.status match {
         case InstanceStatus.FAIL if obj.instance.failure.isDefined =>
@@ -48,20 +48,18 @@ package object plugin extends DefaultJsonProtocol {
           pw.close()
           val stack = new String(buffer.toString)
 
-          JsObject( entities + ("failure" -> JsObject (
-            "message" -> JsString(cause.getMessage),
-            "stack" -> JsString(stack)
-          )))
+          (entities + ("failure" -> Json.obj (
+            ("message", Json.fromString(cause.getMessage)),
+            ("stack", Json.fromString(stack))
+          ))).asJson
         case _ =>
-          JsObject( entities )
+          entities.asJson
       }
-
     }
   }
 
-  implicit object PluginDefinitionFormat extends RootJsonFormat[PluginDefinition] {
-    override def read(json: JsValue): PluginDefinition = ???
-    override def write(obj: PluginDefinition): JsValue = {
+  implicit val pluginDefinitionEncoder: Encoder[PluginDefinition] = new Encoder[PluginDefinition] {
+    final def apply(obj: PluginDefinition): Json = {
       val ptype =
         if (classOf[Service].isAssignableFrom(obj.clazz)) "Service"
         else if (classOf[BridgeDriver].isAssignableFrom(obj.clazz)) "BridgeDriver"
@@ -73,65 +71,60 @@ package object plugin extends DefaultJsonProtocol {
         "SINGLE"
       }
 
-      val instances = obj.instances.map(inst => PluginInstanceFormat.write(inst)).toVector
+      val instances = obj.instances.map(_.asJson)
 
-      JsObject (
-        "name" -> JsString(obj.name),
-        "class" ->  JsString(obj.clazz.getCanonicalName),
-        "class-archive" -> JsString(obj.clazz.getProtectionDomain.getCodeSource.getLocation.toString),
-        "package" -> JsString(obj.packageName),
-        "version" -> JsString(obj.version),
-        "type" -> JsString(ptype),
-        "instantiability" -> JsString(multi),
-        "instances" -> JsArray(instances)
+      Json.obj(
+        ("name",            Json.fromString(obj.name)),
+        ("class",           Json.fromString(obj.clazz.getCanonicalName)),
+        ("class-archive",   Json.fromString(obj.clazz.getProtectionDomain.getCodeSource.getLocation.toString)),
+        ("package",         Json.fromString(obj.packageName)),
+        ("version",         Json.fromString(obj.version)),
+        ("type",            Json.fromString(ptype)),
+        ("instantiability", Json.fromString(multi)),
+        ("instances",       instances.asJson)
       )
     }
   }
 
-  implicit object PluginRepositoryDefinitionFormat extends RootJsonFormat[RepositoryDefinition] {
-    override def read(json: JsValue): RepositoryDefinition = ???
-    override def write(obj: RepositoryDefinition): JsValue = {
+  implicit val pluginRepositoryDefinitionEncoder: Encoder[RepositoryDefinition] = new Encoder[RepositoryDefinition] {
+    override def apply(obj: RepositoryDefinition): Json = {
       if (obj.location.isDefined) {
-        JsObject (
-          "name" -> JsString(obj.name),
-          "provider" -> JsString(obj.provider),
-          "installable" -> JsBoolean(obj.installable),
-          "installed" -> JsBoolean(obj.installed),
-          "description" -> JsString(obj.description),
-          "location" -> JsString(obj.location.get.toString)
+        Json.obj (
+          ("name",        Json.fromString(obj.name)),
+          ("provider",    Json.fromString(obj.provider)),
+          ("installable", Json.fromBoolean(obj.installable)),
+          ("installed",   Json.fromBoolean(obj.installed)),
+          ("description", Json.fromString(obj.description)),
+          ("location",    Json.fromString(obj.location.get.toString))
         )
       }
       else {
-        JsObject (
-          "name" -> JsString(obj.name),
-          "provider" -> JsString(obj.provider),
-          "installable" -> JsBoolean(obj.installable),
-          "installed" -> JsBoolean(obj.installed),
-          "description" -> JsString(obj.description),
-          "group" -> JsString(obj.module.get.group),
-          "artifact" -> JsString(obj.module.get.artifact),
-          "version" -> JsString(obj.module.get.version),
-          "reolvers" -> JsArray(obj.module.get.resolvers.toVector.map(JsString(_)))
+        Json.obj (
+          ("name",        Json.fromString(obj.name)),
+          ("provider",    Json.fromString(obj.provider)),
+          ("installable", Json.fromBoolean(obj.installable)),
+          ("installed",   Json.fromBoolean(obj.installed)),
+          ("description", Json.fromString(obj.description)),
+          ("group",       Json.fromString(obj.module.get.group)),
+          ("artifact",    Json.fromString(obj.module.get.artifact)),
+          ("version",     Json.fromString(obj.module.get.version)),
+          ("reolvers",    obj.module.get.resolvers.asJson)
         )
       }
     }
   }
 
-  implicit object PluginPackageDefinitionFormat extends RootJsonFormat[PackageDefinition] {
-    override def read(json: JsValue): PackageDefinition = ???
-    override def write(obj: PackageDefinition): JsValue = {
-      JsObject (
-        "name"-> JsString(obj.name),
-        "vendor" -> JsString(obj.vendor),
-        "description" -> JsString(obj.description),
-        "origin" -> JsString(obj.repository.location.toString),
-        "installable" -> JsBoolean(obj.repository.installable),
-        "installed" -> JsBoolean(obj.repository.installed),
-        "plugins" -> JsArray(obj.plugins.map(p => PluginDefinitionFormat.write(p)).toVector)
-      )
-    }
+  implicit val pluginPackageDefinitionEncoder: Encoder[PackageDefinition] = new Encoder[PackageDefinition] {
+    final def apply(obj: PackageDefinition): Json = Json.obj(
+      ("name",        Json.fromString(obj.name)),
+      ("vendor",      Json.fromString(obj.vendor)),
+      ("description", Json.fromString(obj.description)),
+      ("origin",      Json.fromString(obj.repository.location.toString)),
+      ("installable", Json.fromBoolean(obj.repository.installable)),
+      ("installed",   Json.fromBoolean(obj.repository.installed)),
+      ("plugins",     obj.plugins.map(_.asJson).asJson)
+    )
   }
-
 
   sealed trait ExecResult
   case class ExecSuccess(message: String) extends ExecResult

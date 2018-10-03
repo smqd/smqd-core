@@ -14,16 +14,17 @@
 
 package com.thing2x.smqd.rest
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.server.Route
 import com.thing2x.smqd.Smqd
 import com.thing2x.smqd.net.http.HttpServiceContext
 import com.typesafe.config.Config
-import spray.json._
+import io.circe.{Encoder, Json}
+import io.circe.syntax._
+import com.thing2x.smqd.util.FailFastCirceSupport._
 
 // 2018. 6. 20. - Created by Kwon, Yeong Eon
 
-abstract class RestController(name: String, context: HttpServiceContext) extends RestResult with DefaultJsonProtocol {
+abstract class RestController(name: String, context: HttpServiceContext) extends RestResult {
 
   /**
     * Deprecated, use [[RestController]]'s new Constructor
@@ -33,7 +34,7 @@ abstract class RestController(name: String, context: HttpServiceContext) extends
 
   def routes: Route
 
-  def pagenate[T](objects: Iterable[T], currPageOpt: Option[Int], pageSizeOpt: Option[Int])(implicit jsonWriter: JsonWriter[Iterable[T]]): JsValue = {
+  def pagenate[T](objects: Iterable[T], currPageOpt: Option[Int], pageSizeOpt: Option[Int])(implicit encoder: Encoder[T]): Json = {
     var currPage = currPageOpt.getOrElse(1)
     var pageSize = pageSizeOpt.getOrElse(20)
 
@@ -50,12 +51,12 @@ abstract class RestController(name: String, context: HttpServiceContext) extends
       case _ => objects.slice(from, until)
     }
 
-    JsObject(
-      "current_page" -> JsNumber(currPage),
-      "page_size" -> JsNumber(pageSize),
-      "total_num" -> JsNumber(totalNum),
-      "total_page" -> JsNumber(totalPage),
-      "objects" -> jsonWriter.write(sliced)
+    Json.obj(
+      ("current_page", Json.fromInt(currPage)),
+      ("page_size", Json.fromInt(pageSize)),
+      ("total_num", Json.fromInt(totalNum)),
+      ("total_page", Json.fromInt(totalPage)),
+      ("objects", Json.fromValues(sliced.map( _.asJson )))
     )
   }
 }

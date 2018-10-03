@@ -25,6 +25,7 @@ val `smqd-core` = project.in(file(".")).settings(
   // Dependencies
   libraryDependencies ++=
     Dependencies.akka ++
+      Dependencies.circe ++
       Dependencies.netty ++
       Dependencies.etcd ++
       Dependencies.metrics ++
