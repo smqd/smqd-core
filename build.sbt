@@ -4,7 +4,7 @@ import sbt.Keys._
 import scala.sys.process._
 import scala.language.postfixOps
 
-val versionString = "0.4.3"
+val versionString = "0.4.4-SNAPSHOT"
 
 lazy val gitBranch = "git rev-parse --abbrev-ref HEAD".!!.trim
 lazy val gitCommitShort = "git rev-parse HEAD | cut -c 1-7".!!.trim
