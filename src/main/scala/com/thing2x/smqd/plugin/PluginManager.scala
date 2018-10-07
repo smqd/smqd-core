@@ -30,6 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object PluginManager extends StrictLogging {
   val STATIC_PKG = "smqd-static"
   val CORE_PKG = "smqd-core"
+  val POJO_PKG = "smqd-pojo"
 
   val PM_CONF_DIR_NAME = "plugins"
   val PM_LIB_DIR_NAME = "plugins"
@@ -125,6 +126,34 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[BridgeDriver].isAssignableFrom(pd.clazz))
+
+  def definePojoInstanceDefinition[T <: Plugin](smqd: Smqd, instName: String, instConf: Config): Option[InstanceDefinition[T]] = {
+    try {
+      instConf.getOptionString("entry.class") match {
+        case Some(className) =>
+          val autoStart = instConf.getOptionBoolean("entry.auto-start").getOrElse(true)
+          val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Plugin]]
+          val pdef = PluginDefinition.nonPluggablePlugin(instName, clazz)
+          val idef: InstanceDefinition[T] = pdef.createInstance(instName, smqd, instConf.getOptionConfig("config"), autoStart)
+          logger.info(s"Plugin '$instName' loaded as POJO")
+          packageDefs.find(_.name == POJO_PKG) match {
+            case Some(pkg) => // POJO package가 이미 존재하면 기존 팩키지를 확장하고
+              packageDefs = packageDefs.filter(_.name != POJO_PKG) :+ pkg.append(pdef)
+            case None => // 없다면 pojo 팩키지를 생성한다.
+              packageDefs = packageDefs :+ PackageDefinition(POJO_PKG, "n/a", "POJO plugins", Seq(pdef), null)
+          }
+          Some(idef)
+        case None =>
+          logger.info(s"Plugin '$instName' not found as POJO")
+          None
+      }
+    }
+    catch {
+      case ex: Throwable =>
+        logger.error(s"Fail to load and create an instance of plugin '$instName'", ex)
+        None
+    }
+  }
 
   private def findPackageLoader(file: File): PackageLoader = {
     if (file.isDirectory) {

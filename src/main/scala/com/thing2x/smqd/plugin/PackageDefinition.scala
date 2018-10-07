@@ -44,4 +44,8 @@ class PackageDefinition(val name: String, val vendor: String, val description: S
       case _ => this.name.compare(that.name)
     }
   }
+
+  def append(pd: PluginDefinition): PackageDefinition = {
+    new PackageDefinition(name, vendor, description, plugins :+ pd, repository)
+  }
 }

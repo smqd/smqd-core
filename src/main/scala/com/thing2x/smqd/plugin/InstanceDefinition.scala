@@ -36,21 +36,16 @@ object InstanceDefinition extends StrictLogging {
     var category = "Unknown type"
     logger.info(s"Plugin '$instName' loading...")
     instConf.getOptionString("entry.class") match {
-      case Some(className) =>
-        try {
-          val autoStart = instConf.getOptionBoolean("entry.auto-start").getOrElse(true)
-          val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Plugin]]
-          val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config])
-          val inst = cons.newInstance(instName, smqd, instConf.getConfig("config"))
-          val pdef = PluginDefinition.nonPluggablePlugin(instName, clazz)
-          val idef = InstanceDefinition(inst, pdef, autoStart)
-          category = pluginCategoryOf(clazz)
-          logger.info(s"Plugin '$instName' loaded as $category")
-          Some(idef)
-        }
-        catch {
-          case ex: Throwable =>
-            logger.error(s"Fail to load and create an instance of plugin '$instName'", ex)
+      case Some(_) =>
+        val idefOpt = smqd.pluginManager.definePojoInstanceDefinition(smqd, instName, instConf)
+        idefOpt match {
+          case Some(idef) =>
+            logger.info(s"POJO Plugin defined: $instName - ${idef.pluginDef.clazz.getName}")
+            category = pluginCategoryOf(idef.pluginDef.clazz)
+            logger.info(s"Plugin '$instName' loaded as $category")
+            Some(idef)
+          case None =>
+            logger.error(s"Plugin not found '$instName'")
             None
         }
       case None =>

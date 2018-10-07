@@ -28,7 +28,7 @@ object PluginDefinition{
 
   /** create a PluginDefinition for a class based plugin implementation which is using "entry.class" to be wired with smqd */
   def nonPluggablePlugin(name: String, clazz: Class[Plugin]): PluginDefinition = {
-    PluginDefinition(name, clazz, "n/a", "n/a", multiInstantiable = false, ConfigFactory.empty, ConfigFactory.empty)
+    PluginDefinition(name, clazz, PluginManager.POJO_PKG, "n/a", multiInstantiable = false, ConfigFactory.empty, ConfigFactory.empty)
   }
 }
 

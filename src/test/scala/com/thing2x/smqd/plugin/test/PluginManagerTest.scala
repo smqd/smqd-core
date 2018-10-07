@@ -16,7 +16,8 @@ package com.thing2x.smqd.plugin.test
 
 import com.thing2x.smqd.net.http.HttpService
 import com.thing2x.smqd.net.mqtt.MqttService
-import com.thing2x.smqd.plugin.PluginManager
+import com.thing2x.smqd.plugin.{InstanceDefinition, PluginManager, Service}
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.FlatSpec
 
@@ -97,4 +98,20 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
     assert(spl.exists(_.clazz == classOf[HttpService]))
   }
 
+  it should "handle POJO plugin" in {
+    val cfg = ConfigFactory.parseString("""
+      |  entry.class = "com.thing2x.smqd.plugin.test.PojoPlugin"
+      |    config {
+      |      message = "Hello World"
+      |    }
+    """.stripMargin)
+
+    val idef: Option[InstanceDefinition[Service]] = mgr.definePojoInstanceDefinition(null, "pojo-instance", cfg)
+    assert(idef != null)
+    assert(idef.isDefined)
+
+    val found = mgr.servicePluginDefinitions.flatMap(_.instances).find(pi => pi.instance.name == "pojo-instance").map(p => p.instance.asInstanceOf[Service])
+    assert(found != null)
+    assert(found.isDefined)
+  }
 }
