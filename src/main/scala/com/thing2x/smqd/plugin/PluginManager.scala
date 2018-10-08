@@ -140,7 +140,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
             case Some(pkg) => // POJO package가 이미 존재하면 기존 팩키지를 확장하고
               packageDefs = packageDefs.filter(_.name != POJO_PKG) :+ pkg.append(pdef)
             case None => // 없다면 pojo 팩키지를 생성한다.
-              packageDefs = packageDefs :+ PackageDefinition(POJO_PKG, "n/a", "POJO plugins", Seq(pdef), null)
+              packageDefs = packageDefs :+ PackageDefinition(POJO_PKG, "n/a", "POJO plugins", Seq(pdef), getClass.getClassLoader, null)
           }
           Some(idef)
         case None =>
@@ -432,5 +432,18 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
           ReloadFailure(s"Plugin '${rdef.name} not found")
       }
     }
+  }
+
+  def loadClass(className: String): Option[Class[_]] = {
+    packageDefs.find{pd =>
+      try {
+        val _ = pd.classLoader.loadClass(className)
+        true
+      }
+      catch {
+        case ex: Throwable =>
+          false
+      }
+    }.map(_.classLoader.loadClass(className))
   }
 }

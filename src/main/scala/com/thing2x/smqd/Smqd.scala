@@ -199,6 +199,19 @@ class Smqd(val config: Config,
 
   def service(name: String): Option[Service] = pluginManager.servicePluginDefinitions.flatMap(_.instances).find(pi => pi.instance.name == name).map(p => p.instance.asInstanceOf[Service])
 
+  def loadClass(className: String, recursive: Boolean = false): Option[Class[_]] = {
+    try {
+      val clazz = getClass.getClassLoader.loadClass(className)
+      Some(clazz)
+    } catch {
+      case _: ClassNotFoundException if recursive =>
+        pluginManager.loadClass(className)
+      case ex: Throwable if !recursive =>
+        logger.warn(s"Fail to load a class '$className'", ex)
+        None
+    }
+  }
+
   private lazy val faultManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+FaultNotificationManager.actorName)(system)
   def notifyFault(fault: SmqResult): Unit = faultManager ! fault
 

@@ -225,23 +225,26 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       val className = conf.getString("class")
       val prefix = conf.getString("prefix")
       val tokens = prefix.split(Array('/', '"')).filterNot( _ == "") // split prefix into token array
-      val clazz = getClass.getClassLoader.loadClass(className)    // load a class that inherits RestController
+      smqdInstance.loadClass(className, recursive = true) match { // load a class that inherits RestController
+        case Some(clazz) =>
+          val ctrl = try {
+            val context = new HttpServiceContext(this, oauth2, smqdInstance, conf)
+            val cons = clazz.getConstructor(classOf[String], classOf[HttpServiceContext]) // find construct that has parameters(String, HttpServiceContext)
+            cons.newInstance(rname, context).asInstanceOf[RestController]
+          } catch {
+            case _: NoSuchMethodException =>
+              val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
+              logger.warn(s"!!Warning!! controller '$className' has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
+              cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
+          }
 
-      val ctrl = try {
-        val context = new HttpServiceContext(this, oauth2, smqdInstance, conf)
-        val cons = clazz.getConstructor(classOf[String], classOf[HttpServiceContext]) // find construct that has parameters(String, HttpServiceContext)
-        cons.newInstance(rname, context).asInstanceOf[RestController]
-      } catch {
-        case _: NoSuchMethodException =>
-          val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
-          logger.warn(s"!!Warning!! controller '$className' has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
-          cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
+          logger.debug(s"[$name] add route $rname: $prefix = $className")
+
+          // make pathPrefix routes from tokens
+          tokens.foldRight(ctrl.routes) { (tok, routes) => pathPrefix(tok)(routes)}
+        case None =>
+          throw new ClassNotFoundException(s"Controller class '$className' not found")
       }
-
-      logger.debug(s"[$name] add route $rname: $prefix = $className")
-
-      // make pathPrefix routes from tokens
-      tokens.foldRight(ctrl.routes) { (tok, routes) => pathPrefix(tok)(routes)}
     }
   }
 
