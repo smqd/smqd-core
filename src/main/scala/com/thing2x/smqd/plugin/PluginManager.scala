@@ -59,14 +59,16 @@ object PluginManager extends StrictLogging {
           new File(new File(pluginDirPath), PM_CONF_DIR_NAME).getPath
         }
       }
-    new PluginManager(pluginDirPath, pluginInstanceConfDirPath, config.getOptionString("manifest"), coreVersion)
+    val staticPlugins = if (config.hasPath("static")) config.getStringList("static").asScala else  Seq.empty
+
+    new PluginManager(pluginDirPath, pluginInstanceConfDirPath, config.getOptionString("manifest"), staticPlugins, coreVersion)
   }
 
   def apply(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: String, coreVersion: String) =
-    new PluginManager(pluginLibPath, pluginConfPath, Some(pluginManifestUri), coreVersion)
+    new PluginManager(pluginLibPath, pluginConfPath, Some(pluginManifestUri), Seq.empty, coreVersion)
 
   def apply(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String] = None, coreVersion: String = "") =
-    new PluginManager(pluginLibPath, pluginConfPath, pluginManifestUri, coreVersion)
+    new PluginManager(pluginLibPath, pluginConfPath, pluginManifestUri, Seq.empty, coreVersion)
 
   trait InstallResult { def msg: String }
   case class InstallSuccess(msg: String) extends InstallResult
@@ -82,7 +84,7 @@ object PluginManager extends StrictLogging {
 
 import com.thing2x.smqd.plugin.PluginManager._
 
-class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String], val coreVersion: String) extends StrictLogging {
+class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String], staticPlugins: Seq[String], val coreVersion: String) extends StrictLogging {
 
   private val repositoryManager: RepositoryManager = new RepositoryManager(this, pluginManifestUri)
   def repositoryDefinitions: Seq[RepositoryDefinition] = repositoryManager.repositoryDefs
@@ -94,7 +96,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   val configDirectory: Option[File] = findConfigDir(pluginConfPath)
 
   private var packageDefs: Seq[PackageDefinition] =
-    findPluginCandidateFiles(libDirectory)  // plugin files in the root directories
+    findPluginCandidateFiles(libDirectory, staticPlugins)  // plugin files in the root directories
       .map(findPackageLoader)          // plugin loaders
       .flatMap(_.definition)           // to plugin definitions
 
@@ -206,19 +208,19 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   }
 
   /** find candidates archive/meta/directory for plugin */
-  private def findPluginCandidateFiles(rootDir: Option[File]): Seq[File] = {
+  private def findPluginCandidateFiles(rootDir: Option[File], staticFiles: Seq[String]): Seq[File] = {
     val codeBase = getClass.getProtectionDomain.getCodeSource.getLocation.getPath
     val codeBaseDir = new File(codeBase).getParentFile
 
+    // smqd-core_2.12.jar 파일과 같은 디렉터리에 존재하는 .jar 파일들
     val fileListInLib = codeBaseDir.listFiles { file =>
-      // smqd-core_2.12.jar 파일과 같은 디렉터리에 존재하는 .jar 파일들
       file.canRead && file.isFile && file.getName.endsWith(".jar")
     }.toSeq
 
+    // plugin directory에 들어 있는 파일들
     val fileListInPlugin = rootDir match {
       case Some(dir) =>
         dir.listFiles { file =>
-          // plugin directory에 들어 있는 파일들
           val filename = file.getName
           if (!file.canRead) false
           else if (filename.endsWith(".jar") && file.isFile) true
@@ -230,7 +232,12 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
         Seq.empty
     }
 
-    fileListInLib ++ fileListInPlugin
+    // static으로 지정된 파일 목록
+    val staticList = staticFiles.map(new File(_)).filter(f => f.canRead)
+
+    staticList.foreach(f => logger.trace(s"Add static plugin path: ${f.getPath}"))
+
+    fileListInLib ++ fileListInPlugin ++ staticList
   }
 
   private def findRootDir(rootDir: String): Option[File] = {
@@ -260,14 +267,11 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   def logRepositoryDefinitions(): Unit = {
     //// display list of repositories for information
     repositoryDefinitions.foreach { repo =>
-      repo.packageDefinition match {
-        case Some(pkg) =>
+      repo.packageDefinitions.foreach { pkg =>
           val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
           val info = pkg.plugins.map( _.name).mkString(", ")
           val size = pkg.plugins.size
           logger.info(s"Plugin package '${repo.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
-        case None =>
-          logger.info(s"Plugin package '${repo.name}' is not installed")
       }
     }
   }
@@ -431,14 +435,11 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
   def reloadPackage(smqd: Smqd, rdef: RepositoryDefinition)(implicit ec: ExecutionContext): Future[ReloadResult] = {
     Future {
-      rdef.packageDefinition match {
-        case Some(_) =>
+//      rdef.packageDefinitions.foreach { pkgDef =>
 //          pdef.plugins.foreach { pl =>
 //          }
-          ReloadFailure(s"Not implemented")
-        case None =>
-          ReloadFailure(s"Plugin '${rdef.name} not found")
-      }
+//      }
+      ReloadFailure(s"Not implemented")
     }
   }
 

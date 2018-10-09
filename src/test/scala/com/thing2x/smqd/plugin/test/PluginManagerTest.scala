@@ -35,7 +35,7 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
       val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "not installable"
       logger.info(s"1> Repo '${repo.name}' is $inst")
 
-      val pkgs = repo.packageDefinition
+      val pkgs = repo.packageDefinitions
       pkgs.foreach { pkg =>
         logger.info(s"1>      plugins: ${pkg.plugins.map(p => p.name).mkString(", ")}")
       }
@@ -54,7 +54,7 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
       val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "not installable"
       logger.info(s"2> Repo '${repo.name}' is $inst")
 
-      val pkgs = repo.packageDefinition
+      val pkgs = repo.packageDefinitions
       pkgs.foreach { pkg =>
         logger.info(s"2>      plugins: ${pkg.plugins.map(p => p.name).mkString(", ")}")
       }
@@ -80,9 +80,9 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
     assert(core.name == "smqd-core")
     assert(core.installed)
 
-    val pdefopt = core.packageDefinition
-    assert(pdefopt.isDefined)
-    val pdef = pdefopt.get
+    val pdefs = core.packageDefinitions
+    assert(pdefs.nonEmpty)
+    val pdef = pdefs.head
     assert(pdef.name == "smqd-core")
     assert(pdef.plugins.exists(p => p.name == "thing2x-core-mqtt"))
     assert(pdef.plugins.exists(p => p.name == "thing2x-core-http"))
