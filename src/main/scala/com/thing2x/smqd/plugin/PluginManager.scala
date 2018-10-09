@@ -237,7 +237,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
     staticList.foreach(f => logger.trace(s"Add static plugin path: ${f.getPath}"))
 
-    fileListInLib ++ fileListInPlugin ++ staticList
+    new File(codeBase) +: fileListInLib ++: fileListInPlugin ++: staticList
   }
 
   private def findRootDir(rootDir: String): Option[File] = {
