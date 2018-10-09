@@ -271,7 +271,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
           val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
           val info = pkg.plugins.map( _.name).mkString(", ")
           val size = pkg.plugins.size
-          logger.info(s"Plugin package '${repo.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
+          logger.info(s"Plugin package '${pkg.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
       }
     }
   }
