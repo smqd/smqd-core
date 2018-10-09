@@ -93,17 +93,10 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   val libDirectory: Option[File] = findRootDir(pluginLibPath)
   val configDirectory: Option[File] = findConfigDir(pluginConfPath)
 
-  private var packageDefs: Seq[PackageDefinition] = libDirectory match {
-    case Some(rootDir) =>             // plugin root directory
-      findPluginFiles(rootDir)        // plugin files in the root directories
-        .map(findPackageLoader)       // plugin loaders
-        .flatMap(_.definition)        // to plugin definitions
-    case None =>
-      findPackageLoader(new File(getClass.getProtectionDomain.getCodeSource.getLocation.getPath)).definition match {
-        case Some(d) => Seq(d)
-        case None => Nil
-      }
-  }
+  private var packageDefs: Seq[PackageDefinition] =
+    findPluginCandidateFiles(libDirectory)  // plugin files in the root directories
+      .map(findPackageLoader)          // plugin loaders
+      .flatMap(_.definition)           // to plugin definitions
 
   /** all package definitions */
   def packageDefinitions: Seq[PackageDefinition] = packageDefs
@@ -213,16 +206,31 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   }
 
   /** find candidates archive/meta/directory for plugin */
-  private def findPluginFiles(rootDir: File): Seq[File] = {
+  private def findPluginCandidateFiles(rootDir: Option[File]): Seq[File] = {
     val codeBase = getClass.getProtectionDomain.getCodeSource.getLocation.getPath
-    new File(codeBase) +: rootDir.listFiles{ file =>
-      val filename = file.getName
-      if (!file.canRead) false
-      else if (filename.endsWith(".jar") && file.isFile) true
-      else if (filename.endsWith(".plugin") && file.isFile) true
-      else if (file.isDirectory) true
-      else false
+    val codeBaseDir = new File(codeBase).getParentFile
+
+    val fileListInLib = codeBaseDir.listFiles { file =>
+      // smqd-core_2.12.jar 파일과 같은 디렉터리에 존재하는 .jar 파일들
+      file.canRead && file.isFile && file.getName.endsWith(".jar")
+    }.toSeq
+
+    val fileListInPlugin = rootDir match {
+      case Some(dir) =>
+        dir.listFiles { file =>
+          // plugin directory에 들어 있는 파일들
+          val filename = file.getName
+          if (!file.canRead) false
+          else if (filename.endsWith(".jar") && file.isFile) true
+          else if (filename.endsWith(".plugin") && file.isFile) true
+          else if (file.isDirectory) true
+          else false
+        }.toSeq
+      case None =>
+        Seq.empty
     }
+
+    fileListInLib ++ fileListInPlugin
   }
 
   private def findRootDir(rootDir: String): Option[File] = {
