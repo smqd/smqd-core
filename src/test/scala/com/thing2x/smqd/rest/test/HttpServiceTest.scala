@@ -128,11 +128,11 @@ class HttpServiceTest extends WordSpec
     }
   }
 
+  implicit val timeout: Timeout = 5.seconds
+
   "OAuthController" must {
     var token: String = ""
     var refreshToken: String = ""
-
-    implicit val timeout: Timeout = 3.seconds
 
     "pass oauth login" in {
       val loginReq = HttpEntity.apply(ContentTypes.`application/json`,
@@ -156,22 +156,16 @@ class HttpServiceTest extends WordSpec
 
         // check result body as a LoginResponse
         val loginRsp = responseJson.hcursor.downField("result").as[LoginResponse].getOrElse(null)
-        // logger.info(s"===> ${loginRsp.access_token}")
         token = loginRsp.access_token
         refreshToken = loginRsp.refresh_token
+        logger.info(s"===> token: ${loginRsp.access_token}")
       }
-    }
-
-    "pass oauth sanity-check" in {
 
       // 2. sanity check
       Get("/test/sanity").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         //logger.info("============>")
       }
-    }
-
-    "refresh oauth token" in {
 
       // 3. refresh
       logger.info(s"===> refresh: $refreshToken")
@@ -192,9 +186,6 @@ class HttpServiceTest extends WordSpec
         token = newToken
       }
 
-    }
-
-    "pass oauth sanity-check with refreshed token" in {
       // 4. sanity check after refresh
       Get("/test/sanity").addHeader(Authorization(OAuth2BearerToken(token))) ~> routes ~> check {
         status shouldEqual StatusCodes.OK
