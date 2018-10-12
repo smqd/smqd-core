@@ -18,7 +18,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server._
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.testkit.TestKit
 import akka.util.Timeout
 import com.thing2x.smqd.net.http.HttpService
@@ -83,6 +83,8 @@ class HttpServiceTest extends WordSpec
 
   override def createActorSystem(): ActorSystem = ActorSystem(actorSystemNameFrom(getClass), config)
 
+  implicit def default(implicit system: ActorSystem) = RouteTestTimeout(5.seconds)
+
   var smqdInstance: Smqd = _
   var routes: Route = _
   val shutdownPromise = Promise[Boolean]
@@ -127,8 +129,6 @@ class HttpServiceTest extends WordSpec
       }
     }
   }
-
-  implicit val timeout: Timeout = 5.seconds
 
   "OAuthController" must {
     var token: String = ""
