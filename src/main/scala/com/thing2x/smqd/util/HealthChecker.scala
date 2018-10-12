@@ -57,13 +57,13 @@ import scala.sys.process._
   * How to get the healthy information
   *
   * {{{
-  *   smqd.service("hchk").asInstanceOf[HealthChecker].getStatus("haproxy")
+  *   smqd.service("hchk").get.asInstanceOf[HealthChecker].getStatus("haproxy")
   * }}}
   *
   * or register listerner actor
   *
   * {{{
-  *   smqd.service("hchk").asInstanceOf[HealthChecker].addListener("haproxy", self)
+  *   smqd.service("hchk").get.asInstanceOf[HealthChecker].addListener("haproxy", self)
   * }}}
   */
 object HealthChecker {
@@ -74,7 +74,8 @@ object HealthChecker {
     case object Success extends HealthStatus
     case object Failure extends HealthStatus
     case object Unknown extends HealthStatus
-    case object NotFound extends HealthStatus
+    case object JobNotFound extends HealthStatus
+    case class ScriptFailure(message: String) extends HealthStatus
   }
 
   private [HealthChecker] case class Job(name: String,
@@ -116,25 +117,36 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
 
       val grabber = new ProcessGrabber()
 
+      // 초기 상태: Unknown
       val job = Job(name, HealthStatus.Unknown)
 
       val runnable = new Runnable{
         override def run(): Unit = {
           val previousStatus = job.status
 
-          val result = command.!(grabber)
+          try {
+            val result = command.!(grabber)
+            if (result == expectExit) job.status = HealthStatus.Success
+            else job.status = HealthStatus.Failure
+          }
+          catch {
+            case e: Exception =>
+              job.status = HealthStatus.ScriptFailure(e.getMessage)
+          }
 
-          if (result == expectExit) job.status = HealthStatus.Success
-          else job.status = HealthStatus.Failure
 
           job.output = Some(grabber.result)
 
-          if (previousStatus != job.status) { // status changed
+          // status changed, or script failure
+          if (previousStatus != job.status || job.status.isInstanceOf[HealthStatus.ScriptFailure]) {
             val noti = HealthStatusChanged(previousStatus, job.status)
             // notify status change to listeners
             job.listeners.foreach( _.tell(noti, Actor.noSender) )
 
-            logger.debug(s"HealthChecker '$name' status changed from '${previousStatus}' to '${job.status}' ${job.output}")
+            if (job.status.isInstanceOf[HealthStatus.ScriptFailure])
+              logger.warn(s"HealthChecker '$name' script failure: ${job.status}")
+            else
+              logger.debug(s"HealthChecker '$name' status changed from '$previousStatus' to '${job.status}' ${job.output}")
           }
         }
       }
@@ -153,7 +165,7 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
       case Some(job) =>
         job.status
       case None =>
-        HealthStatus.NotFound
+        HealthStatus.JobNotFound
     }
   }
 
@@ -167,7 +179,7 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
         job.listeners :+= actor
         job.status
       case None =>
-        HealthStatus.NotFound
+        HealthStatus.JobNotFound
     }
   }
 }
