@@ -9,7 +9,7 @@ object Dependencies {
     val scala = "2.12.7"
     val akka = "2.5.17"
     val akkaHttp = "10.1.5"
-    val netty = "4.1.28.Final"
+    val netty = "4.1.30.Final"
     val alpakka = "0.20"
   }
 
@@ -64,12 +64,11 @@ object Dependencies {
   )
 
   val etcd: Seq[ModuleID] = Seq(
-    //"com.coreos" % "jetcd-core" % "0.0.2"
-    "org.mousio" % "etcd4j" % "2.15.0" excludeAll ExclusionRule(organization = "io.netty") force()
+    "org.mousio" % "etcd4j" % "2.16.0" excludeAll ExclusionRule(organization = "io.netty") force()
   )
 
   val crypto: Seq[ModuleID] = Seq(
-    "org.bouncycastle" % "bcprov-jdk15on" % "1.56"
+    "org.bouncycastle" % "bcprov-jdk15on" % "1.60"
   )
 
   val metricsVersion = "4.1.0-rc2" // updated 04-May-2018
