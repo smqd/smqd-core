@@ -19,4 +19,5 @@
   <logger name="io.netty" level="INFO"/>
   <logger name="com.thing2x" level="TRACE"/>
   <logger name="sbt" level="TRACE"/>
+  <logger name="net.wimpi.telnetd" level="TRACE"/>
 </configuration>

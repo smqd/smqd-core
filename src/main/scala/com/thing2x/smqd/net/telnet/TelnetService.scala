@@ -1,5 +1,6 @@
 package com.thing2x.smqd.net.telnet
 
+import java.net.InetAddress
 import java.util.Properties
 
 import bsh.Interpreter
@@ -16,7 +17,7 @@ import scala.concurrent.duration._
 // 10/13/18 - Created by Kwon, Yeong Eon
 
 /**
-  *`  `
+  *
   */
 class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
 
@@ -34,8 +35,7 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
     properties.asScala.foreach( s => logger.trace(s"telnetd property: ${s._1} = ${s._2}") )
     telnetD = TelnetD.createTelnetD(properties)
 
-    val bshShell = telnetD.getShellManager.getShell("bsh").asInstanceOf[BshShell]
-    bshShell.setDelegate(new BshShellDelegate(){
+    BshShell.setDelegate(new BshShellDelegate(){
       // shell env에 smqd instance를 지정한다.
       override def prepare(shell: BshShell, bshInterpreter: Interpreter): Unit = {
         bshInterpreter.set("SMQD", smqdInstance)
@@ -46,12 +46,18 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
       }
     })
 
-    val loginShell = telnetD.getShellManager.getShell("login").asInstanceOf[LoginShell]
     // login 인증을 UserDelegate로 위임한다.
-    loginShell.setDelegate((user: String, password: String) => {
-      Await.result(smqd.userLogin(user, password), 3.seconds) match {
-        case SmqSuccess(_) => true
-        case _ => false
+    LoginShell.setDelegate(new LoginShell.Delegate() {
+      override def login(shell: LoginShell, user: String, password: String): Boolean = {
+        Await.result(smqd.userLogin(user, password), 3.seconds) match {
+          case SmqSuccess(_) => true
+          case _ => false
+        }
+      }
+
+      override def allow(shell: LoginShell, remoteAddress: InetAddress): Boolean = {
+        logger.trace(s"telnet connection from remote address: ${remoteAddress.getHostAddress}")
+        true
       }
     })
 

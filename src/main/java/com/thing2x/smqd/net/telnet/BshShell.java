@@ -30,15 +30,15 @@ public class BshShell implements Shell
   private BshTerm term;
   private BshProcessor processor;
 
-  private BshShellDelegate delegate;
+  private static BshShellDelegate delegate;
 
   public BshShell()
   {
   }
 
 
-  public void setDelegate(BshShellDelegate delegate) {
-    this.delegate = delegate;
+  public static void setDelegate(BshShellDelegate delegate) {
+    BshShell.delegate = delegate;
   }
 
   /**
