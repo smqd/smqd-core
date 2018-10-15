@@ -1,0 +1,121 @@
+/*
+	@Begin
+	list current directory
+	
+	Syntax
+		ls
+	@End
+ */
+import bsh.*;
+import java.io.*;
+import java.util.*;
+import com.thing2x.smqd.util.*;
+
+fileInfo(File f)
+{
+	StringBuffer sb = new StringBuffer();
+	
+	if (f.isDirectory())
+		sb.append("d");
+	else
+		sb.append("-");
+	
+	if (f.canRead())
+		sb.append("r");
+	else
+		sb.append("-");
+	
+	if (f.canWrite())
+		sb.append("w");
+	else
+		sb.append("-");
+	
+	if (f.isDirectory() || f.getName().endsWith(".bsh"))
+		sb.append("x");
+	else
+		sb.append("-");
+
+	sb.append("------");
+	
+	sb.append(" ");
+	
+	sb.append(StringUtil.sprintf("%7d", Long.toString(f.length()))).append(" ");
+	
+	sb.append((new TimeUtil(f.lastModified())).format(TimeUtil.SIMPLE)).append(" ");
+	
+	TERM.write(sb.toString());
+}
+
+
+
+int off = 1;
+for (off = 1; off < ARGS.length; off++)
+{
+	if (!ARGS[off].startsWith("-"))
+		break;
+}
+
+File[] files = null;
+
+if (off <= ARGS.length - 1)
+{
+	ArrayList list = new ArrayList();
+	
+	File f = new File(SHELL.getRealPath(SHELL.getPwd()));
+	File[] arr = f.listFiles();
+
+	for (int f = 0; arr != null && f < arr.length; f++)
+	{
+		for (int i = off; i < ARGS.length; i++)
+		{
+			if (StringUtil.isWildExp(ARGS[i]))
+			{
+				if (StringUtil.compareWildExp(arr[f].getName(), ARGS[i]) == 0)
+					list.add(arr[f]);
+			}
+			else
+			{
+				if (ARGS[i].equals(arr[f].getName()))
+					list.add(arr[f]);
+			}
+		}
+	}
+	
+	files = new File[list.size()];
+	for (int i = 0; i < list.size(); i++)
+	{
+		files[i] = list.get(i);
+	}
+}
+else
+{
+	File f = new File(SHELL.getRealPath(SHELL.getPwd()));
+	files = f.listFiles();
+}
+
+//
+// diplay file list
+//
+if (files == null || files.length == 0)
+{
+	TERM.write("File not found.\r\n");
+}
+else
+{
+	for (int i = 0; files != null && i < files.length; i++)
+	{
+		fileInfo(files[i]);
+		if (files[i].isDirectory())
+		{
+			TERM.setBold(true);
+			TERM.write(files[i].getName());
+			TERM.setBold(false);
+			TERM.write("\r\n");
+		}
+		else
+		{
+			TERM.write(files[i].getName()+"\r\n");
+		}
+	}
+}
+

@@ -1,0 +1,41 @@
+/*
+	@Begin
+	Delete a CLI user account
+	
+	Syntax
+		userdel <username>
+	@End
+ */
+import bsh.*;
+import java.io.*;
+import java.util.*;
+import x3.main.*;
+
+if (ARGS.length != 2)
+{
+	TERM.write("Please refer to 'help userdel' for usage.\r\n\r\n");
+	return;
+}
+
+String usrName = ARGS[1];
+
+Properties table = LoginShell.loadAccessTable();
+
+if ("system".equals(usrName))
+{
+	TERM.write("Default user [system] can not delete.\r\n\r\n");
+	return;
+}
+
+if (table.get(usrName) == null)
+{
+	TERM.write("User ["+usrName+"] not exists.\r\n\r\n");
+	return;
+}
+
+table.remove(usrName);
+
+LoginShell.storeAccessTable(table);
+
+TERM.write("Remove user ["+usrName+"] done."+"\r\n\r\n");
+

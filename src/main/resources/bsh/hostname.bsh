@@ -1,0 +1,10 @@
+/*
+	@Begin
+		Display Host System Name
+	Syntax
+		hostname
+	@End
+ */
+
+java.net.InetAddress localhost = java.net.InetAddress.getLocalHost();
+TERM.println(localhost.getHostName());

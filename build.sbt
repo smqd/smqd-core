@@ -30,7 +30,8 @@ val `smqd-core` = project.in(file(".")).settings(
       Dependencies.etcd ++
       Dependencies.metrics ++
       Dependencies.crypto ++
-      Dependencies.jwt
+      Dependencies.jwt ++
+      Dependencies.telnetd
 ).settings(
   // ScalaDoc
   scalacOptions in (Compile, doc) ++= Seq(

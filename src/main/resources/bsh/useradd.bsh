@@ -1,0 +1,50 @@
+/*
+	@Begin
+	Add new CLI user account
+	
+	Syntax
+		useradd <username> <passwd>
+	@End
+ */
+import bsh.*;
+import java.io.*;
+import java.util.*;
+import x3.main.*;
+import x3.util.*;
+import x3.main.cli.*;
+
+if (ARGS.length != 3)
+{
+	TERM.write("Please refer to 'help useradd' for usage.\r\n\r\n");
+	return;
+}
+
+String usrName = ARGS[1];
+String usrPassword = ARGS[2];
+
+if (usrName.length() < 3)
+{
+	TERM.write("User name must be more than 3 letters long.\r\n\r\n");
+	return;
+}
+
+if (usrPassword.length() < 6)
+{
+	TERM.write("Too short password length. (at least 6 letters)\r\n\r\n");
+	return;
+}
+
+SecureProperties table = LoginShell.loadAccessTable();
+
+if (table.get(usrName) != null)
+{
+	TERM.write("User ["+usrName+"] already exists.\r\n\r\n");
+	return;
+}
+
+table.setProperty(usrName, usrPassword, true);
+
+LoginShell.storeAccessTable(table);
+
+TERM.write("Add a new user ["+usrName+"] done."+"\r\n\r\n");
+

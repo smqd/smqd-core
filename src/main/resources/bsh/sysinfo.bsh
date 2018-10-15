@@ -1,0 +1,102 @@
+/*
+	@Begin
+	Show System Informations
+	
+	Syntax
+		sysinfo thread		Display information for all of threads
+	@End
+ */
+import bsh.*;
+import java.io.*;
+
+printGroup(ThreadGroup group, int depth, int[] steps, int offset)
+{
+	Thread[] threads = new Thread[group.activeCount()];
+	ThreadGroup[] groups = new ThreadGroup[group.activeGroupCount()];
+	
+	int thCount = group.enumerate(threads, false);
+	int grpCount = group.enumerate(groups, false);
+	
+	steps[depth] = grpCount;
+	
+	for (int i = 0; i < depth; i++)
+	{
+		if (i == depth - 1)
+			TERM.write("+--");
+		else if (steps[i] > 1)
+			TERM.write("|  ");
+		else
+			TERM.write("   ");
+	}
+	
+	String gName = group.getName();
+	String gDaemon = (group.isDaemon() ? "Daemon" : "");
+	TERM.write("+ ["+gName+"] "+gDaemon+"\r\n");
+	
+	for (int i = 0; i < thCount; i++)
+	{
+		for (int i = 0; i < depth; i++)
+		{
+			if (steps[i] > 1 && offset < steps[i]-1)
+				TERM.write("|  ");
+			else
+				TERM.write("   ");
+		}
+			
+			
+		if (grpCount > 0)
+			TERM.write("|");
+		else
+			TERM.write(" ");
+		
+		int priority = threads[i].getPriority();
+		String state = threads[i].getState().toString();
+		String name = threads[i].getName();
+		String daemon = (threads[i].isDaemon() ? "-Daemon" : "");
+		TERM.write("       ["+state+", "+priority+"] "+name+" "+daemon+"\r\n");
+	}
+	
+	TERM.flush();
+	
+	for (int i = 0; i < grpCount; i++)
+	{
+		printGroup(groups[i], depth+1, steps, i);
+	}
+}
+
+asSize(long size)
+{
+	if (size > 1024*1024*1024)
+		return (size/(1024*1024*1024))+"G";
+	else if (size > 1024*1024)
+		return (size/(1024*1024)) + "M";
+	else if (size > 1024)
+		return (size/1024) + "K";
+	else
+		return size;
+}
+
+///////////////// Thread Info ////////////////////
+Thread currentTread = Thread.currentThread();
+ThreadGroup group = currentTread.getThreadGroup();
+ThreadGroup parent = null;
+
+while((parent = group.getParent()) != null)
+	group = parent;
+
+int[] steps = new int[100];
+printGroup(group, 0, steps, 0);
+
+TERM.write("\r\n");
+TERM.flush();
+
+/////////////// Memory Info /////////////////////
+Runtime R = Runtime.getRuntime();
+int pct = ((R.totalMemory() - R.freeMemory())*100 / R.totalMemory());
+
+TERM.write("Available Processors = "+R.availableProcessors()+"\r\n");
+TERM.write("Max Memory   = "+asSize(R.maxMemory())+"\r\n");
+TERM.write("Total Memory = "+asSize(R.totalMemory())+"\r\n");
+TERM.write("Alloc Memory = "+asSize(R.totalMemory() - R.freeMemory())+" ("+pct+"% Used)\r\n");
+TERM.write("\r\n");
+TERM.flush();

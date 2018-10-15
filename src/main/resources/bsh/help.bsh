@@ -1,0 +1,73 @@
+/*
+	@Begin
+	Print help message
+	
+	Syntax
+		help             show all available bsh command list
+		help command     show specified command's help message
+	@End
+ */
+import bsh.*;
+import java.io.*;
+
+if (ARGS.length != 2)
+{
+	File[] list = SHELL.loadAllBshFiles("*.bsh");
+	
+	StringBuffer sb = new StringBuffer("--- Available commands ---\r\n");
+	for (int i = 0; list != null && i < list.length; i++)
+	{
+		String name = list[i].getName();
+		sb.append("    ");
+		sb.append(name.substring(0, name.length()-4));
+		sb.append("\r\n");
+	}
+
+	TERM.write(sb.toString());
+	TERM.write("\r\n");
+	TERM.flush();
+}
+else
+{
+	String cmd = ARGS[1];
+	String cmdPath = cmd + ".bsh";
+	
+	Reader in = SHELL.loadBshFile(cmdPath);
+	
+	if (reader == null)
+	{
+		TERM.write("Command not found : "+cmd+"\r\n\r\n");
+		TERM.flush();
+		return;
+	}
+
+	BufferedReader reader = new BufferedReader(in);
+	String line = null;
+	StringBuffer sb = new StringBuffer();
+	boolean onFlag = false;
+	while((line = reader.readLine()) != null)
+	{
+		if (line.indexOf("@Begin") >= 0)
+		{
+			onFlag = true;
+			continue;
+		}
+		else if (line.indexOf("@End") >= 0)
+		{
+			onFlag = false;
+			break;
+		}
+				
+		if (onFlag)
+		{
+			line = line.replaceAll("[\t]", "    ");
+			sb.append(line).append("\r\n");
+		}
+	
+		in.close();
+	}
+	
+	TERM.write(sb.toString());
+	TERM.write("\r\n");
+	TERM.flush();
+}

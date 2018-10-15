@@ -67,6 +67,12 @@ object Dependencies {
     "org.mousio" % "etcd4j" % "2.16.0" excludeAll ExclusionRule(organization = "io.netty") force()
   )
 
+  val telnetd: Seq[ModuleID] = Seq(
+    "net.wimpi" % "telnetd-x" % "2.1.1",
+    "org.apache-extras.beanshell" % "bsh" %"2.0b6",
+    "org.slf4j" % "log4j-over-slf4j" % "1.7.7"
+  )
+
   val crypto: Seq[ModuleID] = Seq(
     "org.bouncycastle" % "bcprov-jdk15on" % "1.60"
   )

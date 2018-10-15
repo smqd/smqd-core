@@ -1,0 +1,47 @@
+/*
+	@Begin
+		Display System properties
+	Syntax
+		getp <property_name> Display specified system property's value
+		getp all Display all system proeprties
+	@End
+ */
+
+if (ARGS.length != 2)
+{
+ 	TERM.write("Usage: getp <property_name> | all\r\n");
+ 	return;
+}
+
+param = ARGS[1];
+
+if ("all".equalsIgnoreCase(param))
+{
+	Properties prop = System.getProperties();
+	
+	Enumeration elm = prop.propertyNames();
+	ArrayList arr = new ArrayList();
+	
+	while(elm.hasMoreElements())
+	{
+		arr.add(elm.nextElement());
+	}
+
+	Object[] objs = arr.toArray();
+	Arrays.sort(objs);
+	
+	for (int i = 0; i < objs.length; i++)
+	{
+		String key = objs[i].toString();
+		String val = System.getProperty(key, "<null>");
+		
+		if ("\r\n".equals(val)) val = "\\r\\n";
+		else if ("\n".equals(val)) val = "\\n";
+		
+		TERM.write(""+key+" = "+val+"\r\n");
+	}
+}
+else
+{
+	TERM.write(""+param+" = "+System.getProperty(param, "<null>")+"\r\n");
+}

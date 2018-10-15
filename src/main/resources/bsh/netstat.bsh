@@ -1,0 +1,34 @@
+/*
+	@Begin
+	Show network interface status
+	
+	Syntax
+		netstat
+	@End
+ */
+
+import java.net.*;
+import net.wimpi.telnetd.*;
+import net.wimpi.telnetd.io.*;
+ 
+Enumeration elm = NetworkInterface.getNetworkInterfaces();
+
+while(elm.hasMoreElements())
+{
+	NetworkInterface ni = (NetworkInterface) elm.nextElement();
+	
+	TERM.write("  "+ni.getName()+" : ");
+	TERM.write(ni.getDisplayName());
+	TERM.write("\r\n");
+	Enumeration en = ni.getInetAddresses();
+	while(en.hasMoreElements())
+	{
+		InetAddress ia = (InetAddress)en.nextElement();
+		
+		TERM.write("        "+ia.toString());
+		TERM.write("\r\n");
+	}
+	TERM.write("\r\n");
+}
+
+TERM.write("\r\n");

@@ -1,0 +1,71 @@
+/*
+	@Begin
+	Change current directory
+	
+	Syntax
+		cd <dir>
+	@End
+ */
+
+if (ARGS.length == 1)
+{
+	SHELL.setPwd("/");
+	
+	return;
+}
+
+if (ARGS.length != 2)
+	return;
+
+if (ARGS[1].equals("."))
+	reutrn;
+
+if (ARGS[1].startsWith("/") || ARGS[1].equals(".."))
+{
+	String file = ARGS[1];
+	if (SHELL.canAccess(file, true))
+		SHELL.setPwd(file);
+	else
+		TERM.write("Access denied.\r\n");
+	
+}
+else
+{
+	ArrayList list = new ArrayList();
+	File f = new File(SHELL.getRealPath(SHELL.getPwd()));
+	File[] arr = f.listFiles();
+
+	for (int f = 0; arr != null &&  f < arr.length; f++)
+	{	
+		if (StringUtil.isWildExp(ARGS[1]))
+		{
+			if (StringUtil.compareWildExp(arr[f].getName(), ARGS[1]) == 0)
+				list.add(arr[f]);
+		}
+		else
+		{
+			if (ARGS[1].equals(arr[f].getName()))
+				list.add(arr[f]);
+		}
+	}
+	
+	if (list.size() == 0)
+	{
+		TERM.write("Directory not found.\r\n");
+	}
+	else if (list.size() > 1)
+	{
+		TERM.write("Ambiguous directories specified.\r\n");
+	}
+	else
+	{
+		String file = SHELL.getRelativePath(((File)list.get(0)).getPath());
+//		TERM.write("===>"+file+"\r\n");
+		if (SHELL.canAccess(file, true))
+			SHELL.setPwd(file);
+		else
+			TERM.write("Access denied.\r\n");
+	}
+}
+
+

@@ -1,0 +1,16 @@
+/*
+	@Begin
+	Display server time
+	
+	Syntax
+		systime
+	@End
+ */
+import java.text.SimpleDateFormat;
+
+SimpleDateFormat fmt14 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+
+TERM.write(fmt14.format(new java.util.Date(System.currentTimeMillis())));
+TERM.write("\r\n\r\n");
+TERM.flush();
+		

@@ -1,0 +1,34 @@
+/*
+	@Begin
+	Show Memory Usage Informations
+	
+	Syntax
+		meminfo Display memory usage
+	@End
+ */
+import bsh.*;
+import java.io.*;
+
+asSize(long size)
+{
+	if (size > 1024*1024*1024)
+		return (size/(1024*1024*1024))+"G";
+	else if (size > 1024*1024)
+		return (size/(1024*1024)) + "M";
+	else if (size > 1024)
+		return (size/1024) + "K";
+	else
+		return size;
+}
+
+/////////////// Memory Info /////////////////////
+Runtime R = Runtime.getRuntime();
+int pct = ((R.totalMemory() - R.freeMemory())*100 / R.totalMemory());
+
+TERM.write("\r\n");
+TERM.write("Available Processors = "+R.availableProcessors()+"\r\n");
+TERM.write("Max Memory   = "+asSize(R.maxMemory())+"\r\n");
+TERM.write("Total Memory = "+asSize(R.totalMemory())+"\r\n");
+TERM.write("Alloc Memory = "+asSize(R.totalMemory() - R.freeMemory())+" ("+pct+"% Used)\r\n");
+TERM.write("\r\n");
+TERM.flush();
