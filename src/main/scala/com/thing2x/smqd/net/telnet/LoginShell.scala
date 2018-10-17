@@ -109,10 +109,10 @@ class LoginShell(delegate: Option[LoginShell.Delegate]) extends Shell with Stric
 
       connection.close()
     } catch {
-      case e: EOFException =>
-        logger.info("Client send quit signal.")
+      case _: EOFException =>
+        //logger.info("Client send quit signal.")
       case ex: Exception =>
-        logger.error("run()", ex)
+        //logger.error("LoginShell", ex)
     }
   }
 
