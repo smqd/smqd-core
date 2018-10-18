@@ -69,6 +69,7 @@ object Dependencies {
 
   val telnetd: Seq[ModuleID] = Seq(
     "net.wimpi" % "telnetd-x" % "2.1.1",
+    "commons-net" % "commons-net" % "3.6",
     "org.apache-extras.beanshell" % "bsh" %"2.0b6",
     "org.slf4j" % "log4j-over-slf4j" % "1.7.7"
   )
