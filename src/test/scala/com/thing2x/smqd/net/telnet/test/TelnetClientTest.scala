@@ -83,6 +83,7 @@ class TelnetClientTest extends FlatSpec
       .withPort(telnetConf.getInt("port"))
       .withDebug(false)
       .withAutoLogin(false)
+      .withSocketProtocol()
       .build()
 
     val con = client.connect()

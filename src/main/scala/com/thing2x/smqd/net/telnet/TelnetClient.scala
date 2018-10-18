@@ -16,7 +16,7 @@ package com.thing2x.smqd.net.telnet
 
 
 import java.io._
-import java.net.UnknownHostException
+import java.net.{InetSocketAddress, Socket, SocketAddress, UnknownHostException}
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeoutException
 
@@ -47,12 +47,63 @@ object TelnetClient {
     var shellPrompt: Regex = ".*$ ".r
   }
 
+  trait ProtocolSupport {
+    def connect(host: String, port: Int)
+    def disconnect()
+    def flush()
+    def inputStream(): InputStream
+    def outputStream(): OutputStream
+  }
+
+  class TelnetProtocolSupport extends ProtocolSupport {
+    private val client = new CommonTelnetClient()
+
+    override def connect(host: String, port: Int): Unit = {
+      val ttopt = new TerminalTypeOptionHandler("VT100", false, false, false, false)
+      val echoopt = new EchoOptionHandler(false, false, false, false)
+      val gaopt = new SuppressGAOptionHandler(false, true, false, false)
+
+      client.addOptionHandler(ttopt)
+      client.addOptionHandler(echoopt)
+      client.addOptionHandler(gaopt)
+      client.connect(host, port)
+    }
+
+    override def disconnect(): Unit = client.disconnect()
+
+    override def flush(): Unit = client.getOutputStream.flush()
+
+    override def inputStream(): InputStream = client.getInputStream
+
+    override def outputStream(): OutputStream = client.getOutputStream
+  }
+
+  class SocketProtocolSupport extends ProtocolSupport {
+    private val socket = new Socket()
+
+    override def connect(host: String, port: Int): Unit =
+      socket.connect(new InetSocketAddress(host, port), 5000)
+
+    override def disconnect(): Unit = socket.close()
+
+    override def flush(): Unit = socket.getOutputStream.flush()
+
+    override def inputStream(): InputStream = socket.getInputStream
+
+    override def outputStream(): OutputStream = socket.getOutputStream
+  }
+
   object Builder {
     def apply(): Builder = new Builder()
   }
 
   class Builder {
     private val config = new Config()
+
+    private var protocol = "TELENET"
+
+    def withSocketProtocol(): Builder = { protocol = "SOCKET"; this }
+    def withTelnetProtocol(): Builder = { protocol = "TELNET"; this }
 
     def withHost(host: String): Builder = { config.host = host; this }
     def withPort(port: Int): Builder = { config.port = port; this }
@@ -70,7 +121,10 @@ object TelnetClient {
     def withShellPrompt(prompt: Regex): Builder = { config.shellPrompt = prompt; this }
 
     def build(): TelnetClient = {
-      new TelnetClient(config)
+      if (protocol == "TELNET")
+        new TelnetClient(config, new TelnetProtocolSupport())
+      else
+        new TelnetClient(config, new SocketProtocolSupport())
     }
   }
 
@@ -96,9 +150,7 @@ object TelnetClient {
   case class Timeout(message: String) extends ConnectResult with DisconnectResult with ExpectResult with ExecResult
 }
 
-class TelnetClient(config: TelnetClient.Config) extends StrictLogging {
-
-  private var client: Option[CommonTelnetClient] = None
+class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends StrictLogging {
 
   private val buffer = new Array[Byte](4096)
   private var head = 0
@@ -154,20 +206,7 @@ class TelnetClient(config: TelnetClient.Config) extends StrictLogging {
     var result: ConnectResult = null
 
     try {
-      val cli = new CommonTelnetClient()
-
-      val ttopt = new TerminalTypeOptionHandler("VT100", false, false, false, false)
-      val echoopt = new EchoOptionHandler(false, false, false, false)
-      val gaopt = new SuppressGAOptionHandler(false, true, false, false)
-
-      cli.addOptionHandler(ttopt)
-      cli.addOptionHandler(echoopt)
-      cli.addOptionHandler(gaopt)
-
-      cli.connect(config.host, config.port)
-
-      client = Option(cli)
-
+      client.connect(config.host, config.port)
       result = Connected
     }
     catch {
@@ -194,9 +233,7 @@ class TelnetClient(config: TelnetClient.Config) extends StrictLogging {
 
   private def disconnect0(): DisconnectResult = {
     try {
-      client.foreach { cli =>
-        cli.disconnect()
-      }
+      client.disconnect()
     }
     catch {
       case _: IOException =>  // ignore - socket already closed
@@ -206,7 +243,7 @@ class TelnetClient(config: TelnetClient.Config) extends StrictLogging {
   }
 
   def flush(): Unit = {
-    client.foreach(_.getOutputStream.flush())
+    client.flush()
   }
 
   /**
@@ -221,7 +258,7 @@ class TelnetClient(config: TelnetClient.Config) extends StrictLogging {
     if (config.debug) {
       logger.trace("SEND: {}", s.trim)
     }
-    client.foreach(_.getOutputStream.write(s.getBytes(StandardCharsets.UTF_8)))
+    client.outputStream.write(s.getBytes(StandardCharsets.UTF_8))
   }
 
 
@@ -234,7 +271,7 @@ class TelnetClient(config: TelnetClient.Config) extends StrictLogging {
   }
 
   private def read0(): Int = buffer.synchronized {
-    val in = client.get.getInputStream
+    val in = client.inputStream
 
     if (tail > head) {
       val ch = buffer(head)
