@@ -23,6 +23,7 @@ import com.thing2x.smqd.{SmqSuccess, Smqd}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import net.wimpi.telnetd.TelnetD
+import net.wimpi.telnetd.shell.Shell
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -47,20 +48,21 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
     }
 
     properties.asScala.foreach( s => logger.trace(s"telnetd property: ${s._1} = ${s._2}") )
+
     telnetD = TelnetD.createTelnetD(properties)
 
     BshShell.setDelegate(new BshShellDelegate(){
-      // shell env에 smqd instance를 지정한다.
+      // set smqd instance into shell env
       override def prepare(shell: BshShell, bshInterpreter: Interpreter): Unit = {
         bshInterpreter.set("SMQD", smqdInstance)
       }
       // bsh file들을 찾을 bsh directory 경로 path를 지정한다.
-      override def scriptPaths(shell: BshShell): Array[String] = {
-        config.getStringList("script.path").asScala.toArray
+      override def scriptPaths(shell: BshShell): Seq[String] = {
+        config.getStringList("script.path").asScala
       }
     })
 
-    // login 인증을 UserDelegate로 위임한다.
+    // delegate login authentication to UserDelegate of Smqd
     LoginShell.setDelegate(new LoginShell.Delegate() {
       override def login(shell: LoginShell, user: String, password: String): Boolean = {
         Await.result(smqd.userLogin(user, password), 3.seconds) match {

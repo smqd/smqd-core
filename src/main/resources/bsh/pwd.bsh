@@ -1,0 +1,14 @@
+/*
+	@Begin
+	list current directory
+
+	Syntax
+		ls
+	@End
+ */
+import bsh.*;
+import java.io.*;
+import java.util.*;
+import com.thing2x.smqd.util.*;
+
+TERM.println(SHELL.getWorkingDirectory());

@@ -61,7 +61,7 @@ if (off <= ARGS.length - 1)
 {
 	ArrayList list = new ArrayList();
 	
-	File f = new File(SHELL.getRealPath(SHELL.getPwd()));
+	File f = new File(SHELL.getRealPath(SHELL.getWorkingDirectory()));
 	File[] arr = f.listFiles();
 
 	for (int f = 0; arr != null && f < arr.length; f++)
@@ -89,7 +89,10 @@ if (off <= ARGS.length - 1)
 }
 else
 {
-	File f = new File(SHELL.getRealPath(SHELL.getPwd()));
+    TERM.println("pwd: "+SHELL.getWorkingDirectory());
+    TERM.println(SHELL.getRealPath(SHELL.getWorkingDirectory()));
+
+	File f = new File(SHELL.getRealPath(SHELL.getWorkingDirectory()));
 	files = f.listFiles();
 }
 

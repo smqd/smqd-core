@@ -71,7 +71,8 @@ class LoginShell(delegate: Option[LoginShell.Delegate]) extends Shell with Stric
       term.eraseScreen()
       term.homeCursor()
 
-      for (_ <- 0 until 3) {
+      // allow retry 3 times
+      val logined = 1 to 3 find { _ =>
         term.write("Login: ")
         var ef = new Editfield(term, "login", 50)
         ef.run()
@@ -84,30 +85,36 @@ class LoginShell(delegate: Option[LoginShell.Delegate]) extends Shell with Stric
         val password = ef.getValue
         term.flush()
 
-        if (delegate.isEmpty) {
-          if ("admin" == username && "password" == password) {
-            connection.setNextShell("bsh")
-            return
-          }
-          else if ("dummy" == username && "dummy" == password) {
-            connection.setNextShell("dummy")
-            return
-          }
+        if ("dummy" == username && "dummy" == password) {
+          connection.setNextShell("dummy")
+          true
         }
-        else if (delegate.get.login(this, username, password)) {
+        else if (delegate.isEmpty && "admin" == username && "password" == password) {
           connection.setNextShell("bsh")
-          return
+          true
         }
-
-        term.write("\r\nLogin incorrect\r\n\r\n")
+        else if (delegate.isDefined && delegate.get.login(this, username, password)) {
+          connection.setNextShell("bsh")
+          true
+        }
+        else {
+          term.write("\r\n")
+          false
+        }
       }
 
-      term.homeCursor()
-      term.eraseScreen()
-      term.write("Goodbye!.\r\n\r\n")
-      term.flush()
+      connection.removeConnectionListener(this)
 
-      connection.close()
+      if (logined.isEmpty) {
+        term.write("\r\nLogin incorrect\r\n\r\n")
+
+        term.homeCursor()
+        term.eraseScreen()
+        term.write("Goodbye!.\r\n\r\n")
+        term.flush()
+
+        connection.close()
+      }
     } catch {
       case _: EOFException =>
         logger.info("Client send quit signal.")
