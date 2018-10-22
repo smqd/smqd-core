@@ -9,9 +9,7 @@
 import bsh.*;
 import java.io.*;
 import java.util.*;
-import x3.main.*;
-import x3.util.*;
-import x3.main.cli.*;
+
 
 if (ARGS.length != 3)
 {

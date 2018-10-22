@@ -12,7 +12,7 @@ import java.io.*;
 
 if (ARGS.length != 2)
 {
-	File[] list = SHELL.loadAllBshFiles("*.bsh");
+	File[] list = SHELL.findAllBshFiles("*.bsh");
 	
 	StringBuffer sb = new StringBuffer("--- Available commands ---\r\n");
 	for (int i = 0; list != null && i < list.length; i++)

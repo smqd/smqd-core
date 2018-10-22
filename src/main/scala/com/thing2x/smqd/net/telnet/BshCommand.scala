@@ -42,6 +42,7 @@ abstract class BshCommandProvider(root: File, cwd: String) {
   def command(args: Seq[String]): Option[BshCommand]
 
   def findAllBshFiles(pattern: String = "*"): Array[File]
+  def loadBshFile(fileName: String): Option[Reader]
 
   private var _workingDirectory: String = cwd
   def workingDirectory: String = _workingDirectory
@@ -167,18 +168,21 @@ class BshDefaultCommandProvider(root: File, cwd: String, paths: Seq[String]) ext
     }
   }
 
-  private def loadBshFile(fileName: String): Option[Reader] = {
+  override def loadBshFile(fileName: String): Option[Reader] = {
     paths.map( new File(_, fileName) ).find(_.exists) match {
-      case Some(file) => try {
-        Some(new InputStreamReader(new FileInputStream(file)))
-      }catch {
-        case e : Throwable =>
-          logger.warn("Failure for reading file", e)
-          None
-      }
+      case Some(file) =>
+        try {
+          Some(new InputStreamReader(new FileInputStream(file)))
+        }catch {
+          case e : Throwable =>
+            logger.warn("Failure for reading file", e)
+            None
+        }
       case None =>
-        val in = getClass.getClassLoader.getResourceAsStream(s"bsh/$fileName")
-        if (in != null) Some(new InputStreamReader(in)) else None
+        paths.flatMap(p => Option(getClass.getClassLoader.getResource(s"$p/$fileName"))).headOption match {
+          case Some(url) => Some(new InputStreamReader(url.openStream()))
+          case None => None
+        }
     }
   }
 
@@ -189,12 +193,11 @@ class BshDefaultCommandProvider(root: File, cwd: String, paths: Seq[String]) ext
     paths.map( new File(_) ).flatMap{ dir =>
       dir.listFiles(new FileFilter() {
         override def accept(file: File): Boolean = {
-          if (pattern == null || "*" == pattern) return true
-          StringUtil.compareCaseWildExp(file.getName, pattern) == 0
+          if (pattern == null || "*" == pattern) true
+          else StringUtil.compareCaseWildExp(file.getName, pattern) == 0
         }
       })
     }.toArray
   }
-
 
 }

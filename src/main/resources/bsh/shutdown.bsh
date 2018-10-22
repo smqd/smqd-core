@@ -69,5 +69,5 @@ else
 	TERM.write("\r\n**CAUTION** System is going to shutdown.....\r\n\r\n");
 	TERM.flush();
 	CONNECTION.close();
-	x3.main.AbstractMain.shutdown(3);
+	SMQD.Implicit.system.terminiate();
 }

@@ -55,6 +55,8 @@ class DummyShell extends Shell with StrictLogging {
       term.write("\r\n")
       term.flush()
 
+      term.setSignalling(true)
+
       var loop = true
       do {
         val c = term.read
@@ -66,6 +68,7 @@ class DummyShell extends Shell with StrictLogging {
 
       term.write("Goodbye!.\r\n\r\n")
       term.flush()
+      connection.removeConnectionListener(this)
       connection.close()
     } catch {
       case ex: Exception =>

@@ -14,11 +14,10 @@
 
 package com.thing2x.smqd.net.telnet
 
-import java.io.{EOFException, File, IOException}
+import java.io.{EOFException, File, IOException, Reader}
 import java.net.SocketException
 
 import bsh.Interpreter
-import com.thing2x.smqd.util.StringUtil
 import com.typesafe.scalalogging.StrictLogging
 import net.wimpi.telnetd.net.{Connection, ConnectionEvent}
 import net.wimpi.telnetd.shell.Shell
@@ -26,16 +25,17 @@ import net.wimpi.telnetd.shell.Shell
 import scala.collection.JavaConverters._
 
 trait BshShellDelegate {
-  def prepare(shell: BshShell, bshInterpreter: Interpreter): Unit
+  def beforeShellStart(shell: BshShell): Unit
+  def afterShellStop(shell: BshShell): Unit
   def scriptPaths(shell: BshShell): Seq[String]
 }
 
 
 object BshShell {
-  private var delegate: BshShellDelegate = null
+  private var delegate: Option[BshShellDelegate] = None
 
   def setDelegate(delegate: BshShellDelegate): Unit = {
-    this.delegate = delegate
+    this.delegate = Option(delegate)
   }
 
   def createShell = new BshShell
@@ -66,9 +66,9 @@ class BshShell extends Shell with StrictLogging {
       _interpreter.set("CONNECTION", _connection)
       _interpreter.set("TERM", _terminal)
       _interpreter.set("SHELL", this)
-      _interpreter.set("ENV", new java.util.Hashtable())
 
-      _commandProvider = BshDefaultCommandProvider(rootDirectory, "/", this.scriptPaths)
+      val paths = if (BshShell.delegate.isDefined) BshShell.delegate.get.scriptPaths(this) else Nil
+      _commandProvider = BshDefaultCommandProvider(rootDirectory, "/", paths)
 
       // We just read any key
       _terminal.write("Bean Shell ready!\r\n")
@@ -76,6 +76,8 @@ class BshShell extends Shell with StrictLogging {
 
       val ef = new BshCommandField(_connection.getTerminalIO, "cmd", 1024, 100)
       var cmd = ""
+
+      BshShell.delegate.foreach(_.beforeShellStart(this))
 
       do {
         _terminal.write(s"$prompt ${_commandProvider.workingDirectory} > ")
@@ -89,7 +91,7 @@ class BshShell extends Shell with StrictLogging {
         _history = ef.getHistory.asScala
         _historyOffset = ef.getHistoryOffset
 
-        val args = StringUtil.split(cmd, " \t\r\n").toSeq
+        val args = cmd.split("\\s+").toSeq
 
         if (args.nonEmpty && args.head.length > 0) {
 
@@ -109,6 +111,8 @@ class BshShell extends Shell with StrictLogging {
       while ( _connection.isActive && isAlive )
 
       _connection.removeConnectionListener(this)
+
+      BshShell.delegate.foreach(_.afterShellStop(this))
 
       onConnectionClose()
     }
@@ -133,22 +137,11 @@ class BshShell extends Shell with StrictLogging {
       Thread.currentThread.getContextClassLoader
   }
 
-  private def scriptPaths: Seq[String] = {
-    if (BshShell.delegate != null) {
-      BshShell.delegate.prepare(this, _interpreter)
-      BshShell.delegate.scriptPaths(this)
-    } else {
-      Nil
-    }
-  }
-
   private def rootDirectory: File = {
     new File(getClass.getProtectionDomain.getCodeSource.getLocation.getPath).getParentFile
   }
 
   private def onConnectionClose(): Unit = {
-    _interpreter.get("ENV").asInstanceOf[java.util.Hashtable[String, AnyRef]].clear()
-
     if (_connection.isActive) {
       _terminal.write("\r\nLog out.\r\n\r\n")
       _terminal.flush()
@@ -203,16 +196,18 @@ class BshShell extends Shell with StrictLogging {
   /**
     * @param pattern wild expression for bsh file; *.bsh , abc*.bsh, abc?.bsh
     */
-  def loadAllBshFiles(pattern: String): Array[File] = _commandProvider.findAllBshFiles(pattern)
+  def findAllBshFiles(pattern: String): Array[File] = _commandProvider.findAllBshFiles(pattern)
 
-  def canAccess(relPath: String, isDirectory: Boolean): Boolean = _commandProvider.canAccess(relPath, isDirectory)
+  def loadBshFile(file: String): Reader = _commandProvider.loadBshFile(file).orNull
 
-  def getRealPath(relPath: String): String = _commandProvider.getRealPath(relPath)
+  def canAccess(relativePath: String, isDirectory: Boolean): Boolean = _commandProvider.canAccess(relativePath, isDirectory)
+
+  def getRealPath(relativePath: String): String = _commandProvider.getRealPath(relativePath)
 
   def getRelativePath(realPath: String): String = _commandProvider.getRelativePath(realPath).orNull
 
   def getWorkingDirectory: String = _commandProvider.workingDirectory
-  def setWorkingDirectory(path: String): Unit = _commandProvider.workingDirectory = path
+  def setWorkingDirectory(relativePath: String): Unit = _commandProvider.workingDirectory = relativePath
 
   def terminal: BshTerm = _terminal
 

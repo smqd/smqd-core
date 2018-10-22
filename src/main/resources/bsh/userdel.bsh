@@ -9,7 +9,6 @@
 import bsh.*;
 import java.io.*;
 import java.util.*;
-import x3.main.*;
 
 if (ARGS.length != 2)
 {

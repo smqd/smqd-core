@@ -17,13 +17,11 @@ package com.thing2x.smqd.net.telnet
 import java.net.InetAddress
 import java.util.Properties
 
-import bsh.Interpreter
 import com.thing2x.smqd.plugin.Service
 import com.thing2x.smqd.{SmqSuccess, Smqd}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import net.wimpi.telnetd.TelnetD
-import net.wimpi.telnetd.shell.Shell
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -53,10 +51,12 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
 
     BshShell.setDelegate(new BshShellDelegate(){
       // set smqd instance into shell env
-      override def prepare(shell: BshShell, bshInterpreter: Interpreter): Unit = {
-        bshInterpreter.set("SMQD", smqdInstance)
+      def beforeShellStart(shell: BshShell): Unit = {
+        shell.interpreter.set("SMQD", smqdInstance)
       }
-      // bsh file들을 찾을 bsh directory 경로 path를 지정한다.
+      def afterShellStop(shell: BshShell): Unit = {
+      }
+      // set paths of directories where to find *.bsh files
       override def scriptPaths(shell: BshShell): Seq[String] = {
         config.getStringList("script.path").asScala
       }

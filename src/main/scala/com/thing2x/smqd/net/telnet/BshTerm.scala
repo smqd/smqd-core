@@ -14,8 +14,6 @@
 
 package com.thing2x.smqd.net.telnet
 
-import java.io.IOException
-
 import net.wimpi.telnetd.io.BasicTerminalIO
 import net.wimpi.telnetd.io.toolkit.Editfield
 
@@ -30,49 +28,27 @@ trait BshTerm {
   val CYAN = 36
   val WHITE = 37
 
-  @throws[IOException]
   def write(ch: Char): Unit
-
-  @throws[IOException]
   def write(str: String): Unit
+  def write(b: Byte): Unit
+  def write(buf: Array[Byte]): Unit = buf.foreach( write )
 
-  @throws[IOException]
+  def print(str: String): Unit
   def println(str: String): Unit
 
-  @throws[IOException]
-  def flush(): Unit
-
-  @throws[IOException]
   def read: String
 
-  @throws[IOException]
-  def setForegroundColor(color: Int): Unit = {
-  }
+  def flush(): Unit = { }
 
-  @throws[IOException]
-  def setBackgroundColor(color: Int): Unit = {
-  }
+  def setForegroundColor(color: Int): Unit = { }
+  def setBackgroundColor(color: Int): Unit = { }
 
-  @throws[IOException]
-  def setBold(b: Boolean): Unit = {
-  }
+  def setBold(b: Boolean): Unit = { }
+  def setItalic(b: Boolean): Unit = { }
+  def setUnderlined(b: Boolean): Unit = { }
+  def setBlink(b: Boolean): Unit = { }
 
-  @throws[IOException]
-  def setItalic(b: Boolean): Unit = {
-  }
-
-  @throws[IOException]
-  def setUnderlined(b: Boolean): Unit = {
-  }
-
-  @throws[IOException]
-  def setBlink(b: Boolean): Unit = {
-  }
-
-  @throws[IOException]
-  def bell(): Unit = {
-  }
-
+  def bell(): Unit = { }
 }
 
 
@@ -80,33 +56,17 @@ class BshTermBuffer extends BshTerm {
 
   private var buffer = new StringBuffer
 
-  @throws[IOException]
-  override def write(ch: Char): Unit = {
-    buffer.append(ch)
-  }
+  override def write(ch: Char): Unit = buffer.append(ch)
+  override def write(str: String): Unit = buffer.append(str)
+  override def write(b: Byte): Unit = buffer.append(b)
 
-  @throws[IOException]
-  override def write(str: String): Unit = {
-    buffer.append(str)
-  }
-
-  @throws[IOException]
-  override def println(str: String): Unit = {
-    buffer.append(str)
-    buffer.append("\r\n")
-  }
-
-  @throws[IOException]
-  override def flush(): Unit = {
-  }
+  override def print(str: String): Unit = buffer.append(str)
+  override def println(str: String): Unit = buffer.append(str).append("\r\n")
 
   override def toString: String = buffer.toString
 
-  def reset(): Unit = {
-    buffer = new StringBuffer
-  }
+  def reset(): Unit = buffer = new StringBuffer
 
-  @throws[IOException]
   override def read: String = null
 }
 
@@ -117,28 +77,15 @@ class BshTermTelnet(term: BasicTerminalIO) extends BshTerm {
   term.eraseScreen()
   term.homeCursor()
 
-  @throws[IOException]
-  override def write(ch: Char): Unit = {
-    term.write(ch)
-  }
+  override def write(ch: Char): Unit = term.write(ch)
+  override def write(str: String): Unit = term.write(str)
+  override def write(b: Byte): Unit = term.write(b)
 
-  @throws[IOException]
-  override def write(str: String): Unit = {
-    term.write(str)
-  }
+  override def print(str: String): Unit = term.write(str)
+  override def println(str: String): Unit = term.write(s"$str\r\n")
 
-  @throws[IOException]
-  override def println(str: String): Unit = {
-    term.write(str)
-    term.write("\r\n")
-  }
+  override def flush(): Unit = term.flush()
 
-  @throws[IOException]
-  override def flush(): Unit = {
-    term.flush()
-  }
-
-  @throws[IOException]
   override def read: String = {
     val ef = new Editfield(term, "confirm", 1)
     ef.run()
@@ -147,38 +94,13 @@ class BshTermTelnet(term: BasicTerminalIO) extends BshTerm {
     ef.getValue
   }
 
-  @throws[IOException]
-  override def setForegroundColor(color: Int): Unit = {
-    term.setForegroundColor(color)
-  }
+  override def setForegroundColor(color: Int): Unit = term.setForegroundColor(color)
+  override def setBackgroundColor(color: Int): Unit = term.setBackgroundColor(color)
 
-  @throws[IOException]
-  override def setBackgroundColor(color: Int): Unit = {
-    term.setBackgroundColor(color)
-  }
+  override def setBold(b: Boolean): Unit = term.setBold(b)
+  override def setItalic(b: Boolean): Unit = term.setItalic(b)
+  override def setUnderlined(b: Boolean): Unit = term.setUnderlined(b)
+  override def setBlink(b: Boolean): Unit = term.setBlink(b)
 
-  @throws[IOException]
-  override def setBold(b: Boolean): Unit = {
-    term.setBold(b)
-  }
-
-  @throws[IOException]
-  override def setItalic(b: Boolean): Unit = {
-    term.setItalic(b)
-  }
-
-  @throws[IOException]
-  override def setUnderlined(b: Boolean): Unit = {
-    term.setUnderlined(b)
-  }
-
-  @throws[IOException]
-  override def setBlink(b: Boolean): Unit = {
-    term.setBlink(b)
-  }
-
-  @throws[IOException]
-  override def bell(): Unit = {
-    term.bell()
-  }
+  override def bell(): Unit = term.bell()
 }
