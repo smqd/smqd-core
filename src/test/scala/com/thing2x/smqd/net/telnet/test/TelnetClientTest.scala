@@ -44,13 +44,11 @@ class TelnetClientTest extends FlatSpec
   val telnetTestConf = ConfigFactory.parseString(
     """
       |host=127.0.0.1
-      |port=6621
+      |port=6623
       |user=admin
       |password=password
     """.stripMargin)
 
-  //// Test 실행 전에 설정파일 `pvd/src/test/resources/telnet-test-dev.conf`을 만들고 host, port, user, password... 항목을 기록한다.
-  //// *-dev.conf 파일은 gitignore 대상이므로 패스워드를 기록하여도 공유 또는 공개되지 않는다.
   private val telnetConf = ConfigFactory.parseResources("telnet-test-dev.conf").withFallback(telnetTestConf)
 
   private val login = telnetConf.getString("user")
