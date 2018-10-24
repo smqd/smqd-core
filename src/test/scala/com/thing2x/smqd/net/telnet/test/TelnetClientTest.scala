@@ -74,7 +74,7 @@ class TelnetClientTest extends FlatSpec
   }
 
   "TelnetClient" should "work in step by step procedure" in {
-    implicit val timeout: Duration = 3.seconds
+    implicit val timeout: Duration = 15.seconds
 
     val client = TelnetClient.Builder()
       .withHost(telnetConf.getString("host"))
@@ -108,7 +108,8 @@ class TelnetClientTest extends FlatSpec
       case Expected(prompt, text) =>
         logger.info(s"==============> $prompt")
         client.writeLine("sysinfo")
-      case _ =>
+      case m =>
+        logger.error(m.toString)
         fail()
     }
 

@@ -17,6 +17,7 @@ package com.thing2x.smqd.net.telnet
 import java.net.InetAddress
 import java.util.Properties
 
+import com.thing2x.smqd.net.telnet.ScripterEngine._
 import com.thing2x.smqd.plugin.Service
 import com.thing2x.smqd.{SmqSuccess, Smqd}
 import com.typesafe.config.Config
@@ -26,12 +27,17 @@ import net.wimpi.telnetd.TelnetD
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import com.thing2x.smqd.net.telnet.TelnetService._
 
 // 10/13/18 - Created by Kwon, Yeong Eon
 
 /**
   *
   */
+object TelnetService {
+  val scriptEngines: Seq[ScripterEngine] = Seq( ScripterEngine(SCALA), ScripterEngine(JAVA), ScripterEngine(JS) )
+}
+
 class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
 
   private var telnetD: TelnetD = _
@@ -46,6 +52,9 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
     }
 
     properties.asScala.foreach( s => logger.trace(s"telnetd property: ${s._1} = ${s._2}") )
+
+    // apply SMQD
+    //scriptEngines.foreach(_.set("SMQD", Smqd.getClass.getCanonicalName, smqdInstance))
 
     telnetD = TelnetD.createTelnetD(properties)
 

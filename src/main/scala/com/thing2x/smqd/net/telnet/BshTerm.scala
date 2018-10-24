@@ -14,10 +14,12 @@
 
 package com.thing2x.smqd.net.telnet
 
+import java.io.Writer
+
 import net.wimpi.telnetd.io.BasicTerminalIO
 import net.wimpi.telnetd.io.toolkit.Editfield
 
-trait BshTerm {
+trait BshTerm extends Writer {
 
   val BLACK = 30
   val RED = 31
@@ -32,13 +34,15 @@ trait BshTerm {
   def write(str: String): Unit
   def write(b: Byte): Unit
   def write(buf: Array[Byte]): Unit = buf.foreach( write )
+  override def write(cbuf: Array[Char], off: Int, len: Int): Unit = write(new String(cbuf, off, len))
 
   def print(str: String): Unit
   def println(str: String): Unit
 
   def read: String
 
-  def flush(): Unit = { }
+  def flush(): Unit = Unit
+  override def close(): Unit = Unit
 
   def setForegroundColor(color: Int): Unit = { }
   def setBackgroundColor(color: Int): Unit = { }

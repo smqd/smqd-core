@@ -17,7 +17,6 @@ package com.thing2x.smqd.net.telnet
 import java.io.{EOFException, File, IOException, Reader}
 import java.net.SocketException
 
-import bsh.Interpreter
 import com.typesafe.scalalogging.StrictLogging
 import net.wimpi.telnetd.net.{Connection, ConnectionEvent}
 import net.wimpi.telnetd.shell.Shell
@@ -46,7 +45,7 @@ class BshShell extends Shell with StrictLogging {
   private var _terminal: BshTerm = _
   private var isAlive: Boolean = true
   private var _commandProvider: BshCommandProvider = _
-  private var _interpreter: Interpreter = _
+  private var _scripter: Scripter = _
   private var _history: Seq[String] = Nil
   private var _historyOffset: Int = -1
 
@@ -61,11 +60,12 @@ class BshShell extends Shell with StrictLogging {
 
       _terminal = new BshTermTelnet(_connection.getTerminalIO)
 
-      _interpreter = new Interpreter
-      _interpreter.setClassLoader(this.classLoader)
-      _interpreter.set("CONNECTION", _connection)
-      _interpreter.set("TERM", _terminal)
-      _interpreter.set("SHELL", this)
+      _scripter = Scripter()
+      _scripter.setClassLoader(this.classLoader)
+      _scripter.set("CONNECTION", _connection)
+      _scripter.set("TERM", _terminal)
+      _scripter.set("SHELL", this)
+      _scripter.setWriter(_terminal)
 
       val paths = if (BshShell.delegate.isDefined) BshShell.delegate.get.scriptPaths(this) else Nil
       _commandProvider = BshDefaultCommandProvider(rootDirectory, "/", paths)
@@ -217,7 +217,7 @@ class BshShell extends Shell with StrictLogging {
   def historyOffset: Int = -1
 //  def historyOffset_=(offset: Int): Unit = _historyOffset = offset
 
-  def interpreter: Interpreter = _interpreter
+  def interpreter: Scripter = _scripter
 //  def interpreter_=(interpreter: Interpreter): Unit = _interpreter = interpreter
 
   def commandProvider: BshCommandProvider = _commandProvider

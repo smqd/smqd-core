@@ -120,9 +120,9 @@ object BshDefaultCommandProvider {
     override val name = "exec"
     override def exe(args: Seq[String], shell: BshShell): Unit = {
       try {
-        shell.interpreter.setNameSpace(new NameSpace(shell.interpreter.getNameSpace, cmd))
+        //shell.interpreter.setNameSpace(new NameSpace(shell.interpreter.getNameSpace, cmd))
         shell.interpreter.set("ARGS", args.toArray)
-        shell.interpreter.eval(reader)
+        shell.interpreter.eval(reader, cmd)
         shell.terminal.flush()
       } catch {
         case e: EvalError =>
@@ -153,18 +153,23 @@ class BshDefaultCommandProvider(root: File, cwd: String, paths: Seq[String]) ext
   override def command(args: Seq[String]): Option[BshCommand] = command(args.head)
 
   override def command(cmd: String): Option[BshCommand] = {
-    val found = commands.find(_.name == cmd)
-    if (found.isDefined) {
-      found
-    }
-    else {
-      val fileName = if (cmd.endsWith(".bsh")) cmd else s"$cmd.bsh"
+
+    def _find(fn: String, ext: String): Option[BshCommand] = {
+      val fileName = if (fn.endsWith(ext)) cmd else s"$fn$ext"
       loadBshFile(fileName) match {
         case Some(reader) =>
           Some(new Exec(reader, fileName))
         case None =>
           None
       }
+    }
+
+    val found = commands.find(_.name == cmd)
+    if (found.isDefined) {
+      found
+    }
+    else {
+      _find(cmd, ".sc").orElse ( _find(cmd, ".bsh").orElse( _find(cmd, ".js") ) )
     }
   }
 
