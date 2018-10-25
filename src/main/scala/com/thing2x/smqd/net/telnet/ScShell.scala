@@ -23,29 +23,23 @@ import net.wimpi.telnetd.shell.Shell
 
 import scala.collection.JavaConverters._
 
-trait BshShellDelegate {
-  def beforeShellStart(shell: BshShell): Unit
-  def afterShellStop(shell: BshShell): Unit
-}
+object ScShell {
+  private var delegate: Option[ScShellDelegate] = None
 
-
-object BshShell {
-  private var delegate: Option[BshShellDelegate] = None
-
-  def setDelegate(delegate: BshShellDelegate): Unit = {
+  def setDelegate(delegate: ScShellDelegate): Unit = {
     this.delegate = Option(delegate)
   }
 
-  def createShell = new BshShell
+  def createShell = new ScShell
 
 }
 
-class BshShell extends Shell with StrictLogging {
+class ScShell extends Shell with StrictLogging {
   private var _connection: Connection = _
-  private var _terminal: BshTerm = _
+  private var _terminal: ScTerm = _
   private var isAlive: Boolean = true
-  private var _commandProvider: BshCommandProvider = _
-  private var _scripter: ScalaEngine = _
+  private var _commandProvider: ScCommandProvider = _
+  private var _scripter: ScEngine = _
   private var _history: Seq[String] = Nil
   private var _historyOffset: Int = -1
 
@@ -58,12 +52,11 @@ class BshShell extends Shell with StrictLogging {
       // don't forget to register listener
       _connection.addConnectionListener(this)
 
-      _terminal = new BshTermTelnet(_connection.getTerminalIO)
+      _terminal = new ScTerm(_connection.getTerminalIO)
 
       _terminal.print("Loading shell......")
 
-      _scripter = ScalaEngine()
-      _scripter.setClassLoader(this.classLoader)
+      _scripter = ScEngine()
       _scripter.set("$shell", this)
       _scripter.set("$smqd", TelnetService.smqdInstance)
       _scripter.setWriter(_terminal)
@@ -71,7 +64,7 @@ class BshShell extends Shell with StrictLogging {
 
       _terminal.clear()
 
-      _commandProvider = BshDefaultCommandProvider(rootDirectory, "/", TelnetService.paths)
+      _commandProvider = ScDefaultCommandProvider(rootDirectory, "/", TelnetService.paths)
 
       // We just read any key
       _terminal.println("Shell ready!")
@@ -80,7 +73,7 @@ class BshShell extends Shell with StrictLogging {
       val ef = new BshCommandField(_connection.getTerminalIO, "cmd", 1024, 100)
       var cmd = ""
 
-      BshShell.delegate.foreach(_.beforeShellStart(this))
+      ScShell.delegate.foreach(_.beforeShellStart(this))
 
       do {
         _terminal.write(s"$prompt ${_commandProvider.workingDirectory} > ")
@@ -115,7 +108,7 @@ class BshShell extends Shell with StrictLogging {
 
       _connection.removeConnectionListener(this)
 
-      BshShell.delegate.foreach(_.afterShellStop(this))
+      ScShell.delegate.foreach(_.afterShellStop(this))
 
       onConnectionClose()
     }
@@ -199,9 +192,9 @@ class BshShell extends Shell with StrictLogging {
   /**
     * @param pattern wild expression for bsh file; *.bsh , abc*.bsh, abc?.bsh
     */
-  def findAllBshFiles(pattern: String): Array[File] = _commandProvider.findAllBshFiles(pattern)
+  def findAllBshFiles(pattern: String): Array[File] = _commandProvider.findAllScriptFiles(pattern)
 
-  def loadBshFile(file: String): Reader = _commandProvider.loadBshFile(file).orNull
+  def loadBshFile(file: String): Reader = _commandProvider.loadScriptFile(file).orNull
 
   def canAccess(relativePath: String, isDirectory: Boolean): Boolean = _commandProvider.canAccess(relativePath, isDirectory)
 
@@ -212,7 +205,7 @@ class BshShell extends Shell with StrictLogging {
   def getWorkingDirectory: String = _commandProvider.workingDirectory
   def setWorkingDirectory(relativePath: String): Unit = _commandProvider.workingDirectory = relativePath
 
-  def terminal: BshTerm = _terminal
+  def terminal: ScTerm = _terminal
 
   def history: Seq[String] = _history
 //  def history_=(h: Seq[String]): Unit = _history = h
@@ -220,10 +213,10 @@ class BshShell extends Shell with StrictLogging {
   def historyOffset: Int = -1
 //  def historyOffset_=(offset: Int): Unit = _historyOffset = offset
 
-  def interpreter: ScalaEngine = _scripter
+  def interpreter: ScEngine = _scripter
 //  def interpreter_=(interpreter: Interpreter): Unit = _interpreter = interpreter
 
-  def commandProvider: BshCommandProvider = _commandProvider
+  def commandProvider: ScCommandProvider = _commandProvider
 //  def commandProvider_=(provider: BshCommandProvider): Unit = _commandProvider = provider
 
   def connection: Connection = _connection

@@ -90,11 +90,11 @@ class LoginShell(delegate: Option[LoginShell.Delegate]) extends Shell with Stric
           true
         }
         else if (delegate.isEmpty && "admin" == username && "password" == password) {
-          connection.setNextShell("bsh")
+          connection.setNextShell("sc")
           true
         }
         else if (delegate.isDefined && delegate.get.login(this, username, password)) {
-          connection.setNextShell("bsh")
+          connection.setNextShell("sc")
           true
         }
         else {

@@ -7,9 +7,9 @@
 	@End
  */
 
-import com.thing2x.smqd.net.telnet.BshShell
+import com.thing2x.smqd.net.telnet.ScShell
 
-val shell: BshShell = $shell.asInstanceOf[BshShell]
+val shell: ScShell = $shell.asInstanceOf[ScShell]
 
 println(shell.getWorkingDirectory)
 println("")

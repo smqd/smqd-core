@@ -12,12 +12,12 @@
 
 import java.io.File
 
-import com.thing2x.smqd.net.telnet.BshShell
+import com.thing2x.smqd.net.telnet.ScShell
 
 import scala.io.Source
 
 val args: Array[String] = $args.asInstanceOf[Array[String]]
-val shell: BshShell = $shell.asInstanceOf[BshShell]
+val shell: ScShell = $shell.asInstanceOf[ScShell]
 
 if (args.length < 2) {
 	println("refer : help cat\r\n");

@@ -9,11 +9,11 @@
 
 import java.io.File
 
-import com.thing2x.smqd.net.telnet.BshShell
+import com.thing2x.smqd.net.telnet.ScShell
 import com.thing2x.smqd.util.{StringUtil, TimeUtil}
 
 val args: Array[String] = $args.asInstanceOf[Array[String]]
-val shell: BshShell = $shell.asInstanceOf[BshShell]
+val shell: ScShell = $shell.asInstanceOf[ScShell]
 
 def fileInfo(f: File): String = {
 	val sb = new StringBuffer()

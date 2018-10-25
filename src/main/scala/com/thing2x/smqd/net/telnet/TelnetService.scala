@@ -63,10 +63,10 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
     TelnetService.smqdInstance = smqd
     TelnetService.paths = config.getStringList("script.path").asScala
 
-    BshShell.setDelegate(new BshShellDelegate(){
+    ScShell.setDelegate(new ScShellDelegate(){
       // set smqd instance into shell env
-      def beforeShellStart(shell: BshShell): Unit = Unit
-      def afterShellStop(shell: BshShell): Unit = Unit
+      def beforeShellStart(shell: ScShell): Unit = Unit
+      def afterShellStop(shell: ScShell): Unit = Unit
     })
 
     // delegate login authentication to UserDelegate of Smqd
@@ -124,11 +124,11 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
     //////////////////////////////////////////////////
 
     // List of shells available and defined below
-    p.setProperty("shells", "login,bsh,dummy")
+    p.setProperty("shells", "login,sc,dummy")
 
     // shell implementations
     p.setProperty("shell.login.class", "com.thing2x.smqd.net.telnet.LoginShell")
-    p.setProperty("shell.bsh.class",   "com.thing2x.smqd.net.telnet.BshShell")
+    p.setProperty("shell.sc.class",   "com.thing2x.smqd.net.telnet.ScShell")
     p.setProperty("shell.dummy.class", "com.thing2x.smqd.net.telnet.DummyShell")
 
     //////////////////////////////////////////////////

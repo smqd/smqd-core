@@ -11,10 +11,10 @@
 import java.io.BufferedReader
 
 import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.net.telnet.BshShell
+import com.thing2x.smqd.net.telnet.ScShell
 
 val args: Array[String] = $args.asInstanceOf[Array[String]]
-val shell: BshShell = $shell.asInstanceOf[BshShell]
+val shell: ScShell = $shell.asInstanceOf[ScShell]
 val smqd: Smqd = $smqd.asInstanceOf[Smqd]
 
 if (args.length != 2) {

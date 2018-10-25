@@ -1,6 +1,6 @@
 
 import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.net.telnet.BshShell
+import com.thing2x.smqd.net.telnet.ScShell
 import javax.script.ScriptEngineManager
 
 import scala.collection.JavaConverters._
@@ -39,5 +39,4 @@ println(s"ARGS(1): ${$args}")
 //val shell: BshShell = $ctx.SHELL.asInstanceOf[BshShell]
 //println(s"SHELL: ${shell}")
 
-$error
 println("")
