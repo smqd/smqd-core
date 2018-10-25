@@ -30,11 +30,14 @@ println(s"ENGINE(1): ${$engine}")
 println(s"CTX(1): ${$ctx}")
 
 println("-----------------")
-val smqd: Smqd = $ctx.SMQD.asInstanceOf[Smqd]
-println(s"SMQD: ${smqd}")
-println(s"SMQD: ${com.thing2x.smqd.net.telnet.TelnetService.smqdInstance}")
+println(s"SMQD(1): ${$smqd}")
+println(s"SHELL(1): ${$shell}")
+println(s"ARGS(1): ${$args}")
 
-val shell: BshShell = $ctx.SHELL.asInstanceOf[BshShell]
-println(s"SHELL: ${shell}")
+//println(s"SMQD: ${com.thing2x.smqd.net.telnet.TelnetService.smqdInstance}")
+//
+//val shell: BshShell = $ctx.SHELL.asInstanceOf[BshShell]
+//println(s"SHELL: ${shell}")
 
+$error
 println("")

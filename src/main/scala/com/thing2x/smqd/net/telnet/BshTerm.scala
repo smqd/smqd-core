@@ -52,7 +52,8 @@ trait BshTerm extends Writer {
   def setUnderlined(b: Boolean): Unit = { }
   def setBlink(b: Boolean): Unit = { }
 
-  def bell(): Unit = { }
+  def bell(): Unit = Unit
+  def clear(): Unit = Unit
 }
 
 
@@ -107,4 +108,9 @@ class BshTermTelnet(term: BasicTerminalIO) extends BshTerm {
   override def setBlink(b: Boolean): Unit = term.setBlink(b)
 
   override def bell(): Unit = term.bell()
+
+  override def clear(): Unit = {
+    term.eraseScreen()
+    term.homeCursor()
+  }
 }

@@ -15,9 +15,9 @@
 import com.thing2x.smqd.Smqd
 import com.thing2x.smqd.net.telnet.{BshShell, BshTerm}
 
-val args: Array[String] = $ctx.ARGS.asInstanceOf[Array[String]]
-val term: BshTerm = $ctx.SHELL.asInstanceOf[BshShell].terminal
-val smqd: Smqd = $ctx.SMQD.asInstanceOf[Smqd]
+val args: Array[String] = $args.asInstanceOf[Array[String]]
+val term: BshTerm = $shell.asInstanceOf[BshShell].terminal
+val smqd: Smqd = $smqd.asInstanceOf[Smqd]
 
 var optNow = false
 var optForce = false

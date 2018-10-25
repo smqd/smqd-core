@@ -12,7 +12,7 @@ import java.util.Properties
 
 import scala.collection.JavaConverters._
 
-val args: Array[String] = $ctx.ARGS.asInstanceOf[Array[String]]
+val args: Array[String] = $args.asInstanceOf[Array[String]]
 
 def printkv(k: String, v: String) = {
   var r = v

@@ -35,9 +35,6 @@ import scala.concurrent.duration._
   * So, TelnetService can not be mutiple instantiated.
   */
 object TelnetService {
-
-  val scriptEngines: Seq[ScripterEngine] = Seq( ScripterEngine(SCALA), ScripterEngine(JAVA), ScripterEngine(JS) )
-
   private var _smqdInstance: Smqd = _
   def smqdInstance_=(inst: Smqd): Unit = _smqdInstance = inst
   def smqdInstance: Smqd = _smqdInstance
@@ -61,8 +58,6 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
     }
 
     properties.asScala.foreach( s => logger.trace(s"telnetd property: ${s._1} = ${s._2}") )
-
-    TelnetService.scriptEngines.foreach(n => logger.info(s"loading ${n.lang} engine..."))
 
     // apply SMQD
     //scriptEngines.foreach(_.set("SMQD", Smqd.getClass.getCanonicalName, smqdInstance))

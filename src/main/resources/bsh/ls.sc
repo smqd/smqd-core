@@ -12,8 +12,8 @@ import java.io.File
 import com.thing2x.smqd.net.telnet.BshShell
 import com.thing2x.smqd.util.{StringUtil, TimeUtil}
 
-val args: Array[String] = $ctx.ARGS.asInstanceOf[Array[String]]
-val shell: BshShell = $ctx.SHELL.asInstanceOf[BshShell]
+val args: Array[String] = $args.asInstanceOf[Array[String]]
+val shell: BshShell = $shell.asInstanceOf[BshShell]
 
 def fileInfo(f: File): String = {
 	val sb = new StringBuffer()
@@ -38,7 +38,7 @@ def fileInfo(f: File): String = {
 	sb.toString
 }
 
-def getFileList: Array[File] = {
+def getFileList: Seq[File] = {
   var off = 1
   var loop = true
   do {

@@ -45,7 +45,7 @@ class BshShell extends Shell with StrictLogging {
   private var _terminal: BshTerm = _
   private var isAlive: Boolean = true
   private var _commandProvider: BshCommandProvider = _
-  private var _scripter: Scripter = _
+  private var _scripter: ScalaEngine = _
   private var _history: Seq[String] = Nil
   private var _historyOffset: Int = -1
 
@@ -60,18 +60,22 @@ class BshShell extends Shell with StrictLogging {
 
       _terminal = new BshTermTelnet(_connection.getTerminalIO)
 
-      _scripter = Scripter()
+      _terminal.print("Loading shell......")
+
+      _scripter = new ScalaEngine
       _scripter.setClassLoader(this.classLoader)
-      _scripter.set("SHELL", this)
-      _scripter.set("SMQD", TelnetService.smqdInstance)
+      _scripter.set("$shell", this)
+      _scripter.set("$smqd", TelnetService.smqdInstance)
       _scripter.setWriter(_terminal)
       _scripter.setErrorWriter(_terminal)
+
+      _terminal.clear()
 
       _commandProvider = BshDefaultCommandProvider(rootDirectory, "/", TelnetService.paths)
 
       // We just read any key
-      _terminal.write("Bean Shell ready!\r\n")
-      _terminal.flush()
+      _terminal.println("Shell ready!")
+      _terminal.println("")
 
       val ef = new BshCommandField(_connection.getTerminalIO, "cmd", 1024, 100)
       var cmd = ""
@@ -216,7 +220,7 @@ class BshShell extends Shell with StrictLogging {
   def historyOffset: Int = -1
 //  def historyOffset_=(offset: Int): Unit = _historyOffset = offset
 
-  def interpreter: Scripter = _scripter
+  def interpreter: ScalaEngine = _scripter
 //  def interpreter_=(interpreter: Interpreter): Unit = _interpreter = interpreter
 
   def commandProvider: BshCommandProvider = _commandProvider

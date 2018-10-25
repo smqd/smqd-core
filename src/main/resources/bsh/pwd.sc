@@ -9,7 +9,7 @@
 
 import com.thing2x.smqd.net.telnet.BshShell
 
-val shell: BshShell = $ctx.SHELL.asInstanceOf[BshShell]
+val shell: BshShell = $shell.asInstanceOf[BshShell]
 
 println(shell.getWorkingDirectory)
 println("")

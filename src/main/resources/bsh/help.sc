@@ -13,9 +13,9 @@ import java.io.BufferedReader
 import com.thing2x.smqd.Smqd
 import com.thing2x.smqd.net.telnet.BshShell
 
-val args: Array[String] = $ctx.ARGS.asInstanceOf[Array[String]]
-val shell: BshShell = $ctx.SHELL.asInstanceOf[BshShell]
-val smqd: Smqd = $ctx.SMQD.asInstanceOf[Smqd]
+val args: Array[String] = $args.asInstanceOf[Array[String]]
+val shell: BshShell = $shell.asInstanceOf[BshShell]
+val smqd: Smqd = $smqd.asInstanceOf[Smqd]
 
 if (args.length != 2) {
   val list = shell.findAllBshFiles("*.sc")

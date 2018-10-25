@@ -121,8 +121,7 @@ object BshDefaultCommandProvider {
     override val name = "exec"
     override def exe(args: Seq[String], shell: BshShell): Unit = {
       try {
-        shell.interpreter.set("ARGS", args.toArray)
-        shell.interpreter.eval(reader, cmd)
+        shell.interpreter.eval(reader, cmd, args.toArray)
         shell.terminal.flush()
       } catch {
         case e: EvalError => // throws by BshInterpreter
@@ -172,7 +171,8 @@ class BshDefaultCommandProvider(root: File, cwd: String, paths: Seq[String]) ext
       found
     }
     else {
-      _find(cmd, ".sc").orElse ( _find(cmd, ".bsh").orElse( _find(cmd, ".js") ) )
+      _find(cmd, ".sc")
+      //_find(cmd, ".sc").orElse ( _find(cmd, ".bsh").orElse( _find(cmd, ".js") ) )
     }
   }
 

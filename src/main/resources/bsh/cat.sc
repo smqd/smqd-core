@@ -16,8 +16,8 @@ import com.thing2x.smqd.net.telnet.BshShell
 
 import scala.io.Source
 
-val args: Array[String] = $ctx.ARGS.asInstanceOf[Array[String]]
-val shell: BshShell = $ctx.SHELL.asInstanceOf[BshShell]
+val args: Array[String] = $args.asInstanceOf[Array[String]]
+val shell: BshShell = $shell.asInstanceOf[BshShell]
 
 if (args.length < 2) {
 	println("refer : help cat\r\n");
