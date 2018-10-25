@@ -17,7 +17,6 @@ package com.thing2x.smqd.net.telnet
 import java.net.InetAddress
 import java.util.Properties
 
-import com.thing2x.smqd.net.telnet.ScripterEngine._
 import com.thing2x.smqd.plugin.Service
 import com.thing2x.smqd.{SmqSuccess, Smqd}
 import com.typesafe.config.Config
@@ -58,9 +57,6 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
     }
 
     properties.asScala.foreach( s => logger.trace(s"telnetd property: ${s._1} = ${s._2}") )
-
-    // apply SMQD
-    //scriptEngines.foreach(_.set("SMQD", Smqd.getClass.getCanonicalName, smqdInstance))
 
     telnetD = TelnetD.createTelnetD(properties)
 
