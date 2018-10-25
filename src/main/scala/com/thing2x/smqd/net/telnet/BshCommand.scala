@@ -20,6 +20,7 @@ import bsh.{EvalError, NameSpace}
 import com.thing2x.smqd.net.telnet.BshDefaultCommandProvider._
 import com.thing2x.smqd.util.StringUtil
 import com.typesafe.scalalogging.StrictLogging
+import javax.script.ScriptException
 
 
 trait BshCommand {
@@ -125,12 +126,15 @@ object BshDefaultCommandProvider {
         shell.interpreter.eval(reader, cmd)
         shell.terminal.flush()
       } catch {
-        case e: EvalError =>
+        case e: EvalError => // throws by BshInterpreter
           shell.terminal.println(s"Command [$cmd] has script error at line: ${e.getErrorLineNumber}, ${e.getErrorText}")
           shell.terminal.println(e.getMessage)
           shell.terminal.flush()
+        case e: ScriptException => // throws by javax.script
+          shell.terminal.println(s"Command [$cmd] has script error at line: ${e.getLineNumber} column: ${e.getColumnNumber}")
+          shell.terminal.println({e.getMessage.split("\n").head})
         case e: Throwable =>
-          shell.terminal.write(s"Command [$cmd] fail.\r\n")
+          shell.terminal.write(s"Command [$cmd] fail. - ${e.getClass.getName}\r\n")
           shell.terminal.write(e.getMessage + "\r\n\r\n")
           shell.terminal.flush()
       }

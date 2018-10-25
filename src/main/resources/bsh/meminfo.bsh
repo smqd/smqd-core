@@ -25,10 +25,9 @@ asSize(long size)
 Runtime R = Runtime.getRuntime();
 int pct = ((R.totalMemory() - R.freeMemory())*100 / R.totalMemory());
 
-TERM.write("\r\n");
-TERM.write("Available Processors = "+R.availableProcessors()+"\r\n");
-TERM.write("Max Memory   = "+asSize(R.maxMemory())+"\r\n");
-TERM.write("Total Memory = "+asSize(R.totalMemory())+"\r\n");
-TERM.write("Alloc Memory = "+asSize(R.totalMemory() - R.freeMemory())+" ("+pct+"% Used)\r\n");
-TERM.write("\r\n");
-TERM.flush();
+print("");
+print("Available Processors = "+R.availableProcessors());
+print("Max Memory   = "+asSize(R.maxMemory()));
+print("Total Memory = "+asSize(R.totalMemory()));
+print("Alloc Memory = "+asSize(R.totalMemory() - R.freeMemory())+" ("+pct+"% Used)");
+print("");

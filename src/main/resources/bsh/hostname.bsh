@@ -7,4 +7,4 @@
  */
 
 java.net.InetAddress localhost = java.net.InetAddress.getLocalHost();
-TERM.println(localhost.getHostName());
+print(localhost.getHostName());

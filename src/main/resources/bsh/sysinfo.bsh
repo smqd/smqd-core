@@ -18,46 +18,51 @@ printGroup(ThreadGroup group, int depth, int[] steps, int offset)
 	int grpCount = group.enumerate(groups, false);
 	
 	steps[depth] = grpCount;
-	
+
+	StringBuffer sb = new StringBuffer();
+
 	for (int i = 0; i < depth; i++)
 	{
 		if (i == depth - 1)
-			TERM.write("+--");
+			sb.append("+--");
 		else if (steps[i] > 1)
-			TERM.write("|  ");
+			sb.append("|  ");
 		else
-			TERM.write("   ");
+			sb.append("   ");
 	}
 	
 	String gName = group.getName();
 	String gDaemon = (group.isDaemon() ? "Daemon" : "");
-	TERM.write("+ ["+gName+"] "+gDaemon+"\r\n");
+	sb.append("+ [").append(gName).append("] ").append(gDaemon).append("\n");
 	
 	for (int i = 0; i < thCount; i++)
 	{
 		for (int i = 0; i < depth; i++)
 		{
 			if (steps[i] > 1 && offset < steps[i]-1)
-				TERM.write("|  ");
+				sb.append("|  ");
 			else
-				TERM.write("   ");
+				sb.append("   ");
 		}
 			
 			
 		if (grpCount > 0)
-			TERM.write("|");
+			sb.append("|");
 		else
-			TERM.write(" ");
+			sb.append(" ");
 		
 		int priority = threads[i].getPriority();
 		String state = threads[i].getState().toString();
 		String name = threads[i].getName();
 		String daemon = (threads[i].isDaemon() ? "-Daemon" : "");
-		TERM.write("       ["+state+", "+priority+"] "+name+" "+daemon+"\r\n");
+		sb.append("       [").append(state).append(", ").append(priority).append("] ").append(name).append(" ").append(daemon);
+
+		if (i < thCount -1 )
+		    sb.append("\n");
 	}
-	
-	TERM.flush();
-	
+
+	print(sb.toString());
+
 	for (int i = 0; i < grpCount; i++)
 	{
 		printGroup(groups[i], depth+1, steps, i);
@@ -87,16 +92,14 @@ while((parent = group.getParent()) != null)
 int[] steps = new int[100];
 printGroup(group, 0, steps, 0);
 
-TERM.write("\r\n");
-TERM.flush();
+print("");
 
 /////////////// Memory Info /////////////////////
 Runtime R = Runtime.getRuntime();
 int pct = ((R.totalMemory() - R.freeMemory())*100 / R.totalMemory());
 
-TERM.write("Available Processors = "+R.availableProcessors()+"\r\n");
-TERM.write("Max Memory   = "+asSize(R.maxMemory())+"\r\n");
-TERM.write("Total Memory = "+asSize(R.totalMemory())+"\r\n");
-TERM.write("Alloc Memory = "+asSize(R.totalMemory() - R.freeMemory())+" ("+pct+"% Used)\r\n");
-TERM.write("\r\n");
-TERM.flush();
+print("Available Processors = "+R.availableProcessors());
+print("Max Memory   = "+asSize(R.maxMemory()));
+print("Total Memory = "+asSize(R.totalMemory()));
+print("Alloc Memory = "+asSize(R.totalMemory() - R.freeMemory())+" ("+pct+"% Used)");
+print("");

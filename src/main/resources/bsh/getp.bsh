@@ -9,7 +9,7 @@
 
 if (ARGS.length != 2)
 {
- 	TERM.write("Usage: getp <property_name> | all\r\n");
+ 	print("Usage: getp <property_name> | all");
  	return;
 }
 
@@ -38,10 +38,10 @@ if ("all".equalsIgnoreCase(param))
 		if ("\r\n".equals(val)) val = "\\r\\n";
 		else if ("\n".equals(val)) val = "\\n";
 		
-		TERM.write(""+key+" = "+val+"\r\n");
+		print(""+key+" = "+val);
 	}
 }
 else
 {
-	TERM.write(""+param+" = "+System.getProperty(param, "<null>")+"\r\n");
+	print(""+param+" = "+System.getProperty(param, "<null>"));
 }

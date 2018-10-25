@@ -11,4 +11,4 @@ import java.io.*;
 import java.util.*;
 import com.thing2x.smqd.util.*;
 
-TERM.println(SHELL.getWorkingDirectory());
+print(SHELL.getWorkingDirectory());

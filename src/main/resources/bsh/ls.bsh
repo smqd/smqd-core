@@ -39,86 +39,76 @@ fileInfo(File f)
 	
 	sb.append(" ");
 	
-	sb.append(StringUtil.sprintf("%7d", Long.toString(f.length()))).append(" ");
+	sb.append(com.thing2x.smqd.util.StringUtil.sprintf("%7d", Long.toString(f.length()))).append(" ");
 	
 	sb.append((new TimeUtil(f.lastModified())).format(TimeUtil.SIMPLE)).append(" ");
-	
-	TERM.write(sb.toString());
+
+	sb.append(f.getName());
+
+	print(sb.toString());
 }
 
+File[] getFileList() {
+    int off = 1;
+    for (off = 1; off < ARGS.length; off++)
+    {
+        if (!ARGS[off].startsWith("-"))
+            break;
+    }
 
+    File[] fileList = null;
 
-int off = 1;
-for (off = 1; off < ARGS.length; off++)
-{
-	if (!ARGS[off].startsWith("-"))
-		break;
-}
+    if (off <= ARGS.length - 1)
+    {
+        ArrayList list = new ArrayList();
 
-File[] files = null;
+        File f = new File(SHELL.getRealPath(SHELL.getWorkingDirectory()));
+        File[] arr = f.listFiles();
 
-if (off <= ARGS.length - 1)
-{
-	ArrayList list = new ArrayList();
-	
-	File f = new File(SHELL.getRealPath(SHELL.getWorkingDirectory()));
-	File[] arr = f.listFiles();
+        for (int f = 0; arr != null && f < arr.length; f++)
+        {
+            for (int i = off; i < ARGS.length; i++)
+            {
+                if (StringUtil.isWildExp(ARGS[i]))
+                {
+                    if (StringUtil.compareWildExp(arr[f].getName(), ARGS[i]) == 0)
+                        list.add(arr[f]);
+                }
+                else
+                {
+                    if (ARGS[i].equals(arr[f].getName()))
+                        list.add(arr[f]);
+                }
+            }
+        }
 
-	for (int f = 0; arr != null && f < arr.length; f++)
-	{
-		for (int i = off; i < ARGS.length; i++)
-		{
-			if (StringUtil.isWildExp(ARGS[i]))
-			{
-				if (StringUtil.compareWildExp(arr[f].getName(), ARGS[i]) == 0)
-					list.add(arr[f]);
-			}
-			else
-			{
-				if (ARGS[i].equals(arr[f].getName()))
-					list.add(arr[f]);
-			}
-		}
-	}
-	
-	files = new File[list.size()];
-	for (int i = 0; i < list.size(); i++)
-	{
-		files[i] = list.get(i);
-	}
-}
-else
-{
-    TERM.println("pwd: "+SHELL.getWorkingDirectory());
-    TERM.println(SHELL.getRealPath(SHELL.getWorkingDirectory()));
+        fileList = new File[list.size()];
+        for (int i = 0; i < list.size(); i++)
+        {
+            fileList[i] = list.get(i);
+        }
+    }
+    else
+    {
+        //print("pwd: "+SHELL.getWorkingDirectory() + " -> "+ SHELL.getRealPath(SHELL.getWorkingDirectory()));
 
-	File f = new File(SHELL.getRealPath(SHELL.getWorkingDirectory()));
-	files = f.listFiles();
+        File f = new File(SHELL.getRealPath(SHELL.getWorkingDirectory()));
+        fileList = f.listFiles();
+    }
+    return fileList;
 }
 
 //
 // diplay file list
 //
-if (files == null || files.length == 0)
-{
-	TERM.write("File not found.\r\n");
+File[] fileList = getFileList();
+
+if (fileList == null || fileList.length == 0){
+	print("File not found.");
 }
-else
-{
-	for (int i = 0; files != null && i < files.length; i++)
-	{
-		fileInfo(files[i]);
-		if (files[i].isDirectory())
-		{
-			TERM.setBold(true);
-			TERM.write(files[i].getName());
-			TERM.setBold(false);
-			TERM.write("\r\n");
-		}
-		else
-		{
-			TERM.write(files[i].getName()+"\r\n");
-		}
+else {
+	for (int i = 0; fileList != null && i < fileList.length; i++) {
+		fileInfo(fileList[i]);
 	}
 }
 

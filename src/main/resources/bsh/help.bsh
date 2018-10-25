@@ -23,9 +23,7 @@ if (ARGS.length != 2)
 		sb.append("\r\n");
 	}
 
-	TERM.write(sb.toString());
-	TERM.write("\r\n");
-	TERM.flush();
+	print(sb.toString());
 }
 else
 {
@@ -36,8 +34,7 @@ else
 	
 	if (reader == null)
 	{
-		TERM.write("Command not found : "+cmd+"\r\n\r\n");
-		TERM.flush();
+		print("Command not found : "+cmd+"\n");
 		return;
 	}
 
@@ -67,7 +64,5 @@ else
 		in.close();
 	}
 	
-	TERM.write(sb.toString());
-	TERM.write("\r\n");
-	TERM.flush();
+	print(sb.toString());
 }

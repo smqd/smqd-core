@@ -10,5 +10,5 @@ import java.text.SimpleDateFormat;
 
 SimpleDateFormat fmt14 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
-print("system time");
 print(fmt14.format(new java.util.Date(System.currentTimeMillis())));
+print("");

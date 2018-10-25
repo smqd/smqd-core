@@ -27,15 +27,24 @@ import net.wimpi.telnetd.TelnetD
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import com.thing2x.smqd.net.telnet.TelnetService._
 
 // 10/13/18 - Created by Kwon, Yeong Eon
 
 /**
-  *
+  * TelnetD-x is implemented in a singletone pattern.
+  * So, TelnetService can not be mutiple instantiated.
   */
 object TelnetService {
+
   val scriptEngines: Seq[ScripterEngine] = Seq( ScripterEngine(SCALA), ScripterEngine(JAVA), ScripterEngine(JS) )
+
+  private var _smqdInstance: Smqd = _
+  def smqdInstance_=(inst: Smqd): Unit = _smqdInstance = inst
+  def smqdInstance: Smqd = _smqdInstance
+
+  private var _paths: Seq[String] = Nil
+  def paths_=(paths: Seq[String]): Unit = _paths = paths
+  def paths: Seq[String] = _paths
 }
 
 class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
@@ -53,22 +62,20 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
 
     properties.asScala.foreach( s => logger.trace(s"telnetd property: ${s._1} = ${s._2}") )
 
+    TelnetService.scriptEngines.foreach(n => logger.info(s"loading ${n.lang} engine..."))
+
     // apply SMQD
     //scriptEngines.foreach(_.set("SMQD", Smqd.getClass.getCanonicalName, smqdInstance))
 
     telnetD = TelnetD.createTelnetD(properties)
 
+    TelnetService.smqdInstance = smqd
+    TelnetService.paths = config.getStringList("script.path").asScala
+
     BshShell.setDelegate(new BshShellDelegate(){
       // set smqd instance into shell env
-      def beforeShellStart(shell: BshShell): Unit = {
-        shell.interpreter.set("SMQD", smqdInstance)
-      }
-      def afterShellStop(shell: BshShell): Unit = {
-      }
-      // set paths of directories where to find *.bsh files
-      override def scriptPaths(shell: BshShell): Seq[String] = {
-        config.getStringList("script.path").asScala
-      }
+      def beforeShellStart(shell: BshShell): Unit = Unit
+      def afterShellStop(shell: BshShell): Unit = Unit
     })
 
     // delegate login authentication to UserDelegate of Smqd

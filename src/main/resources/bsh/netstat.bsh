@@ -17,18 +17,16 @@ while(elm.hasMoreElements())
 {
 	NetworkInterface ni = (NetworkInterface) elm.nextElement();
 	
-	TERM.write("  "+ni.getName()+" : ");
-	TERM.write(ni.getDisplayName());
-	TERM.write("\r\n");
+	print("  "+ni.getName()+" : "+ni.getDisplayName());
+
 	Enumeration en = ni.getInetAddresses();
 	while(en.hasMoreElements())
 	{
 		InetAddress ia = (InetAddress)en.nextElement();
 		
-		TERM.write("        "+ia.toString());
-		TERM.write("\r\n");
+		print("        "+ia.toString());
 	}
-	TERM.write("\r\n");
+	print("");
 }
 
-TERM.write("\r\n");
+print("");

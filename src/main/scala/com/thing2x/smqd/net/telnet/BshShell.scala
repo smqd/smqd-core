@@ -26,7 +26,6 @@ import scala.collection.JavaConverters._
 trait BshShellDelegate {
   def beforeShellStart(shell: BshShell): Unit
   def afterShellStop(shell: BshShell): Unit
-  def scriptPaths(shell: BshShell): Seq[String]
 }
 
 
@@ -38,6 +37,7 @@ object BshShell {
   }
 
   def createShell = new BshShell
+
 }
 
 class BshShell extends Shell with StrictLogging {
@@ -62,13 +62,12 @@ class BshShell extends Shell with StrictLogging {
 
       _scripter = Scripter()
       _scripter.setClassLoader(this.classLoader)
-      _scripter.set("CONNECTION", _connection)
-      _scripter.set("TERM", _terminal)
       _scripter.set("SHELL", this)
+      _scripter.set("SMQD", TelnetService.smqdInstance)
       _scripter.setWriter(_terminal)
+      _scripter.setErrorWriter(_terminal)
 
-      val paths = if (BshShell.delegate.isDefined) BshShell.delegate.get.scriptPaths(this) else Nil
-      _commandProvider = BshDefaultCommandProvider(rootDirectory, "/", paths)
+      _commandProvider = BshDefaultCommandProvider(rootDirectory, "/", TelnetService.paths)
 
       // We just read any key
       _terminal.write("Bean Shell ready!\r\n")
