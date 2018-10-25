@@ -3,7 +3,7 @@
 	Print help message
 	
 	Syntax
-		help             show all available bsh command list
+		help             show all available scsh command list
 		help command     show specified command's help message
 	@End
  */

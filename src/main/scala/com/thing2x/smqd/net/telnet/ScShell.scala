@@ -43,7 +43,7 @@ class ScShell extends Shell with StrictLogging {
   private var _history: Seq[String] = Nil
   private var _historyOffset: Int = -1
 
-  private val prompt = "bsh"
+  private val prompt = "scsh"
 
   override def run(con: Connection): Unit = {
     try {
@@ -54,7 +54,7 @@ class ScShell extends Shell with StrictLogging {
 
       _terminal = new ScTerm(_connection.getTerminalIO)
 
-      _terminal.print("Loading shell......")
+      _terminal.println("Loading shell......")
 
       _scripter = ScEngine()
       _scripter.set("$shell", this)
@@ -190,7 +190,7 @@ class ScShell extends Shell with StrictLogging {
   }
 
   /**
-    * @param pattern wild expression for bsh file; *.bsh , abc*.bsh, abc?.bsh
+    * @param pattern wild expression for scsh file; *.scsh , abc*.scsh, abc?.scsh
     */
   def findAllBshFiles(pattern: String): Array[File] = _commandProvider.findAllScriptFiles(pattern)
 

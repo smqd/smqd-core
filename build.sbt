@@ -61,6 +61,7 @@ val `smqd-core` = project.in(file(".")).settings(
 ).settings(
   // sbt fork sqmd process to allow javaOptions parameters from command line
   fork in run := true,
+  fork in Test := true,
   javaOptions in Test ++= Seq(
     "-Xmx2G"
   )

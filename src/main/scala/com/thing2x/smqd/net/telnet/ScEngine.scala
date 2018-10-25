@@ -18,18 +18,24 @@ import java.io.{Reader, Writer}
 
 import com.typesafe.scalalogging.StrictLogging
 import javax.script._
-import com.thing2x.smqd.net.telnet.ScEngine._
 
-object ScEngine {
+import scala.collection.JavaConverters._
+
+object ScEngine extends StrictLogging {
   def apply(): ScEngine = new ScEngine()
 
-  private[telnet] val factoryManager = new ScriptEngineManager()
-  factoryManager.registerEngineName("scala", new scala.tools.nsc.interpreter.Scripted.Factory)
+  def debugAvailableEngines(): Unit = {
+    val factoryManager = new ScriptEngineManager()
+    factoryManager.getEngineFactories.asScala.foreach{ ef =>
+      logger.debug(s"${ef.getEngineName}, ${ef.getEngineVersion}, ${ef.getLanguageName}, ${ef.getNames}")
+    }
+  }
 }
 
 class ScEngine extends StrictLogging {
-  val engine = factoryManager.getEngineByName("scala").asInstanceOf[ScriptEngine with Compilable]
-  val context = engine.getContext
+
+  private val engine = new ScriptEngineManager().getEngineByName("scala").asInstanceOf[ScriptEngine with Compilable]
+  private val context = engine.getContext
 
   def setWriter(writer: Writer): Unit = context.setWriter(writer)
   def setErrorWriter(writer: Writer): Unit = context.setErrorWriter(writer)

@@ -54,18 +54,19 @@ class TelnetClientTest extends FlatSpec
   private val login = telnetConf.getString("user")
   private val passwd = telnetConf.getString("password")
 
-  private val bshPrompt = ".*bsh.*> ".r  // linuxPrompt = "^.*[$] ".r
+  private val bshPrompt = ".*scsh.*> ".r  // linuxPrompt = "^.*[$] ".r
 
   private var smqdInstance: Smqd = _
   private val shutdownPromise = Promise[Boolean]
 
   override def createActorSystem(): ActorSystem = ActorSystem(actorSystemNameFrom(getClass), config)
 
-  /* FIXME this test case is working properly on IntelliJ, but makes error with `sbt "test:testOnly *Telnet*"`
+  // FIXME this test case is working properly on IntelliJ, but makes error with `sbt "test:testOnly *Telnet*"`
 
   override def beforeAll(): Unit = {
     smqdInstance = new SmqdBuilder(config).setActorSystem(system).build()
     smqdInstance.start()
+    Thread.sleep(3000)
   }
 
   override def afterAll(): Unit = {
@@ -173,7 +174,7 @@ class TelnetClientTest extends FlatSpec
         fail()
     }
   }
-*/
+
   it should "shutdown" in {
     shutdownPromise.success(true)
   }
