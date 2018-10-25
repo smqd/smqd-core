@@ -62,7 +62,7 @@ class BshShell extends Shell with StrictLogging {
 
       _terminal.print("Loading shell......")
 
-      _scripter = new ScalaEngine
+      _scripter = ScalaEngine()
       _scripter.setClassLoader(this.classLoader)
       _scripter.set("$shell", this)
       _scripter.set("$smqd", TelnetService.smqdInstance)

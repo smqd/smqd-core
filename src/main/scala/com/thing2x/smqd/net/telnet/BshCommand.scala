@@ -16,7 +16,6 @@ package com.thing2x.smqd.net.telnet
 
 import java.io._
 
-import bsh.{EvalError, NameSpace}
 import com.thing2x.smqd.net.telnet.BshDefaultCommandProvider._
 import com.thing2x.smqd.util.StringUtil
 import com.typesafe.scalalogging.StrictLogging
@@ -124,10 +123,6 @@ object BshDefaultCommandProvider {
         shell.interpreter.eval(reader, cmd, args.toArray)
         shell.terminal.flush()
       } catch {
-        case e: EvalError => // throws by BshInterpreter
-          shell.terminal.println(s"Command [$cmd] has script error at line: ${e.getErrorLineNumber}, ${e.getErrorText}")
-          shell.terminal.println(e.getMessage)
-          shell.terminal.flush()
         case e: ScriptException => // throws by javax.script
           shell.terminal.println(s"Command [$cmd] has script error at line: ${e.getLineNumber} column: ${e.getColumnNumber}")
           shell.terminal.println({e.getMessage.split("\n").take(5).mkString("\n")})
