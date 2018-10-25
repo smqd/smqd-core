@@ -16,6 +16,7 @@ package com.thing2x.smqd.net.telnet
 
 import java.io.{Reader, Writer}
 
+import bsh.NameSpace
 import com.thing2x.smqd.net.telnet.ScripterEngine._
 import javax.script._
 
@@ -115,11 +116,16 @@ class JsEngine(val lang: Lang) extends ScripterEngine {
 
 class JavaEngine(val lang: Lang) extends ScripterEngine {
 
+  // engine implementation is `bsh.engine.BshScriptEngine`
   private val engine = new ScriptEngineManager().getEngineByName("bsh")
 
   def set(name: String, valueType: String, value: AnyRef): Unit = engine.put(name, value)
 
   override def setClassLoader(classLoader: ClassLoader): Unit = Unit
 
-  override def eval(reader: Reader, context: ScriptContext): Unit = engine.eval(reader, context)
+  override def eval(reader: Reader, context: ScriptContext): Unit = {
+    //shell.interpreter.setNameSpace(new NameSpace(shell.interpreter.getNameSpace, cmd))
+    //context.setAttribute("org_beanshell_engine_namespace", new NameSpace(null, ), ScriptContext.ENGINE_SCOPE)
+    engine.eval(reader, context)
+  }
 }

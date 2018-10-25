@@ -121,7 +121,6 @@ object BshDefaultCommandProvider {
     override val name = "exec"
     override def exe(args: Seq[String], shell: BshShell): Unit = {
       try {
-        //shell.interpreter.setNameSpace(new NameSpace(shell.interpreter.getNameSpace, cmd))
         shell.interpreter.set("ARGS", args.toArray)
         shell.interpreter.eval(reader, cmd)
         shell.terminal.flush()
@@ -132,7 +131,7 @@ object BshDefaultCommandProvider {
           shell.terminal.flush()
         case e: ScriptException => // throws by javax.script
           shell.terminal.println(s"Command [$cmd] has script error at line: ${e.getLineNumber} column: ${e.getColumnNumber}")
-          shell.terminal.println({e.getMessage.split("\n").head})
+          shell.terminal.println({e.getMessage.split("\n").take(5).mkString("\n")})
         case e: Throwable =>
           shell.terminal.write(s"Command [$cmd] fail. - ${e.getClass.getName}\r\n")
           shell.terminal.write(e.getMessage + "\r\n\r\n")

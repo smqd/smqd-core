@@ -1,3 +1,4 @@
+
 import com.thing2x.smqd.Smqd
 import com.thing2x.smqd.net.telnet.BshShell
 import javax.script.ScriptEngineManager
@@ -23,7 +24,7 @@ def printScriptEngines(): Unit = {
 val hello = "World"
 
 println("-----------------")
-println(s"Hello2 $hello")
+println(s"Hello3 $hello")
 println("-----------------")
 println(s"ENGINE(1): ${$engine}")
 println(s"CTX(1): ${$ctx}")
