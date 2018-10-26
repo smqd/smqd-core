@@ -85,6 +85,9 @@ class LoginShell(delegate: Option[LoginShell.Delegate]) extends Shell with Stric
         val password = ef.getValue
         term.flush()
 
+        val env = connection.getConnectionData.getEnvironment.asInstanceOf[java.util.HashMap[String, String]]
+        env.put("username", username)
+
         if ("dummy" == username && "dummy" == password) {
           connection.setNextShell("dummy")
           true

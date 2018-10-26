@@ -17,6 +17,7 @@ package com.thing2x.smqd.net.telnet
 import java.io.{EOFException, File, IOException, Reader}
 import java.net.SocketException
 
+import com.thing2x.smqd.Smqd
 import com.typesafe.scalalogging.StrictLogging
 import net.wimpi.telnetd.net.{Connection, ConnectionEvent}
 import net.wimpi.telnetd.shell.Shell
@@ -45,6 +46,13 @@ class ScShell extends Shell with StrictLogging {
 
   private val prompt = "scsh"
 
+  def username: String = {
+    val env = _connection.getConnectionData.getEnvironment.asInstanceOf[java.util.HashMap[String, String]]
+    env.get("username")
+  }
+
+  def smqd: Smqd = TelnetService.smqdInstance
+
   override def run(con: Connection): Unit = {
     try {
       _connection = con
@@ -54,13 +62,12 @@ class ScShell extends Shell with StrictLogging {
 
       _terminal = new ScTerm(_connection.getTerminalIO)
 
-      _terminal.println("Loading shell......")
+      _terminal.print("Loading shell......")
 
       _scripter = ScEngine()
-      _scripter.set("$shell", this)
-      _scripter.set("$smqd", TelnetService.smqdInstance)
       _scripter.setWriter(_terminal)
       _scripter.setErrorWriter(_terminal)
+      _scripter.bind("$shell", this)
 
       _terminal.clear()
 
@@ -98,19 +105,15 @@ class ScShell extends Shell with StrictLogging {
 
           _commandProvider.command(finalArgs) match {
             case Some(command) =>
-              command.exe(finalArgs, this)
+              try command.exe(finalArgs, this)
+              // execute defferred lamda
+              finally evalDeferred()
             case None =>
               _terminal.println(s"Command not found: ${args.head}")
           }
         }
       }
       while ( _connection.isActive && isAlive )
-
-      _connection.removeConnectionListener(this)
-
-      ScShell.delegate.foreach(_.afterShellStop(this))
-
-      onConnectionClose()
     }
     catch {
       case _: EOFException =>
@@ -120,10 +123,38 @@ class ScShell extends Shell with StrictLogging {
       case ex: Exception =>
         logger.error("run()", ex)
     }
+    finally {
+      _connection.removeConnectionListener(this)
+      ScShell.delegate.foreach(_.afterShellStop(this))
+      onConnectionClose()
+    }
   }
 
   def exit(code: Int): Unit = {
     isAlive = false
+  }
+
+  class Defer[T](ev: => T) {
+    def eval: T = ev
+  }
+
+  private var deferred: Seq[Defer[Unit]] = Nil
+
+  def defer(lamda: => Unit): Unit = {
+    deferred = deferred :+ new Defer(lamda)
+  }
+
+  private def evalDeferred(): Unit = {
+    deferred.foreach{ defer =>
+      try{
+        defer.eval
+      }
+      catch {
+        case e: Throwable =>
+          logger.debug("deferred blocks", e)
+      }
+    }
+    deferred = Nil
   }
 
   private def classLoader: ClassLoader = {
@@ -138,6 +169,7 @@ class ScShell extends Shell with StrictLogging {
   }
 
   private def onConnectionClose(): Unit = {
+
     if (_connection.isActive) {
       _terminal.write("\r\nLog out.\r\n\r\n")
       _terminal.flush()

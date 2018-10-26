@@ -13,11 +13,11 @@
  */
 
 import com.thing2x.smqd.Smqd
-import com.thing2x.smqd.net.telnet.{ScShell, ScTerm}
+import com.thing2x.smqd.net.telnet.ScShell
 
-val args: Array[String] = $args.asInstanceOf[Array[String]]
-val term: ScTerm = $shell.asInstanceOf[ScShell].terminal
-val smqd: Smqd = $smqd.asInstanceOf[Smqd]
+val args: Array[String] = $args
+val shell: ScShell = $shell
+val smqd: Smqd = $smqd
 
 var optNow = false
 var optForce = false

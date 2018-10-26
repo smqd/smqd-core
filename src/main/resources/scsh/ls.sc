@@ -12,8 +12,8 @@ import java.io.File
 import com.thing2x.smqd.net.telnet.ScShell
 import com.thing2x.smqd.util.{StringUtil, TimeUtil}
 
-val args: Array[String] = $args.asInstanceOf[Array[String]]
-val shell: ScShell = $shell.asInstanceOf[ScShell]
+val args: Array[String] = $args
+val shell: ScShell = $shell
 
 def fileInfo(f: File): String = {
 	val sb = new StringBuffer()

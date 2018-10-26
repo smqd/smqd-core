@@ -20,6 +20,7 @@ import com.typesafe.scalalogging.StrictLogging
 import javax.script._
 
 import scala.collection.JavaConverters._
+import scala.tools.nsc.interpreter.IMain
 
 object ScEngine extends StrictLogging {
   def apply(): ScEngine = new ScEngine()
@@ -37,21 +38,27 @@ class ScEngine extends StrictLogging {
   private val engine = new ScriptEngineManager().getEngineByName("scala").asInstanceOf[ScriptEngine with Compilable]
   private val context = engine.getContext
 
+  private[telnet] val intp: IMain = engine.asInstanceOf[scala.tools.nsc.interpreter.Scripted].intp
   def setWriter(writer: Writer): Unit = context.setWriter(writer)
   def setErrorWriter(writer: Writer): Unit = context.setErrorWriter(writer)
 
-  def set(key: String, value: AnyRef): Unit = set0(key, value.getClass.getCanonicalName, value)
-
-  private def set0(name: String, valueType: String, value: AnyRef): Unit = {
+  def setAttribute(name: String, value: AnyRef): Unit = {
     context.setAttribute(name, value, ScriptContext.ENGINE_SCOPE)
+  }
 
+  def bind(name: String, value: AnyRef): Unit = {
+    bind(name, value.getClass.getCanonicalName, value)
+  }
+
+  def bind(name: String, valueType: String, value: AnyRef): Unit = {
     /* to preserve the type of value, use IMain */
-    //import scala.tools.nsc.interpreter.IMain
-    //val intp: IMain = engine.asInstanceOf[scala.tools.nsc.interpreter.Scripted].intp
+    intp beQuietDuring {
+      intp.bind(name, valueType, value)
+    }
   }
 
   def eval(reader: Reader, cmd: String, args: Array[String] = Array.empty): Unit = {
-    set("$args", args)
+    bind("$args", "Array[String]", args)
     engine.eval(reader, context)
 //    import scala.tools.nsc.interpreter.IMain
 //    import scala.tools.nsc.util._

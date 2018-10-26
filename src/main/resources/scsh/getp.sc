@@ -10,9 +10,11 @@
 
 import java.util.Properties
 
+import com.thing2x.smqd.net.telnet.ScShell
+
 import scala.collection.JavaConverters._
 
-val args: Array[String] = $args.asInstanceOf[Array[String]]
+val args: Array[String] = $args
 
 def printkv(k: String, v: String) = {
   var r = v
