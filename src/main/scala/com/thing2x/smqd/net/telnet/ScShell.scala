@@ -63,11 +63,13 @@ class ScShell extends Shell with StrictLogging {
 
       _terminal = new ScTerm(_connection.getTerminalIO)
 
-      _terminal.print("Loading shell......")
+      _terminal.printStream.print("Loading shell......")
 
       _scripter = ScEngine()
-      _scripter.setWriter(_terminal)
-      _scripter.setErrorWriter(_terminal)
+      _scripter.setWriter(_terminal.writer)
+      _scripter.setErrorWriter(_terminal.writer)
+      _scripter.setReader(_terminal.reader)
+
       _scripter.bind("$shell", this)
 
       _terminal.clear()
@@ -75,8 +77,8 @@ class ScShell extends Shell with StrictLogging {
       _commandProvider = ScDefaultCommandProvider(rootDirectory, "/", TelnetService.paths)
 
       // We just read any key
-      _terminal.println("Shell ready!")
-      _terminal.println("")
+      _terminal.printStream.println("Shell ready!")
+      _terminal.printStream.println()
 
       val ef = new BshCommandField(_connection.getTerminalIO, "cmd", 1024, 100)
       var cmd = ""
@@ -84,11 +86,11 @@ class ScShell extends Shell with StrictLogging {
       ScShell.delegate.foreach(_.beforeShellStart(this))
 
       do {
-        _terminal.write(s"$prompt ${_commandProvider.workingDirectory} > ")
-        _terminal.flush()
+        _terminal.printStream.print(s"$prompt ${_commandProvider.workingDirectory} > ")
+        _terminal.printStream.flush()
         ef.run()
-        _terminal.write("\r\n")
-        _terminal.flush()
+        _terminal.printStream.println()
+        _terminal.printStream.flush()
         cmd = ef.getValue
         ef.clear()
 
@@ -110,7 +112,7 @@ class ScShell extends Shell with StrictLogging {
               // execute defferred lamda
               finally evalDeferred()
             case None =>
-              _terminal.println(s"Command not found: ${args.head}")
+              _terminal.printStream.println(s"Command not found: ${args.head}")
           }
         }
       }
@@ -146,10 +148,9 @@ class ScShell extends Shell with StrictLogging {
   }
 
   private def evalDeferred(): Unit = {
-    val out = new WriterOutputStream(_terminal)
     deferred.foreach{ defer =>
-      Console.withOut(out) {
-        Console.withErr(out) {
+      Console.withOut(_terminal.outputStream) {
+        Console.withErr(_terminal.outputStream) {
           try{
             defer.eval
           }
@@ -177,8 +178,8 @@ class ScShell extends Shell with StrictLogging {
   private def onConnectionClose(): Unit = {
 
     if (_connection.isActive) {
-      _terminal.write("\r\nLog out.\r\n\r\n")
-      _terminal.flush()
+      _terminal.printStream.println("\nLog out.\n")
+      _terminal.printStream.flush()
     }
   }
 
@@ -199,8 +200,7 @@ class ScShell extends Shell with StrictLogging {
 
   override def connectionIdle(ce: ConnectionEvent): Unit = {
     try {
-      _terminal.write("\r\nCONNECTION_IDLE\r\n")
-      _terminal.flush()
+      _terminal.printStream.println("\nCONNECTION_IDLE\n")
     } catch {
       case e: IOException =>
         logger.error("connectionIdle()", e)
@@ -209,8 +209,7 @@ class ScShell extends Shell with StrictLogging {
 
   override def connectionLogoutRequest(ce: ConnectionEvent): Unit = {
     try {
-      _terminal.write("\r\nCONNECTION_LOGOUTREQUEST\r\n")
-      _terminal.flush()
+      _terminal.printStream.println("\nCONNECTION_LOGOUTREQUEST\n")
     } catch {
       case ex: Exception =>
         logger.error("connectionLogoutRequest()", ex)
@@ -219,8 +218,7 @@ class ScShell extends Shell with StrictLogging {
 
   override def connectionSentBreak(ce: ConnectionEvent): Unit = {
     try {
-      _terminal.write("\r\nCONNECTION_BREAK\r\n")
-      _terminal.flush()
+      _terminal.printStream.println("\nCONNECTION_BREAK\n")
     } catch {
       case ex: Exception =>
         logger.error("connectionSentBreak()", ex)
@@ -243,7 +241,13 @@ class ScShell extends Shell with StrictLogging {
   def getWorkingDirectory: String = _commandProvider.workingDirectory
   def setWorkingDirectory(relativePath: String): Unit = _commandProvider.workingDirectory = relativePath
 
-  def terminal: ScTerm = _terminal
+//  def terminal: ScTerm = _terminal
+
+  def inputStream: java.io.InputStream = _terminal.inputStream
+  def outputStream: java.io.OutputStream = _terminal.outputStream
+  def printStream: java.io.PrintStream = _terminal.printStream
+  def writer: java.io.Writer = _terminal.writer
+  def reader: java.io.Reader = _terminal.reader
 
   def history: Seq[String] = _history
   //  def history_=(h: Seq[String]): Unit = _history = h

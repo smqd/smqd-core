@@ -14,18 +14,12 @@
 
 package com.thing2x.smqd.net.telnet
 
-import java.io.Writer
+import java.io._
 
+import com.typesafe.scalalogging.StrictLogging
 import net.wimpi.telnetd.io.BasicTerminalIO
-import net.wimpi.telnetd.io.toolkit.Editfield
 
-class ScTerm(term: BasicTerminalIO) extends Writer {
-
-  // clear the screen and start from zero
-  term.eraseScreen()
-  term.homeCursor()
-
-
+object ScTerm {
   val BLACK = 30
   val RED = 31
   val GREEN = 32
@@ -34,27 +28,13 @@ class ScTerm(term: BasicTerminalIO) extends Writer {
   val MAGENTA = 35
   val CYAN = 36
   val WHITE = 37
+}
 
-  def write(ch: Char): Unit = term.write(ch)
-  def write(b: Byte): Unit = term.write(b)
-  def write(buf: Array[Byte]): Unit = buf.foreach( write )
+class ScTerm(term: BasicTerminalIO) extends StrictLogging {
 
-  override def write(str: String): Unit = term.write(str)
-  override def write(cbuf: Array[Char], off: Int, len: Int): Unit = write(new String(cbuf, off, len))
-
-  def print(str: String): Unit = term.write(str)
-  def println(str: String): Unit = term.write(s"$str\r\n")
-
-  def read: String = {
-    val ef = new Editfield(term, "confirm", 1)
-    ef.run()
-    term.write("\r\n")
-    term.flush()
-    ef.getValue
-  }
-
-  def flush(): Unit = term.flush()
-  override def close(): Unit = Unit
+  // clear the screen and start from zero
+  term.eraseScreen()
+  term.homeCursor()
 
   def setForegroundColor(color: Int): Unit = term.setForegroundColor(color)
   def setBackgroundColor(color: Int): Unit = term.setBackgroundColor(color)
@@ -70,4 +50,24 @@ class ScTerm(term: BasicTerminalIO) extends Writer {
     term.eraseScreen()
     term.homeCursor()
   }
+
+  val writer: Writer = new Writer {
+    override def write(cbuf: Array[Char], off: Int, len: Int): Unit = term.write(new String(cbuf, off, len))
+    override def flush(): Unit = term.flush()
+    override def close(): Unit = Unit
+  }
+
+  val outputStream: OutputStream = new scala.tools.nsc.interpreter.WriterOutputStream(writer)
+
+  val printStream: PrintStream = new PrintStream(outputStream)
+
+  val inputStream: InputStream = new java.io.InputStream {
+    override def read(): Int = {
+      val i = term.read()
+      logger.info(s"===============>${i} ${i.toChar}")
+      i
+    }
+  }
+
+  val reader: Reader = new java.io.InputStreamReader(inputStream)
 }

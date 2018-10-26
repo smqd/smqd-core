@@ -33,8 +33,8 @@ object ScDefaultCommandProvider {
   object Exit extends ScCommand {
     override val name = "exit"
     override def exe(args: Seq[String], shell: ScShell): Unit = {
-      shell.terminal.write("Good bye\r\n")
-      shell.terminal.flush()
+      shell.printStream.println("Good bye\n")
+      shell.printStream.flush()
       shell.exit(0)
     }
   }
@@ -44,9 +44,9 @@ object ScDefaultCommandProvider {
     override def exe(args: Seq[String], shell: ScShell): Unit = {
       val hist = shell.history
       hist.zipWithIndex.reverse.foreach{ case (h, idx) =>
-        shell.terminal.write(f" ${idx + 1}%6d $h\r\n")
+        shell.printStream.println(f" ${idx + 1}%6d $h")
       }
-      shell.terminal.flush()
+      shell.printStream.flush()
     }
   }
 
@@ -60,7 +60,7 @@ object ScDefaultCommandProvider {
         if (shell.canAccess(args(1), true))
           shell.setWorkingDirectory(args(1))
         else
-          shell.terminal.println("Access denied.")
+          shell.printStream.println("Access denied.")
       }
     }
   }
@@ -70,15 +70,16 @@ object ScDefaultCommandProvider {
     override def exe(args: Seq[String], shell: ScShell): Unit = {
       try {
         shell.interpreter.eval(reader, cmd, args.toArray)
-        shell.terminal.flush()
+        shell.printStream.flush()
       } catch {
         case e: ScriptException => // throws by javax.script
-          shell.terminal.println(s"Command [$cmd] has script error at line: ${e.getLineNumber} column: ${e.getColumnNumber}")
-          shell.terminal.println({e.getMessage.split("\n").take(5).mkString("\n")})
+          shell.printStream.println(s"Command [$cmd] has script error at line: ${e.getLineNumber} column: ${e.getColumnNumber}")
+          shell.printStream.println({e.getMessage.split("\n").take(5).mkString("\n")})
         case e: Throwable =>
-          shell.terminal.write(s"Command [$cmd] fail. - ${e.getClass.getName}\r\n")
-          shell.terminal.write(e.getMessage + "\r\n\r\n")
-          shell.terminal.flush()
+          shell.printStream.println(s"Command [$cmd] fail. - ${e.getClass.getName}\n")
+          shell.printStream.println(e.getMessage)
+          shell.printStream.println()
+          shell.printStream.flush()
       }
       finally {
         reader.close()

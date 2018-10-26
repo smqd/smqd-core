@@ -36,19 +36,20 @@ else {
 	var loop = true
 	do {
 		if (optForce)
-			print("\r\n**CONFIRM** System SHUTDOWN now? [y/n] ")
+			print("\n**CONFIRM** System SHUTDOWN now? [y/n] ")
 		else
-			print("\r\n**CAUTION** System SHUTDOWN immediately? [y/n] ")
-			
-		val ans = shell.terminal.read
-		if ("Y".equalsIgnoreCase(ans))
+			print("\n**CAUTION** System SHUTDOWN immediately? [y/n] ")
+
+		val ans = shell.inputStream.read().toChar
+		println(s"$ans")
+		if (ans == 'Y' || ans == 'y')
 		{
 			shutdownConfirm = true
 			loop = false
 		}
 		else
 		{
-			shutdownConfirm = false;
+			shutdownConfirm = false
 			loop = false
 		}
 	} while(loop)
@@ -57,12 +58,12 @@ else {
 if (shutdownConfirm) {
 	if (optForce)
 	{
-		println("\r\n**WARN** System exit... immediately...\r\n");
+		println("\nSystem shutdown... immediately...\n")
 		System.exit(0);
 	}
 	else
 	{
-		println("\r\n**CAUTION** System is going to shutdown.....\r\n");
+		println("\nSystem is going to shutdown.....\n")
 		smqd.Implicit.system.terminate()
 		System.exit(0)
 	}

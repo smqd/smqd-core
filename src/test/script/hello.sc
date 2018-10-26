@@ -33,14 +33,14 @@ val hello = "World"
 
 // defer execution of code block
 shell.defer {
-  shell.terminal.println(s"######## deferred ########")
-  shell.terminal.println(s"hello = $hello")
+  shell.printStream.println(s"######## deferred ########")
+  shell.printStream.println(s"hello = $hello")
   println(s"This is deferred message with 'println'")
 }
 
 val sub = smqd.subscribe("sensor/#") {
   case (path, msg) =>
-    shell.terminal.println(s">>>> Message Recv: topic = $path, msg = $msg")
+    shell.printStream.println(s">>>> Message Recv: topic = $path, msg = $msg")
 }
 println("Subscribed.")
 
@@ -72,5 +72,8 @@ println(s"username: $username")
 //
 //val shell: BshShell = $ctx.SHELL.asInstanceOf[BshShell]
 //println(s"SHELL: ${shell}")
+
+println(s"Shell.inputStream = ${shell.inputStream.read()}")
+//val ans = Console.in.read().toChar
 
 println("")
