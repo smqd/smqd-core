@@ -35,8 +35,24 @@ val hello = "World"
 shell.defer {
   shell.terminal.println(s"######## deferred ########")
   shell.terminal.println(s"hello = $hello")
-  println(s"############################4 - $hello")
+  println(s"This is deferred message with 'println'")
 }
+
+val sub = smqd.subscribe("sensor/#") {
+  case (path, msg) =>
+    shell.terminal.println(s">>>> Message Recv: topic = $path, msg = $msg")
+}
+println("Subscribed.")
+
+shell.defer {
+  smqd.unsubscribe(sub)
+  println("Unsubscribed.")
+}
+
+Thread.sleep(200)
+smqd.publish("sensor/123", "message - 1")
+smqd.publish("sensor/456", "message - 2")
+Thread.sleep(200)
 
 println("-----------------")
 println(s"Hello3 $hello")
@@ -51,9 +67,6 @@ println(s"ARGS(1): $args")
 
 println("-----------------")
 println(s"username: $username")
-
-println("-----------------")
-println(s"username: ${ctx}")
 
 //println(s"SMQD: ${com.thing2x.smqd.net.telnet.TelnetService.smqdInstance}")
 //

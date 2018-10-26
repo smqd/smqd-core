@@ -23,6 +23,7 @@ import net.wimpi.telnetd.net.{Connection, ConnectionEvent}
 import net.wimpi.telnetd.shell.Shell
 
 import scala.collection.JavaConverters._
+import scala.tools.nsc.interpreter.WriterOutputStream
 
 object ScShell {
   private var delegate: Option[ScShellDelegate] = None
@@ -145,13 +146,18 @@ class ScShell extends Shell with StrictLogging {
   }
 
   private def evalDeferred(): Unit = {
+    val out = new WriterOutputStream(_terminal)
     deferred.foreach{ defer =>
-      try{
-        defer.eval
-      }
-      catch {
-        case e: Throwable =>
-          logger.debug("deferred blocks", e)
+      Console.withOut(out) {
+        Console.withErr(out) {
+          try{
+            defer.eval
+          }
+          catch {
+            case e: Throwable =>
+              logger.debug("deferred blocks", e)
+          }
+        }
       }
     }
     deferred = Nil
@@ -240,16 +246,16 @@ class ScShell extends Shell with StrictLogging {
   def terminal: ScTerm = _terminal
 
   def history: Seq[String] = _history
-//  def history_=(h: Seq[String]): Unit = _history = h
+  //  def history_=(h: Seq[String]): Unit = _history = h
 
   def historyOffset: Int = -1
-//  def historyOffset_=(offset: Int): Unit = _historyOffset = offset
+  //  def historyOffset_=(offset: Int): Unit = _historyOffset = offset
 
   def interpreter: ScEngine = _scripter
-//  def interpreter_=(interpreter: Interpreter): Unit = _interpreter = interpreter
+  //  def interpreter_=(interpreter: Interpreter): Unit = _interpreter = interpreter
 
   def commandProvider: ScCommandProvider = _commandProvider
-//  def commandProvider_=(provider: BshCommandProvider): Unit = _commandProvider = provider
+  //  def commandProvider_=(provider: BshCommandProvider): Unit = _commandProvider = provider
 
   def connection: Connection = _connection
 }

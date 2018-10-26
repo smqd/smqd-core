@@ -17,7 +17,7 @@ import com.thing2x.smqd.net.telnet.ScShell
 
 val args: Array[String] = $args
 val shell: ScShell = $shell
-val smqd: Smqd = $smqd
+val smqd: Smqd = shell.smqd
 
 var optNow = false
 var optForce = false
@@ -40,7 +40,7 @@ else {
 		else
 			print("\r\n**CAUTION** System SHUTDOWN immediately? [y/n] ")
 			
-		val ans = term.read
+		val ans = shell.terminal.read
 		if ("Y".equalsIgnoreCase(ans))
 		{
 			shutdownConfirm = true
