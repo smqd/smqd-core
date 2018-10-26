@@ -19,11 +19,11 @@ import java.net.SocketException
 
 import com.thing2x.smqd.Smqd
 import com.typesafe.scalalogging.StrictLogging
+import net.wimpi.telnetd.io.BasicTerminalIO
 import net.wimpi.telnetd.net.{Connection, ConnectionEvent}
 import net.wimpi.telnetd.shell.Shell
 
 import scala.collection.JavaConverters._
-import scala.tools.nsc.interpreter.WriterOutputStream
 
 object ScShell {
   private var delegate: Option[ScShellDelegate] = None
@@ -241,7 +241,7 @@ class ScShell extends Shell with StrictLogging {
   def getWorkingDirectory: String = _commandProvider.workingDirectory
   def setWorkingDirectory(relativePath: String): Unit = _commandProvider.workingDirectory = relativePath
 
-//  def terminal: ScTerm = _terminal
+  def termIO: BasicTerminalIO = _connection.getTerminalIO
 
   def inputStream: java.io.InputStream = _terminal.inputStream
   def outputStream: java.io.OutputStream = _terminal.outputStream

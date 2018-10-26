@@ -30,30 +30,34 @@ object ScTerm {
   val WHITE = 37
 }
 
-class ScTerm(term: BasicTerminalIO) extends StrictLogging {
+class ScTerm(termio: BasicTerminalIO) extends StrictLogging {
 
   // clear the screen and start from zero
-  term.eraseScreen()
-  term.homeCursor()
+  termio.eraseScreen()
+  termio.homeCursor()
 
-  def setForegroundColor(color: Int): Unit = term.setForegroundColor(color)
-  def setBackgroundColor(color: Int): Unit = term.setBackgroundColor(color)
+  def setForegroundColor(color: Int): Unit = termio.setForegroundColor(color)
+  def setBackgroundColor(color: Int): Unit = termio.setBackgroundColor(color)
 
-  def setBold(b: Boolean): Unit = term.setBold(b)
-  def setItalic(b: Boolean): Unit = term.setItalic(b)
-  def setUnderlined(b: Boolean): Unit = term.setUnderlined(b)
-  def setBlink(b: Boolean): Unit = term.setBlink(b)
+  def setBold(b: Boolean): Unit = termio.setBold(b)
+  def setItalic(b: Boolean): Unit = termio.setItalic(b)
+  def setUnderlined(b: Boolean): Unit = termio.setUnderlined(b)
+  def setBlink(b: Boolean): Unit = termio.setBlink(b)
 
-  def bell(): Unit = term.bell()
+  def bell(): Unit = termio.bell()
 
   def clear(): Unit = {
-    term.eraseScreen()
-    term.homeCursor()
+    termio.eraseScreen()
+    termio.homeCursor()
   }
 
   val writer: Writer = new Writer {
-    override def write(cbuf: Array[Char], off: Int, len: Int): Unit = term.write(new String(cbuf, off, len))
-    override def flush(): Unit = term.flush()
+    override def write(cbuf: Array[Char], off: Int, len: Int): Unit = {
+      //term.write(new String(cbuf, off, len))
+      cbuf.drop(off).take(len).foreach(termio.write)
+    }
+
+    override def flush(): Unit = termio.flush()
     override def close(): Unit = Unit
   }
 
@@ -62,11 +66,7 @@ class ScTerm(term: BasicTerminalIO) extends StrictLogging {
   val printStream: PrintStream = new PrintStream(outputStream)
 
   val inputStream: InputStream = new java.io.InputStream {
-    override def read(): Int = {
-      val i = term.read()
-      logger.info(s"===============>${i} ${i.toChar}")
-      i
-    }
+    override def read(): Int = termio.read()
   }
 
   val reader: Reader = new java.io.InputStreamReader(inputStream)

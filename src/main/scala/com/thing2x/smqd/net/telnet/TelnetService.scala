@@ -109,7 +109,7 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
 
     // ansi implementation and aliases
     p.setProperty("term.ansi.class", "net.wimpi.telnetd.io.terminal.ansi")
-    p.setProperty("term.ansi.aliases", "color-xterm,vt320,vt220,linux,screen")
+    p.setProperty("term.ansi.aliases", "xterm-256color,color-xterm,vt320,vt220,linux,screen")
 
     // windoof implementation and aliases
     p.setProperty("term.windoof.class", "net.wimpi.telnetd.io.terminal.Windoof")

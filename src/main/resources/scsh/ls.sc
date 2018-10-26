@@ -11,11 +11,12 @@ import java.io.File
 
 import com.thing2x.smqd.net.telnet.ScShell
 import com.thing2x.smqd.util.{StringUtil, TimeUtil}
+import net.wimpi.telnetd.io.BasicTerminalIO
 
 val args: Array[String] = $args
 val shell: ScShell = $shell
 
-def fileInfo(f: File): String = {
+def fileInfo(f: File): Unit = {
 	val sb = new StringBuffer()
 	
 	if (f.isDirectory) sb.append("d")
@@ -34,8 +35,19 @@ def fileInfo(f: File): String = {
 	sb.append(" ")
   sb.append(f"${f.length()}%7d ")
 	sb.append(new TimeUtil(f.lastModified).format(TimeUtil.SIMPLE)).append(" ")
-	sb.append(f.getName)
-	sb.toString
+  print(sb.toString)
+
+  if (f.isDirectory) {
+    shell.termIO.setForegroundColor(BasicTerminalIO.BLUE)
+    shell.termIO.setBold(true)
+    print(f.getName)
+    shell.termIO.setForegroundColor(BasicTerminalIO.WHITE)
+    shell.termIO.setBold(false)
+  }
+  else {
+    print(f.getName)
+  }
+  println()
 }
 
 def getFileList: Seq[File] = {
@@ -77,8 +89,6 @@ if (result.isEmpty){
 	print("File not found.");
 }
 else {
-  result.foreach{ r =>
-    println(fileInfo(r))
-  }
+  result.foreach( fileInfo )
 }
 
