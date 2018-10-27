@@ -15,7 +15,6 @@ import com.thing2x.smqd.net.telnet.ScShell
 
 val args: Array[String] = $args
 val shell: ScShell = $shell
-val smqd: Smqd = $smqd
 
 if (args.length != 2) {
   val list = shell.findAllBshFiles("*.sc")
