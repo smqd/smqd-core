@@ -70,8 +70,8 @@ object Dependencies {
   val telnetd: Seq[ModuleID] = Seq(
     "net.wimpi" % "telnetd-x" % "2.1.1",
     "commons-net" % "commons-net" % "3.6",
-//    "org.scala-lang" % "scala-compiler" % Versions.scala,
-    "org.slf4j" % "log4j-over-slf4j" % "1.7.7"
+    "org.slf4j" % "log4j-over-slf4j" % "1.7.7",
+    "com.github.scopt" %% "scopt" % "3.7.0"
   )
 
   val crypto: Seq[ModuleID] = Seq(

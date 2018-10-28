@@ -1,72 +1,54 @@
 /*
 	@Begin
-	manage smqd routing
+  manage smqd routing
 
-	Syntax
-		route <command> <options>
+  Usage: route [list] [options]
 
-		   command
-		     list : list current routing table
-
-		   options
-		     -n, --node <node name> : list only contins specified node
-		     -t, --topic <topic>    : list routing information that can match with the speicifed topic
+  Command: list [options]
+    print current routes settings
+      -n, --node <value>      list routes that contains specific node
+      -t, --topic <value>     list routes that match for the speicific topic
 	@End
  */
 
 import com.thing2x.smqd.Smqd
 import com.thing2x.smqd.net.telnet.ScShell
 
-import scala.annotation.tailrec
-
 val args: Array[String] = $args
 val shell: ScShell = $shell
 val smqd: Smqd = shell.smqd
 
-var cmd = "list"
-var unknownOption = false
-var node: Option[String] = None
-var topic: Option[String] = None
+case class Setting(command: String = "", node: Option[String] = None, topic: Option[String] = None)
 
-// parse args
-if (args.length > 1) {
-  cmd = args(1)
-  Route.parseOpt(args.drop(2))
+val parser = new scopt.OptionParser[Setting]("route") {
+  override def terminate(exitState: Either[String, Unit]): Unit = Unit
+
+  head(" ")
+
+  help("help").text("prints this message")
+
+  cmd("list").action( (_, s) => s.copy(command = "list") ).text("print current routes settings").children(
+    opt[String]('n', "node").action( (x, s) => s.copy(node = Option(x)) ).text("list routes that contains specific node"),
+    opt[String]('t', "topic").action( (x, s) => s.copy(topic = Option(x)) ).text("list routes that match for the speicific topic")
+  )
 }
 
-if (!unknownOption) {
-  // execute command
-  cmd match {
-    case "list" =>
-      Route.list()
-    case _ =>
-      println(s"Unknown command: $cmd\n")
-  }
+parser.parse(args.tail, Setting()) match {
+  case Some(setting) =>
+    setting.command match {
+      case "list" =>
+        println()
+        Route.list(setting.node, setting.topic)
+      case _ =>
+    }
+
+  case None =>
 }
 
 println()
 
 object Route {
-  @tailrec
-  def parseOpt(params: Array[String]): Unit = {
-    if (params.nonEmpty) {
-      val next = params.head match {
-        case "--node" | "-n" =>
-          node = Some(params(1))
-          params.drop(2)
-        case "--topic" | "-t" =>
-          topic = Some(params(1))
-          params.drop(2)
-        case un =>
-          println(s"Unknown option : $un\n")
-          unknownOption = true
-          return
-      }
-      parseOpt(next)
-    }
-  }
-
-  def list(): Unit = {
+  def list(node: Option[String], topic: Option[String]): Unit = {
     smqd.snapshotRoutes
       // check if routes contains the specified node
       .filter(s => if (node.isDefined) s._2.exists(_.nodeName == node.get) else true)
