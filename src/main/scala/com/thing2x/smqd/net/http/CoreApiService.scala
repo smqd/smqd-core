@@ -17,10 +17,7 @@ package com.thing2x.smqd.net.http
 import java.net.InetSocketAddress
 
 import akka.http.scaladsl.server
-import akka.http.scaladsl.server.Directives.pathPrefix
-import akka.http.scaladsl.server.Route
 import com.thing2x.smqd._
-import com.thing2x.smqd.rest.RestController
 import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
