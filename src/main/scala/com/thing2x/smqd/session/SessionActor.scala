@@ -140,17 +140,20 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     }
   }
 
+  import com.thing2x.smqd.protocol._
+  import io.circe.syntax._
+  import io.circe.generic.auto._
+
   private def outboundPublish(opub: OutboundPublish): Unit = {
     import com.thing2x.smqd.protocol._
-    import spray.json._
 
     val payload = opub.msg match {
       case a: Array[Byte] => Unpooled.wrappedBuffer(a)
       case b: ByteBuf => b
       case x: ProtocolNotification =>
-        Unpooled.wrappedBuffer(x.toJson.toString.getBytes(StandardCharsets.UTF_8))
+        Unpooled.wrappedBuffer(x.asJson.toString.getBytes(StandardCharsets.UTF_8))
       case f: Fault =>
-        Unpooled.wrappedBuffer(f.toJson.toString.getBytes(StandardCharsets.UTF_8))
+        Unpooled.wrappedBuffer(f.asJson.toString.getBytes(StandardCharsets.UTF_8))
       case x =>
         Unpooled.wrappedBuffer(x.toString.getBytes(StandardCharsets.UTF_8))
     }

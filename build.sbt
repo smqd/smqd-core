@@ -25,11 +25,13 @@ val `smqd-core` = project.in(file(".")).settings(
   // Dependencies
   libraryDependencies ++=
     Dependencies.akka ++
+      Dependencies.circe ++
       Dependencies.netty ++
       Dependencies.etcd ++
       Dependencies.metrics ++
       Dependencies.crypto ++
-      Dependencies.jwt
+      Dependencies.jwt ++
+      Dependencies.telnetd
 ).settings(
   // ScalaDoc
   scalacOptions in (Compile, doc) ++= Seq(
@@ -59,6 +61,7 @@ val `smqd-core` = project.in(file(".")).settings(
 ).settings(
   // sbt fork sqmd process to allow javaOptions parameters from command line
   fork in run := true,
+  fork in Test := true,
   javaOptions in Test ++= Seq(
     "-Xmx2G"
   )

@@ -14,14 +14,15 @@
 
 package com.thing2x.smqd.rest.api
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
-import com.thing2x.smqd._
 import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.rest.RestController
+import com.thing2x.smqd.util.FailFastCirceSupport._
 import com.typesafe.scalalogging.StrictLogging
-import spray.json._
+import io.circe.Json
+import io.circe.generic.auto._
+import io.circe.syntax._
 
 // 2018. 6. 20. - Created by Kwon, Yeong Eon
 
@@ -35,20 +36,20 @@ class MgmtController(name: String, context: HttpServiceContext) extends RestCont
       get {
         parameters('fmt.?) {
           case Some("version") =>
-            complete(StatusCodes.OK, restSuccess(0, JsObject("version" -> JsString(smqdInstance.version))))
+            complete(StatusCodes.OK, restSuccess(0, Json.obj(("version", Json.fromString(smqdInstance.version)))))
           case Some("commit") =>
-            complete(StatusCodes.OK, restSuccess(0, JsObject("commitVersion" -> JsString(smqdInstance.commitVersion))))
+            complete(StatusCodes.OK, restSuccess(0, Json.obj(("commitVersion", Json.fromString(smqdInstance.commitVersion)))))
           case _ =>
             val os = smqdInstance.javaOperatingSystem
-            val osjs = JsString(s"${os.name}/${os.version}/${os.arch} (${os.processors} cores)")
+            val osjs = Json.fromString(s"${os.name}/${os.version}/${os.arch} (${os.processors} cores)")
 
             complete(StatusCodes.OK, restSuccess(0,
-              JsObject(
-                "version" -> JsString(smqdInstance.version),
-                "commitVersion" -> JsString(smqdInstance.commitVersion),
-                "nodename" -> JsString(smqdInstance.nodeName),
-                "jvm" -> JsString(smqdInstance.javaVersionString),
-                "os" -> osjs
+              Json.obj(
+                ("version", Json.fromString(smqdInstance.version)),
+                ("commitVersion", Json.fromString(smqdInstance.commitVersion)),
+                ("nodename", Json.fromString(smqdInstance.nodeName)),
+                ("jvm", Json.fromString(smqdInstance.javaVersionString)),
+                ("os", osjs)
               )))
         }
       }
@@ -69,19 +70,17 @@ class MgmtController(name: String, context: HttpServiceContext) extends RestCont
   private def getNodes(nodeName: Option[String]): Route = {
     val smqdInstance = context.smqdInstance
     import smqdInstance.Implicit._
-    implicit val apiInfoFormat: RootJsonFormat[EndpointInfo] = jsonFormat2(EndpointInfo)
-    implicit val nodeInfoFormat: RootJsonFormat[NodeInfo] = jsonFormat7(NodeInfo)
     nodeName match {
       case Some(node) =>
         val jsval = for {
           result <- smqdInstance.node(node)
-          resonse = restSuccess(0, result.toJson)
+          resonse = restSuccess(0, result.asJson)
         } yield resonse
         complete(StatusCodes.OK, jsval)
       case None =>
         val jsval = for {
           result <- smqdInstance.nodes
-          resonse = restSuccess(0, result.toJson)
+          resonse = restSuccess(0, result.asJson)
         } yield resonse
         complete(StatusCodes.OK, jsval)
     }

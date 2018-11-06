@@ -21,9 +21,11 @@ import com.thing2x.smqd.rest.RestController
 import com.thing2x.smqd.rest.api.UserController.{LoginRefreshRequest, LoginRefreshResponse, LoginRequest, LoginResponse}
 import com.typesafe.scalalogging.StrictLogging
 import com.thing2x.smqd.net.http.OAuth2.{OAuth2Claim, OAuth2RefreshClaim}
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import com.thing2x.smqd.SmqSuccess
-import spray.json.{JsObject, JsString}
+import io.circe._
+import io.circe.syntax._
+import io.circe.generic.auto._
+import com.thing2x.smqd.util.FailFastCirceSupport._
 
 import scala.util.Success
 
@@ -48,7 +50,7 @@ class OAuthController(name: String, context: HttpServiceContext) extends RestCon
               val refreshClaim = OAuth2RefreshClaim(loginReq.user, Map("issuer" -> "smqd-http-test"))
               context.oauth2.issueJwt(claim, refreshClaim) { jwt =>
                 val response = LoginResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
-                complete(StatusCodes.OK, restSuccess(0, response.toJson))
+                complete(StatusCodes.OK, restSuccess(0, response.asJson))
               }
             case _ =>
               complete(StatusCodes.Unauthorized, restError(500, "Not Implemented"))
@@ -60,8 +62,8 @@ class OAuthController(name: String, context: HttpServiceContext) extends RestCon
 
   def sanity(claim: OAuth2Claim): Route = {
     path("sanity") {
-      complete(StatusCodes.OK, restSuccess(0, JsObject(
-        "identifier" -> JsString(claim.identifier)
+      complete(StatusCodes.OK, restSuccess(0, Json.obj(
+        ("identifier", Json.fromString(claim.identifier))
       )))
     }
   }
@@ -77,7 +79,7 @@ class OAuthController(name: String, context: HttpServiceContext) extends RestCon
               val newClaim = OAuth2Claim(identifier, Map("issuer" -> previousValue, "refreshed" -> "true"))
               context.oauth2.reissueJwt(newClaim, refreshReq.refresh_token) { jwt =>
                 val response = LoginRefreshResponse(jwt.tokenType, jwt.accessToken, jwt.accessTokenExpire, jwt.refreshToken, jwt.refreshTokenExpire)
-                complete(StatusCodes.OK, restSuccess(0, response.toJson))
+                complete(StatusCodes.OK, restSuccess(0, response.asJson))
               }
             case _ =>
               complete(StatusCodes.Unauthorized, restError(401, "Invalid refresh token"))

@@ -40,15 +40,15 @@ class RepositoryDefinition(val name: String,
                            val description: String)
   extends Ordered[RepositoryDefinition] with StrictLogging {
 
-  private var installedPkg: Option[PackageDefinition] = None
-  def installed: Boolean = installedPkg.isDefined
-  def packageDefinition: Option[PackageDefinition] = installedPkg
+  private var installedPkg: Seq[PackageDefinition] = Seq.empty
+  def installed: Boolean = installedPkg.nonEmpty
+  def packageDefinitions: Seq[PackageDefinition] = installedPkg
 
   val isMavenModule: Boolean = module.isDefined
   val isRemoteFile: Boolean = location.isDefined
 
   private[plugin] def setInstalledPackage(pkgDef: PackageDefinition): Unit = {
-    installedPkg = Option(pkgDef)
+    installedPkg :+= pkgDef
   }
 
   def exec(cmd: String, params: Map[String, Any])(implicit ec: ExecutionContext): Future[ExecResult] = Future {

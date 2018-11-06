@@ -18,32 +18,31 @@ import java.text.ParseException
 
 import akka.stream.OverflowStrategy
 import com.typesafe.config._
-import spray.json.{DefaultJsonProtocol, JsObject, JsValue, JsonParser, RootJsonFormat}
+import io.circe.Decoder.Result
+import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.parser._
 
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 import scala.language.implicitConversions
 
 // 2018. 8. 13. - Created by Kwon, Yeong Eon
 
-object ConfigUtil extends DefaultJsonProtocol {
+object ConfigUtil {
 
-  implicit object TypesafeConfigFormat extends RootJsonFormat[Config] {
-    private val ParseOptions = ConfigParseOptions.defaults().setSyntax(ConfigSyntax.JSON)
+  implicit val typesafeConfigEncoder: Encoder[Config] = new Encoder[Config] {
     private val RenderOptions = ConfigRenderOptions.concise().setJson(true)
-    override def read(json: JsValue): Config = json match {
-      case obj: JsObject => ConfigFactory.parseString(obj.compactPrint, ParseOptions)
-      // case _ => deserializationError("Expected JsObject for Config deserialization")
-      case _ =>
-        throw new ParseException("json parse error: unsable to build config object", 0)
+    override def apply(config: Config): Json = {
+      parse(config.root.render(RenderOptions)) match {
+        case Right(json) => json
+        case Left(_) => Json.Null
+      }
     }
-    override def write(config: Config): JsValue = {
-      //      val entries = config.entrySet().asScala.map { entry =>
-      //        val key = entry.getKey
-      //        val value: com.typesafe.config.ConfigValue = entry.getValue
-      //        val opt = value.render(ConfigRenderOptions.concise())
-      //        key ->JsonParser(opt)
-      //      }.toMap
-      JsonParser(config.root.render(RenderOptions))
+  }
+
+  implicit val typesafeConfigDecoder: Decoder[Config] = new Decoder[Config] {
+    private val ParseOptions = ConfigParseOptions.defaults().setSyntax(ConfigSyntax.JSON)
+    override def apply(c: HCursor): Result[Config] = {
+      Right(ConfigFactory.parseString(c.value.noSpaces, ParseOptions))
     }
   }
 

@@ -15,7 +15,7 @@
 package com.thing2x.smqd.util
 
 import akka.actor.{Actor, Cancellable}
-import com.codahale.metrics.{Counter, Metric, SharedMetricRegistries}
+import com.codahale.metrics._
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.Smqd
 import com.thing2x.smqd.util.MetricActor.Tick
@@ -23,6 +23,9 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.duration._
 import scala.collection.JavaConverters._
+
+import io.circe.syntax._
+import io.circe.generic.auto._
 
 // 2018. 7. 25. - Created by Kwon, Yeong Eon
 
@@ -32,8 +35,17 @@ import scala.collection.JavaConverters._
 object MetricActor {
   val actorName = "metrics_reporter"
 
+  case class SnapshotValue(mean: Double, max: Long, min: Long, median: Double, stdDev: Double,
+                           quantile75: Double, quantile95: Double, quantile98: Double, quantile99: Double, quantile999: Double)
+  case class HistogramValue(count: Long, snapshot: SnapshotValue)
+  case class RateValue(meanRate: Double, oneMinuteRate: Double, fifteenMinuteRate: Double, fiveMinuteRate: Double)
+  case class MeterValue(count: Long, rates: RateValue)
+  case class TimerValue(count: Long, rates: RateValue, snapshot: SnapshotValue)
+
   case object Tick
 }
+
+import MetricActor._
 
 class MetricActor(smqdInstance: Smqd) extends Actor with StrictLogging {
   private var schedule: Option[Cancellable] = None
@@ -66,20 +78,49 @@ class MetricActor(smqdInstance: Smqd) extends Actor with StrictLogging {
 
     val prefix = "$SYS/metric/data/"
 
+    def keyPrefix(key: String) = prefix + key.replaceAll("\\.", "/")
+
     // Counters
-    val counters = registry.getCounters.asScala
-    counters.foreach{ case (key: String, counter: Counter) =>
-      val topic = prefix + key.replaceAll("\\.", "/")
+    registry.getCounters.asScala.foreach{ case (key: String, counter: Counter) =>
+      val topic = keyPrefix(key)
       val value = counter.getCount
       smqdInstance.publish(topic, s"""{"$key":$value}""")
     }
 
     // Gauges
-    val gauges = registry.getGauges.asScala
-    gauges.foreach { case (key: String, gauge) =>
-      val topic = prefix + key.replaceAll("\\.", "/")
+    registry.getGauges.asScala.foreach { case (key: String, gauge) =>
+      val topic = keyPrefix(key)
       val value = gauge.getValue
       smqdInstance.publish(topic, s"""{"$key":$value}""")
+    }
+
+    // Histograms
+    registry.getHistograms.asScala.foreach { case (key: String, hist: Histogram) =>
+      val topic = keyPrefix(key)
+      val ss = hist.getSnapshot
+      val v = HistogramValue(hist.getCount,
+        SnapshotValue(ss.getMean, ss.getMax, ss.getMin, ss.getMedian, ss.getStdDev,
+          ss.get75thPercentile, ss.get95thPercentile, ss.get98thPercentile, ss.get99thPercentile, ss.get999thPercentile))
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
+    }
+
+    // Meters
+    registry.getMeters.asScala.foreach { case (key: String, meter: Meter) =>
+      val topic = keyPrefix(key)
+      val v = MeterValue(meter.getCount,
+        RateValue(meter.getMeanRate, meter.getOneMinuteRate, meter.getFiveMinuteRate, meter.getFifteenMinuteRate))
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
+    }
+
+    // Timers
+    registry.getTimers.asScala.foreach { case (key: String, timer: Timer) =>
+      val topic = keyPrefix(key)
+      val ss = timer.getSnapshot
+      val v = TimerValue(timer.getCount,
+        RateValue(timer.getMeanRate, timer.getOneMinuteRate, timer.getFiveMinuteRate, timer.getFifteenMinuteRate),
+        SnapshotValue(ss.getMean, ss.getMax, ss.getMin, ss.getMedian, ss.getStdDev,
+          ss.get75thPercentile, ss.get95thPercentile, ss.get98thPercentile, ss.get99thPercentile, ss.get999thPercentile))
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
     }
   }
 }

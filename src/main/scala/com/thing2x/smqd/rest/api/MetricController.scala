@@ -14,25 +14,27 @@
 
 package com.thing2x.smqd.rest.api
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.codahale.metrics.{Counter, Metric, SharedMetricRegistries}
 import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.rest.RestController
+import com.thing2x.smqd.util.FailFastCirceSupport._
 import com.typesafe.scalalogging.StrictLogging
-import spray.json.{JsObject, _}
-
+import io.circe.Json
+import io.circe.syntax._
 import scala.collection.JavaConverters._
 
 // 2018. 6. 21. - Created by Kwon, Yeong Eon
 
-object MetricController extends DefaultJsonProtocol {
+object MetricController {
 
+  /*
   implicit object MetricCounterFormat extends RootJsonFormat[Counter] {
     override def write(c: Counter): JsValue = JsObject("count" -> JsNumber(c.getCount))
     override def read(json: JsValue): Counter = ???
   }
+  */
 }
 
 class MetricController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging  {
@@ -48,7 +50,7 @@ class MetricController(name: String, context: HttpServiceContext) extends RestCo
     }
   }
 
-  private def report(prefixOpt: Option[String]): JsValue = {
+  private def report(prefixOpt: Option[String]): Json = {
 
     val registry = SharedMetricRegistries.getDefault
     var prefixLen = 0
@@ -70,7 +72,7 @@ class MetricController(name: String, context: HttpServiceContext) extends RestCo
     }
 
     val result = counters.map{ case (key: String, counter: Counter) => (key.substring(prefixLen), counter.getCount )}
-    var merged: Map[String, JsValue] = result.map{ case(key, num) => (key, JsNumber(num))}.toMap
+    var merged: Map[String, Json] = result.map{ case(key, num) => (key, Json.fromLong(num))}.toMap
 
     ////////////////////////////////
     // Gauges
@@ -85,18 +87,19 @@ class MetricController(name: String, context: HttpServiceContext) extends RestCo
 
     merged ++= gauges.map { case (key: String, gauge) =>
         gauge.getValue match {
-          case n: Int => (key.substring(prefixLen), JsNumber(n))
-          case n: Long => (key.substring(prefixLen), JsNumber(n))
-          case n: Double => (key.substring(prefixLen), JsNumber(n))
+          case n: Int     => (key.substring(prefixLen), Json.fromInt(n))
+          case n: Long    => (key.substring(prefixLen), Json.fromLong(n))
+          case n: Float   => (key.substring(prefixLen), Json.fromFloat(n).getOrElse(Json.fromInt(-1)))
+          case n: Double  => (key.substring(prefixLen), Json.fromDouble(n).getOrElse(Json.fromInt(-1)))
         }
     }
 
     prefixOpt match {
       case Some(prefixStr) if prefixStr.length > 0 =>
         val prefixNorm = prefixStr.replaceAll("/", ".")
-        JsObject(prefixNorm -> JsObject(merged))
+        Json.obj((prefixNorm, merged.asJson))
       case _ =>
-        JsObject(merged)
+        merged.asJson
     }
   }
 }

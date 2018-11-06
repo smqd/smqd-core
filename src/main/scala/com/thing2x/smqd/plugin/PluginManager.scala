@@ -30,6 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object PluginManager extends StrictLogging {
   val STATIC_PKG = "smqd-static"
   val CORE_PKG = "smqd-core"
+  val POJO_PKG = "smqd-pojo"
 
   val PM_CONF_DIR_NAME = "plugins"
   val PM_LIB_DIR_NAME = "plugins"
@@ -58,14 +59,16 @@ object PluginManager extends StrictLogging {
           new File(new File(pluginDirPath), PM_CONF_DIR_NAME).getPath
         }
       }
-    new PluginManager(pluginDirPath, pluginInstanceConfDirPath, config.getOptionString("manifest"), coreVersion)
+    val staticPlugins = if (config.hasPath("static")) config.getStringList("static").asScala else  Seq.empty
+
+    new PluginManager(pluginDirPath, pluginInstanceConfDirPath, config.getOptionString("manifest"), staticPlugins, coreVersion)
   }
 
   def apply(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: String, coreVersion: String) =
-    new PluginManager(pluginLibPath, pluginConfPath, Some(pluginManifestUri), coreVersion)
+    new PluginManager(pluginLibPath, pluginConfPath, Some(pluginManifestUri), Seq.empty, coreVersion)
 
   def apply(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String] = None, coreVersion: String = "") =
-    new PluginManager(pluginLibPath, pluginConfPath, pluginManifestUri, coreVersion)
+    new PluginManager(pluginLibPath, pluginConfPath, pluginManifestUri, Seq.empty, coreVersion)
 
   trait InstallResult { def msg: String }
   case class InstallSuccess(msg: String) extends InstallResult
@@ -81,7 +84,7 @@ object PluginManager extends StrictLogging {
 
 import com.thing2x.smqd.plugin.PluginManager._
 
-class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String], val coreVersion: String) extends StrictLogging {
+class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifestUri: Option[String], staticPlugins: Seq[String], val coreVersion: String) extends StrictLogging {
 
   private val repositoryManager: RepositoryManager = new RepositoryManager(this, pluginManifestUri)
   def repositoryDefinitions: Seq[RepositoryDefinition] = repositoryManager.repositoryDefs
@@ -92,17 +95,10 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   val libDirectory: Option[File] = findRootDir(pluginLibPath)
   val configDirectory: Option[File] = findConfigDir(pluginConfPath)
 
-  private var packageDefs: Seq[PackageDefinition] = libDirectory match {
-    case Some(rootDir) =>             // plugin root directory
-      findPluginFiles(rootDir)        // plugin files in the root directories
-        .map(findPackageLoader)       // plugin loaders
-        .flatMap(_.definition)        // to plugin definitions
-    case None =>
-      findPackageLoader(new File(getClass.getProtectionDomain.getCodeSource.getLocation.getPath)).definition match {
-        case Some(d) => Seq(d)
-        case None => Nil
-      }
-  }
+  private var packageDefs: Seq[PackageDefinition] =
+    findPluginCandidateFiles(libDirectory, staticPlugins)  // plugin files in the root directories
+      .map(findPackageLoader)          // plugin loaders
+      .flatMap(_.definition)           // to plugin definitions
 
   /** all package definitions */
   def packageDefinitions: Seq[PackageDefinition] = packageDefs
@@ -125,6 +121,34 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[BridgeDriver].isAssignableFrom(pd.clazz))
+
+  def definePojoInstanceDefinition[T <: Plugin](smqd: Smqd, instName: String, instConf: Config): Option[InstanceDefinition[T]] = {
+    try {
+      instConf.getOptionString("entry.class") match {
+        case Some(className) =>
+          val autoStart = instConf.getOptionBoolean("entry.auto-start").getOrElse(true)
+          val clazz = getClass.getClassLoader.loadClass(className).asInstanceOf[Class[Plugin]]
+          val pdef = PluginDefinition.nonPluggablePlugin(instName, clazz)
+          val idef: InstanceDefinition[T] = pdef.createInstance(instName, smqd, instConf.getOptionConfig("config"), autoStart)
+          logger.info(s"Plugin '$instName' loaded as POJO")
+          packageDefs.find(_.name == POJO_PKG) match {
+            case Some(pkg) => // POJO package가 이미 존재하면 기존 팩키지를 확장하고
+              packageDefs = packageDefs.filter(_.name != POJO_PKG) :+ pkg.append(pdef)
+            case None => // 없다면 pojo 팩키지를 생성한다.
+              packageDefs = packageDefs :+ PackageDefinition(POJO_PKG, "n/a", "POJO plugins", Seq(pdef), getClass.getClassLoader, null)
+          }
+          Some(idef)
+        case None =>
+          logger.info(s"Plugin '$instName' not found as POJO")
+          None
+      }
+    }
+    catch {
+      case ex: Throwable =>
+        logger.error(s"Fail to load and create an instance of plugin '$instName'", ex)
+        None
+    }
+  }
 
   private def findPackageLoader(file: File): PackageLoader = {
     if (file.isDirectory) {
@@ -184,16 +208,36 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   }
 
   /** find candidates archive/meta/directory for plugin */
-  private def findPluginFiles(rootDir: File): Seq[File] = {
+  private def findPluginCandidateFiles(rootDir: Option[File], staticFiles: Seq[String]): Seq[File] = {
     val codeBase = getClass.getProtectionDomain.getCodeSource.getLocation.getPath
-    new File(codeBase) +: rootDir.listFiles{ file =>
-      val filename = file.getName
-      if (!file.canRead) false
-      else if (filename.endsWith(".jar") && file.isFile) true
-      else if (filename.endsWith(".plugin") && file.isFile) true
-      else if (file.isDirectory) true
-      else false
+    val codeBaseDir = new File(codeBase).getParentFile
+
+    // smqd-core_2.12.jar 파일과 같은 디렉터리에 존재하는 .jar 파일들
+    val fileListInLib = codeBaseDir.listFiles { file =>
+      file.canRead && file.isFile && file.getName.endsWith(".jar")
+    }.toSeq
+
+    // plugin directory에 들어 있는 파일들
+    val fileListInPlugin = rootDir match {
+      case Some(dir) =>
+        dir.listFiles { file =>
+          val filename = file.getName
+          if (!file.canRead) false
+          else if (filename.endsWith(".jar") && file.isFile) true
+          else if (filename.endsWith(".plugin") && file.isFile) true
+          else if (file.isDirectory) true
+          else false
+        }.toSeq
+      case None =>
+        Seq.empty
     }
+
+    // static으로 지정된 파일 목록
+    val staticList = staticFiles.map(new File(_)).filter(f => f.canRead)
+
+    staticList.foreach(f => logger.trace(s"Add static plugin path: ${f.getPath}"))
+
+    new File(codeBase) +: fileListInLib ++: fileListInPlugin ++: staticList
   }
 
   private def findRootDir(rootDir: String): Option[File] = {
@@ -223,14 +267,11 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   def logRepositoryDefinitions(): Unit = {
     //// display list of repositories for information
     repositoryDefinitions.foreach { repo =>
-      repo.packageDefinition match {
-        case Some(pkg) =>
+      repo.packageDefinitions.foreach { pkg =>
           val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
           val info = pkg.plugins.map( _.name).mkString(", ")
           val size = pkg.plugins.size
-          logger.info(s"Plugin package '${repo.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
-        case None =>
-          logger.info(s"Plugin package '${repo.name}' is not installed")
+          logger.info(s"Plugin package '${pkg.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
       }
     }
   }
@@ -394,14 +435,24 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
   def reloadPackage(smqd: Smqd, rdef: RepositoryDefinition)(implicit ec: ExecutionContext): Future[ReloadResult] = {
     Future {
-      rdef.packageDefinition match {
-        case Some(_) =>
+//      rdef.packageDefinitions.foreach { pkgDef =>
 //          pdef.plugins.foreach { pl =>
 //          }
-          ReloadFailure(s"Not implemented")
-        case None =>
-          ReloadFailure(s"Plugin '${rdef.name} not found")
-      }
+//      }
+      ReloadFailure(s"Not implemented")
     }
+  }
+
+  def loadClass(className: String): Option[Class[_]] = {
+    packageDefs.find{pd =>
+      try {
+        val _ = pd.classLoader.loadClass(className)
+        true
+      }
+      catch {
+        case ex: Throwable =>
+          false
+      }
+    }.map(_.classLoader.loadClass(className))
   }
 }

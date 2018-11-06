@@ -17,12 +17,14 @@ package com.thing2x.smqd.plugin
 // 2018. 7. 9. - Created by Kwon, Yeong Eon
 
 object PackageDefinition {
-  def apply(name: String, vendor: String, description: String, plugins: Seq[PluginDefinition], repository: RepositoryDefinition): PackageDefinition
-    = new PackageDefinition(name, vendor, description, plugins, repository)
+  def apply(name: String, vendor: String, description: String, plugins: Seq[PluginDefinition],
+            classLoader: ClassLoader, repository: RepositoryDefinition): PackageDefinition
+    = new PackageDefinition(name, vendor, description, plugins, classLoader, repository)
 }
 
 class PackageDefinition(val name: String, val vendor: String, val description: String,
                         val plugins: Seq[PluginDefinition],
+                        val classLoader: ClassLoader,
                         val repository: RepositoryDefinition)
   extends Ordered[PackageDefinition] {
 
@@ -43,5 +45,9 @@ class PackageDefinition(val name: String, val vendor: String, val description: S
       case (l, r) if !l.startsWith("smqd-") && r.startsWith("smqd") => 1
       case _ => this.name.compare(that.name)
     }
+  }
+
+  def append(pd: PluginDefinition): PackageDefinition = {
+    new PackageDefinition(name, vendor, description, plugins :+ pd, classLoader, repository)
   }
 }

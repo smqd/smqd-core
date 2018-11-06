@@ -6,10 +6,10 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val scala = "2.12.6"
+    val scala = "2.12.7"
     val akka = "2.5.17"
     val akkaHttp = "10.1.5"
-    val netty = "4.1.28.Final"
+    val netty = "4.1.30.Final"
     val alpakka = "0.20"
   }
 
@@ -32,9 +32,6 @@ object Dependencies {
     // alpakka Stream
     "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % Versions.alpakka,
     //////////////////////////////////
-    // json
-    "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.3",
-    //////////////////////////////////
     // plugin package management
     "org.scala-sbt" %% "librarymanagement-ivy" % "1.2.0-M3",
     //////////////////////////////////
@@ -52,6 +49,12 @@ object Dependencies {
     "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2" % Test
   )
 
+  val circe: Seq[ModuleID] = Seq(
+    "io.circe" %% "circe-core",
+    "io.circe" %% "circe-generic",
+    "io.circe" %% "circe-parser"
+  ).map( _ % "0.9.3")
+
   val netty: Seq[ModuleID] = Seq(
     "io.netty" % "netty-buffer" % Versions.netty,
     "io.netty" % "netty-codec-mqtt" % Versions.netty,
@@ -63,12 +66,18 @@ object Dependencies {
   )
 
   val etcd: Seq[ModuleID] = Seq(
-    //"com.coreos" % "jetcd-core" % "0.0.2"
-    "org.mousio" % "etcd4j" % "2.15.0" excludeAll ExclusionRule(organization = "io.netty") force()
+    "org.mousio" % "etcd4j" % "2.16.0" excludeAll ExclusionRule(organization = "io.netty") force()
+  )
+
+  val telnetd: Seq[ModuleID] = Seq(
+    "net.wimpi" % "telnetd-x" % "2.1.1",
+    "commons-net" % "commons-net" % "3.6",
+    "org.slf4j" % "log4j-over-slf4j" % "1.7.7",
+    "com.github.scopt" %% "scopt" % "3.7.0"
   )
 
   val crypto: Seq[ModuleID] = Seq(
-    "org.bouncycastle" % "bcprov-jdk15on" % "1.56"
+    "org.bouncycastle" % "bcprov-jdk15on" % "1.60"
   )
 
   val metricsVersion = "4.1.0-rc2" // updated 04-May-2018

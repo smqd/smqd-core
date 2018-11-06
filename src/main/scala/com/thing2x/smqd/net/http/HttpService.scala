@@ -95,8 +95,11 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 
-    // load routes configuration
-    val routes = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfigList("routes").asScala) else Nil
+    // load routes configuration or from `loadRoutes()` of sub class
+    val rs = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfigList("routes").asScala) else loadRoutes(config)
+    val cs = if (config.hasPath("statics")) loadStaticFromConfig(config.getConfigList("statics").asScala) else loadStatics(config)
+
+    val routes = rs ++ cs
 
     // merge all routes into a single route value
     // then encapsulate with log directives
@@ -222,28 +225,57 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   private def loadRouteFromConfig(configList: Seq[Config]): Seq[server.Route] = {
     configList.map { conf =>
       val rname = conf.getString("name")
-      val className = conf.getString("class")
       val prefix = conf.getString("prefix")
-      val tokens = prefix.split(Array('/', '"')).filterNot( _ == "") // split prefix into token array
-      val clazz = getClass.getClassLoader.loadClass(className)    // load a class that inherits RestController
+      val className = conf.getString("class")
 
-      val ctrl = try {
-        val context = new HttpServiceContext(this, oauth2, smqdInstance, conf)
-        val cons = clazz.getConstructor(classOf[String], classOf[HttpServiceContext]) // find construct that has parameters(String, HttpServiceContext)
-        cons.newInstance(rname, context).asInstanceOf[RestController]
-      } catch {
-        case _: NoSuchMethodException =>
-          val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
-          logger.warn(s"!!Warning!! controller '$className' has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
-          cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
-      }
-
-      logger.debug(s"[$name] add route $rname: $prefix = $className")
-
-      // make pathPrefix routes from tokens
-      tokens.foldRight(ctrl.routes) { (tok, routes) => pathPrefix(tok)(routes)}
+      loadRoute(rname, prefix, className, conf)
     }
   }
+
+  protected def loadRoute(rname: String, prefix: String, className: String, conf: Config): server.Route = {
+    val tokens = prefix.split(Array('/', '"')).filterNot( _ == "") // split prefix into token array
+    smqdInstance.loadClass(className, recursive = true) match { // load a class that inherits RestController
+      case Some(clazz) =>
+        val ctrl = try {
+          val context = new HttpServiceContext(this, oauth2, smqdInstance, conf)
+          val cons = clazz.getConstructor(classOf[String], classOf[HttpServiceContext]) // find construct that has parameters(String, HttpServiceContext)
+          cons.newInstance(rname, context).asInstanceOf[RestController]
+        } catch {
+          case _: NoSuchMethodException =>
+            val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
+            logger.warn(s"!!Warning!! controller '$className' has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
+            cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
+        }
+
+        logger.debug(s"[$name] add route $rname: $prefix = $className")
+
+        // make pathPrefix routes from tokens
+        tokens.foldRight(ctrl.routes) { (tok, routes) => pathPrefix(tok)(routes)}
+      case None =>
+        throw new ClassNotFoundException(s"Controller class '$className' not found")
+    }
+  }
+
+  protected def loadRoutes(conf: Config): Seq[server.Route] = Nil
+
+  private def loadStaticFromConfig(configList: Seq[Config]): Seq[server.Route] = {
+    configList.map { conf =>
+      val rname = conf.getString("name")
+      val prefix = conf.getString("prefix")
+
+      logger.debug(s"[$name] add static $rname: $prefix = ResourceController")
+
+      loadStatic(rname, prefix, conf)
+    }
+  }
+
+  protected def loadStatic(rname: String, prefix: String, conf: Config): server.Route = {
+    val className = "com.thing2x.smqd.rest.ResourceController"
+
+    loadRoute(rname, prefix, className, conf)
+  }
+
+  protected def loadStatics(conf: Config): Seq[server.Route] = Nil
 
   private val emptyRoute: Route = {
     get {

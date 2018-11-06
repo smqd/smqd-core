@@ -45,7 +45,8 @@ abstract class AbstractPlugin(val name: String, val smqdInstance: Smqd, val conf
     }
     val topic = "$SYS/plugins/events/"+path
     val key = path.replaceAll("[/]", ".")
-    smqdInstance.publish(topic, s"""{"$key": {"status":"${v_status.toString}"}}""")
+    if (smqdInstance != null)
+      smqdInstance.publish(topic, s"""{"$key": {"status":"${v_status.toString}"}}""")
   }
 
   def status: InstanceStatus = v_status

@@ -13,19 +13,20 @@
 // limitations under the License.
 
 package com.thing2x.smqd.rest
-
-import spray.json.{JsNumber, JsObject, JsString, JsValue}
+import io.circe._
 
 // 2018. 6. 20. - Created by Kwon, Yeong Eon
 
 trait RestResult {
-  def restSuccess(code: Int, result: JsValue): JsValue = JsObject(
-    "code" -> JsNumber(code),
-    "result" -> result
+
+  def restSuccess(code: Int, result: Json): Json = Json.obj(
+    ("code", Json.fromInt(code)),
+    ("result", result)
   )
-  def restError(code: Int, message: String): JsValue = JsObject(
-    "code" -> JsNumber(code),
-    "error" -> JsString(message)
+
+  def restError(code: Int, message: String): Json = Json.obj(
+    ("code", Json.fromInt(code)),
+    ("error", Json.fromString(message))
   )
 }
 

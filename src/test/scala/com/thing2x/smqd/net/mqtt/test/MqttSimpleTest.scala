@@ -26,7 +26,6 @@ import com.typesafe.scalalogging.StrictLogging
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttConnectOptions, MqttMessage}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Promise}
@@ -40,7 +39,6 @@ class MqttSimpleTest extends WordSpec
   with BeforeAndAfterAll
   with Matchers
   with ScalatestRouteTest
-  with DefaultJsonProtocol
   with StrictLogging {
 
   val config: Config = ConfigFactory.parseString(

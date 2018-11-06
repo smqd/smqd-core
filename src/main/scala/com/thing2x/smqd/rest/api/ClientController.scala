@@ -14,7 +14,6 @@
 
 package com.thing2x.smqd.rest.api
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route}
 import com.thing2x.smqd.SessionStore.SubscriptionData
@@ -22,7 +21,12 @@ import com.thing2x.smqd.net.http.HttpServiceContext
 import com.thing2x.smqd.net.http.OAuth2.OAuth2Claim
 import com.thing2x.smqd.rest.RestController
 import com.typesafe.scalalogging.StrictLogging
-import spray.json._
+import io.circe.Json
+import io.circe.generic.auto._
+import io.circe.syntax._
+import com.thing2x.smqd.util.FailFastCirceSupport._
+
+import scala.util.{Failure, Success}
 
 // 2018. 7. 6. - Created by Kwon, Yeong Eon
 
@@ -41,21 +45,19 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
     }
   }
 
-  private def clientSubscriptionToJson(subscriptions: Seq[SubscriptionData]): JsArray = {
-    JsArray(
-      subscriptions.map{ s => JsObject(
-        "topic" -> JsString(s.filterPath.toString),
-        "qos" -> JsNumber(s.qos.id))
-      }.toVector)
-  }
+  private def clientSubscriptionToJson(subscriptions: Seq[SubscriptionData]): Json =
+    Json.arr(
+      subscriptions.map{ s => Json.obj(
+        ("topic", Json.fromString(s.filterPath.toString)),
+        ("qos", Json.fromLong(s.qos.id))
+      )}: _*)
 
-  private def clientInfoToJson(cid: String, channelId: String, subscriptions: Seq[SubscriptionData], pendingMessages: Long): JsObject = {
-    JsObject(
-      "clientId" -> JsString(cid),
-      "channelId" -> JsString(channelId),
-      "pendingMessages" -> JsNumber(pendingMessages),
-      "subscriptions" -> clientSubscriptionToJson(subscriptions))
-  }
+  private def clientInfoToJson(cid: String, channelId: String, subscriptions: Seq[SubscriptionData], pendingMessages: Long): Json =
+    Json.obj(
+      ("clientId", Json.fromString(cid)),
+      ("channelId", Json.fromString(channelId)),
+      ("pendingMessages", Json.fromLong(pendingMessages)),
+      ("subscriptions", clientSubscriptionToJson(subscriptions)))
 
   private def getClientExactMatch(clientId: String): Route = {
     import context.smqdInstance.Implicit._
