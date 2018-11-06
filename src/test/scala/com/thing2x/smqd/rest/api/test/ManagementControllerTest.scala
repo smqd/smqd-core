@@ -16,11 +16,13 @@ package com.thing2x.smqd.rest.api.test
 
 import akka.http.scaladsl.model.StatusCodes
 import com.thing2x.smqd.NodeInfo
+import com.thing2x.smqd.plugin.PluginDefinition
 import com.typesafe.scalalogging.StrictLogging
-import io.circe._
-import io.circe.syntax._
+
 import io.circe.generic.auto._
 import io.circe.parser._
+import io.circe.Json
+import com.thing2x.smqd.plugin._
 
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
 
@@ -33,7 +35,7 @@ class ManagementControllerTest extends CoreApiTesting with StrictLogging {
     "version" in {
       Get("/api/v1/management/version") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val rsp = asCoreApiResponseAsMap(entityAs[String])
+        val rsp = asCoreApiResponseWithMap(entityAs[String])
         assert(rsp.code == 0)
         assert(rsp.result("nodename").as[String].getOrElse(null) == "smqd-test-node")
         assert(rsp.result("jvm").as[String].getOrElse(null).length > 0)
@@ -46,7 +48,7 @@ class ManagementControllerTest extends CoreApiTesting with StrictLogging {
     "simple" in {
       Get("/api/v1/management/version?fmt=version") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val rsp = asCoreApiResponseAsMap(entityAs[String])
+        val rsp = asCoreApiResponseWithMap(entityAs[String])
         assert(rsp.code == 0)
         assert(rsp.result("version").as[String].getOrElse(null) == smqdInstance.version)
       }
@@ -55,7 +57,7 @@ class ManagementControllerTest extends CoreApiTesting with StrictLogging {
     "commit" in {
       Get("/api/v1/management/version?fmt=commit") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val rsp = asCoreApiResponseAsMap(entityAs[String])
+        val rsp = asCoreApiResponseWithMap(entityAs[String])
         assert(rsp.code == 0)
         assert(rsp.result("commitVersion").as[String].getOrElse(null).length > 10)
       }
@@ -66,29 +68,33 @@ class ManagementControllerTest extends CoreApiTesting with StrictLogging {
     "list" in {
       Get("/api/v1/management/nodes") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val json = parse(entityAs[String]).getOrElse(Json.Null)
-
-        val rsp = json.as[CoreApiResponse].getOrElse(null)
+        val rsp = asCoreApiResponseWithType[Seq[NodeInfo]](entityAs[String])
         assert(rsp.code == 0)
-
-        val nodeInfoList = rsp.result.as[Seq[NodeInfo]].getOrElse(null)
-        assert(nodeInfoList.nonEmpty)
-        assert(nodeInfoList.head.nodeName == "smqd-test-node")
+        assert(rsp.result.nonEmpty)
+        assert(rsp.result.head.nodeName == "smqd-test-node")
       }
     }
 
     "single node" in {
       Get("/api/v1/management/nodes/smqd-test-node") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val json = parse(entityAs[String]).getOrElse(Json.Null)
-
-        val rsp = json.as[CoreApiResponse].getOrElse(null)
+        val rsp = asCoreApiResponseWithType[NodeInfo](entityAs[String])
         assert(rsp.code == 0)
+        assert(rsp.result.nodeName == "smqd-test-node")
+        assert(rsp.result.api.isDefined)
+        assert(rsp.result.api.get.address.get.startsWith("http://127.0.0.1:"))
+      }
+    }
+  }
 
-        val nodeInfo = rsp.result.as[NodeInfo].getOrElse(null)
-        assert(nodeInfo.nodeName == "smqd-test-node")
-        assert(nodeInfo.api.isDefined)
-        logger.info(s"================+> ${nodeInfo.api.get.address.get}")
+  "plugins" should {
+    "list" in {
+      Get("/api/v1/management/plugins") ~> routes ~> check {
+        status shouldEqual StatusCodes.OK
+        val rsp = asCoreApiResponseWithMap(entityAs[String])
+        assert(rsp.code == 0)
+        assert(rsp.result("current_page").as[Int].getOrElse(-1) == 1)
+        assert(rsp.result("objects").as[Seq[Json]].getOrElse(Nil).nonEmpty)
       }
     }
   }

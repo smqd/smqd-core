@@ -277,7 +277,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
           case _ =>
             complete(StatusCodes.OK, restSuccess(0, Json.obj(
               ("auto-start", Json.fromBoolean(autoStart)),
-              ("config" -> Json.Null)
+              ("config", Json.Null)
             )))
             //complete(StatusCodes.NotAcceptable, s"Plugin instance is not a configurable")
         }

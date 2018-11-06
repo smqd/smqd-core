@@ -14,11 +14,10 @@
 
 package com.thing2x.smqd
 
+import java.io.{ByteArrayOutputStream, OutputStreamWriter, PrintWriter}
+
 import io.circe._
 import io.circe.syntax._
-import io.circe.generic.auto._
-
-import java.io.{ByteArrayOutputStream, OutputStreamWriter, PrintWriter}
 
 // 2018. 7. 7. - Created by Kwon, Yeong Eon
 

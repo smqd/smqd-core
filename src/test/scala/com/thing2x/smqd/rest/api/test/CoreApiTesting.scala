@@ -18,6 +18,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.testkit.TestKit
+import cats.syntax.monad.catsSyntaxMonadIdOps
 import com.thing2x.smqd.{EndpointInfo, NodeInfo, Smqd, SmqdBuilder}
 import com.thing2x.smqd.net.http.HttpService
 import com.typesafe.config.{Config, ConfigFactory}
@@ -43,18 +44,26 @@ abstract class CoreApiTesting extends WordSpec
   with ScalatestRouteTest
   with StrictLogging {
 
-  case class CoreApiResponseAsMap(code: Int, result: Map[String, Json])
+  case class CoreApiResponseWithMap(code: Int, result: Map[String, Json])
 
-  def asCoreApiResponseAsMap(jsonString: String): CoreApiResponseAsMap = {
+  case class CoreApiResponseWithType[T](code: Int, result: T)
+
+  case class CoreApiResponse(code: Int, result: Json)
+
+  def asCoreApiResponseWithMap(jsonString: String): CoreApiResponseWithMap = {
     logger.debug(jsonString)
     val json = parse(jsonString).getOrElse(Json.Null)
-    json.as[CoreApiResponseAsMap] match {
+    json.as[CoreApiResponseWithMap] match {
       case Right(r) => r
       case _ => fail()
     }
   }
 
-  case class CoreApiResponse(code: Int, result: Json)
+  def asCoreApiResponseWithType[T](jsonString: String)(implicit d: Decoder[T]): CoreApiResponseWithType[T] = {
+    logger.debug(jsonString)
+    val json = parse(jsonString).getOrElse(Json.Null)
+    json.as[CoreApiResponseWithType[T]].getOrElse(null)
+  }
 
   val config: Config = ConfigFactory.parseString(
     """
