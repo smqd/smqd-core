@@ -40,7 +40,9 @@ abstract class AbstractBridge(val driver: BridgeDriver, val index: Long, val fil
   private var subr: Option[ActorRef] = None
 
   override def start(): Unit = {
-    subr = Some(driver.smqdInstance.subscribe(filterPath, bridge _))
+    subr = Some(driver.smqdInstance.subscribe(filterPath, { (topicPath, msg) =>
+      logger.trace(s"Bridge '${filterPath.toString}' bridge message: $msg")
+      bridge(topicPath, msg)} ))
     logger.info(s"Bridge '${filterPath.toString}' started.")
   }
 
