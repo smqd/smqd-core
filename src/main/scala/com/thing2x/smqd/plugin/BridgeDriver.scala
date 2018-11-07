@@ -101,7 +101,7 @@ abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends Ab
             addBridge(bconf)
           }
           catch {
-            case ex: Throwable => logger.error(s"BridgeDriver '$name' fail to create bridge\n{bconf.toString}\n", ex)
+            case ex: Throwable => logger.error(s"BridgeDriver '$name' fail to create bridge\n${bconf.toString}\n", ex)
           }
         }
       case None =>
