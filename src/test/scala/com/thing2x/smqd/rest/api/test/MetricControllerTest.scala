@@ -28,7 +28,7 @@ class MetricControllerTest extends CoreApiTesting with StrictLogging {
     "get-all" in {
       Get("/api/v1/metrics") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val rsp = asCoreApiResponseAsMap(entityAs[String])
+        val rsp = asCoreApiResponseWithMap(entityAs[String])
         assert(rsp.code == 0)
         assert(rsp.result.nonEmpty)
       }
@@ -37,7 +37,7 @@ class MetricControllerTest extends CoreApiTesting with StrictLogging {
     "get-jvm/cpu" in {
       Get("/api/v1/metrics/jvm/cpu") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        val rsp = asCoreApiResponseAsMap(entityAs[String])
+        val rsp = asCoreApiResponseWithMap(entityAs[String])
         assert(rsp.code == 0)
         assert(rsp.result.nonEmpty)
       }

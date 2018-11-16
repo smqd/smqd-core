@@ -38,7 +38,7 @@ class UserControllerTest extends CoreApiTesting with StrictLogging {
       Post("/api/v1/auth/login", loginReq ) ~> routes ~> check {
 
         status shouldEqual StatusCodes.OK
-        val rsp = asCoreApiResponseAsMap(entityAs[String])
+        val rsp = asCoreApiResponseWithMap(entityAs[String])
         assert(rsp.code == 0)
         assert(rsp.result("access_token").as[String].getOrElse(null).length > 30)
 
