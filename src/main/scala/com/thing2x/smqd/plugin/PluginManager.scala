@@ -213,13 +213,19 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     val codeBaseDir = new File(codeBase).getParentFile
 
     // smqd-core_2.12.jar 파일과 같은 디렉터리에 존재하는 .jar 파일들
-    val fileListInLib = codeBaseDir.listFiles { file =>
-      file.canRead && file.isFile && file.getName.endsWith(".jar")
-    }.toSeq
+    val fileListInLib = if (codeBaseDir.canRead) {
+      codeBaseDir.listFiles { file =>
+        file.canRead && file.isFile && file.getName.endsWith(".jar")
+      }.toSeq
+    }
+    else {
+      Seq.empty
+    }
+
 
     // plugin directory에 들어 있는 파일들
     val fileListInPlugin = rootDir match {
-      case Some(dir) =>
+      case Some(dir) if dir.canRead =>
         dir.listFiles { file =>
           val filename = file.getName
           if (!file.canRead) false
