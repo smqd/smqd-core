@@ -170,12 +170,12 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
 
             expect(config.passwordPrompt) match {
               case Expected(prompt, _) =>
-                logger.trace(s"password prompt: '$prompt'")
+                logger.trace(s"password expectingPrompt: '$prompt'")
                 writeLine(config.password)
 
                 expect(config.shellPrompt) match {
                   case Expected(prompt, _) =>
-                    logger.trace(s"shell prompt: '$prompt'")
+                    logger.trace(s"shell expectingPrompt: '$prompt'")
                     Connected
                   case m =>
                     LoginFailure(m.toString)
@@ -346,21 +346,21 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
   /**
     * expect for a string that specified by regular expression
     */
-  def expect(prompt: Regex)(implicit ec: ExecutionContext, timeout: Duration): ExpectResult = {
-    val f = Future { expect0(prompt) }
+  def expect(expectingPrompt: Regex, expectingContent: Option[Regex] = None)(implicit ec: ExecutionContext, timeout: Duration): ExpectResult = {
+    val f = Future { expect0(expectingPrompt, expectingContent) }
     try {
       Await.result(f, timeout)
     }
     catch {
       case _: TimeoutException =>
-        Timeout(s"Timeout when client is expecting for '${prompt.toString}', the remainings in the buffer is '${expectingBuffer.toString}'")
+        Timeout(s"Timeout when client is expecting for '${expectingPrompt.toString}'${if (expectingContent.isDefined) s" containing '${expectingContent.toString}'" else ""}, the remainings in the buffer is '${expectingBuffer.toString}'")
     }
   }
 
   private val textBuffer = new StringBuffer()
   private val expectingBuffer = new StringBuffer()
 
-  private def expect0(prompt: Regex): ExpectResult = buffer.synchronized {
+  private def expect0(prompt: Regex, content: Option[Regex] = None): ExpectResult = buffer.synchronized {
     var result: ExpectResult = null
     var loop = true
 
@@ -371,9 +371,24 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     do {
       val str = expectingBuffer.toString
       prompt.findFirstIn(str) match {
-        case Some(_) =>
+        case Some(_) if content.isEmpty => // find the prompt
           result = Expected(str, textBuffer.toString)
           loop = false
+        case Some(_) if content.isDefined => // find the prompt, then check if the expected content is contained
+          val text = textBuffer.toString
+          content.get.findFirstIn(text) match {
+            case Some(_) =>
+              result = Expected(str, text)
+              loop = false
+            case _ => // text doesn't contain the expected content
+              // abandon the text after leaving log
+              if (config.debug) {
+                logger.debug(s"Content doesn't contain the expected content '${content.get.toString}' in $text")
+              }
+              // reset the buffers
+              textBuffer.setLength(0)
+              expectingBuffer.setLength(0)
+          }
         case _ =>
           if (str.endsWith("\n")) {
             expectingBuffer.setLength(0)
@@ -398,9 +413,9 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     result
   }
 
-  def exec(cmd: String, expectingPrompt: Regex = config.shellPrompt)(implicit ec: ExecutionContext, timeout: Duration): ExecResult = {
+  def exec(cmd: String, expectingPrompt: Regex = config.shellPrompt, expectingContent: Option[Regex] = None)(implicit ec: ExecutionContext, timeout: Duration): ExecResult = {
     writeLine(cmd)
-    expect(expectingPrompt) match {
+    expect(expectingPrompt, expectingContent) match {
       case Expected(_, text) => ExecSuccess(text)
       case t: Timeout => t
       case m => ExecFailure(m.toString)
