@@ -366,7 +366,17 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
 
     textBuffer.setLength(0)
     expectingBuffer.setLength(0)
+
     val debugBuffer = if (config.debug) Unpooled.buffer(1024) else null
+
+    def appendDebugBuffer(c: Int): Unit = if (config.debug) debugBuffer.writeByte(c)
+
+    def dumpDebugBuffer(): Unit = {
+      if (config.debug){
+        logger.trace("RECV:\n{}", ByteBufUtil.prettyHexDump(debugBuffer))
+        debugBuffer.clear()
+      }
+    }
 
     do {
       val str = expectingBuffer.toString
@@ -374,6 +384,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
         case Some(_) if content.isEmpty => // find the prompt
           result = Expected(str, textBuffer.toString)
           loop = false
+          dumpDebugBuffer()
         case Some(_) if content.isDefined => // find the prompt, then check if the expected content is contained
           val text = textBuffer.toString
           content.get.findFirstIn(text) match {
@@ -389,21 +400,18 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
               textBuffer.setLength(0)
               expectingBuffer.setLength(0)
           }
+          dumpDebugBuffer()
         case _ =>
           if (str.endsWith("\n")) {
             expectingBuffer.setLength(0)
             val trimmed = if (str.endsWith("\r\n")) str.substring(0, str.length-2) else str.substring(0, str.length-1)
-            if (config.debug){
-              logger.trace("RECV:\n{}", ByteBufUtil.prettyHexDump(debugBuffer))
-              debugBuffer.clear()
-            }
-
             textBuffer.append(trimmed).append("\n")
+            dumpDebugBuffer()
           }
           else {
             val code = read0()
-            if (config.debug) debugBuffer.writeByte(code)
             expectingBuffer.append(code.toChar)
+            appendDebugBuffer(code)
           }
       }
     }
