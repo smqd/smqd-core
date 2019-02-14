@@ -103,7 +103,7 @@ class MetricActor(smqdInstance: Smqd, config: Config) extends Actor with StrictL
       val v = HistogramValue(hist.getCount,
         SnapshotValue(ss.getMean, ss.getMax, ss.getMin, ss.getMedian, ss.getStdDev,
           ss.get75thPercentile, ss.get95thPercentile, ss.get98thPercentile, ss.get99thPercentile, ss.get999thPercentile))
-      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}}""")
     }
 
     // Meters
@@ -111,7 +111,7 @@ class MetricActor(smqdInstance: Smqd, config: Config) extends Actor with StrictL
       val topic = keyPrefix(key)
       val v = MeterValue(meter.getCount,
         RateValue(meter.getMeanRate, meter.getOneMinuteRate, meter.getFiveMinuteRate, meter.getFifteenMinuteRate))
-      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}}""")
     }
 
     // Timers
@@ -122,7 +122,7 @@ class MetricActor(smqdInstance: Smqd, config: Config) extends Actor with StrictL
         RateValue(timer.getMeanRate, timer.getOneMinuteRate, timer.getFiveMinuteRate, timer.getFifteenMinuteRate),
         SnapshotValue(ss.getMean, ss.getMax, ss.getMin, ss.getMedian, ss.getStdDev,
           ss.get75thPercentile, ss.get95thPercentile, ss.get98thPercentile, ss.get99thPercentile, ss.get999thPercentile))
-      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}}""")
     }
   }
 }
