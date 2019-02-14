@@ -36,6 +36,8 @@ object TelnetClient {
     var port: Int = 23
     var debug: Boolean = false
 
+    var bufferSize: Int = 4096
+
     var autoLogin: Boolean = false
 
     var loginPrompt: Regex = ".*ogin:".r
@@ -120,6 +122,8 @@ object TelnetClient {
 
     def withShellPrompt(prompt: Regex): Builder = { config.shellPrompt = prompt; this }
 
+    def withBufferSize(size: Int): Builder = { config.bufferSize = size; this }
+
     def build(): TelnetClient = {
       if (protocol == "TELNET")
         new TelnetClient(config, new TelnetProtocolSupport())
@@ -152,7 +156,7 @@ object TelnetClient {
 
 class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends StrictLogging {
 
-  private val buffer = new Array[Byte](4096)
+  private val buffer = new Array[Byte](config.bufferSize)
   private var head = 0
   private var tail = 0
 
@@ -394,11 +398,12 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
             case _ => // text doesn't contain the expected content
               // abandon the text after leaving log
               if (config.debug) {
-                logger.debug(s"Content doesn't contain the expected content '${content.get.toString}' in $text")
+                logger.debug(s"Content not found '${content.get.toString}' in $text")
               }
               // reset the buffers
               textBuffer.setLength(0)
               expectingBuffer.setLength(0)
+              compactBuffer0()
           }
           dumpDebugBuffer()
         case _ =>
