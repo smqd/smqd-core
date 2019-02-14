@@ -43,16 +43,18 @@ object MetricActor {
   case class TimerValue(count: Long, rates: RateValue, snapshot: SnapshotValue)
 
   case object Tick
+
+  case class Config(initialDelay: FiniteDuration = 5.seconds, delay: FiniteDuration = 10.seconds)
 }
 
 import MetricActor._
 
-class MetricActor(smqdInstance: Smqd) extends Actor with StrictLogging {
+class MetricActor(smqdInstance: Smqd, config: Config) extends Actor with StrictLogging {
   private var schedule: Option[Cancellable] = None
 
   override def preStart(): Unit = {
     import context.dispatcher
-    val sc = context.system.scheduler.schedule(5.second, 10.second, self, Tick)
+    val sc = context.system.scheduler.schedule(config.initialDelay, config.delay, self, Tick)
     schedule = Option(sc)
   }
 
