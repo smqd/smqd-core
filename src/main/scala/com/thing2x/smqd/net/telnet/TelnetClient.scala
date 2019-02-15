@@ -267,12 +267,13 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
 
 
   private def compactBuffer0(): Unit = buffer.synchronized {
+    logger.trace(s"buffer compaction before, head=$head, tail=$tail")
     if (head > 0) { // buffer compaction
       Array.copy(buffer, head, buffer, 0, tail - head)
       tail = tail - head
       head = 0
     }
-    logger.trace(s"buffer compaction, head=$head, tail=$tail")
+    logger.trace(s"buffer compaction after, head=$head, tail=$tail")
   }
 
   private def read0(): Int = buffer.synchronized {
@@ -324,7 +325,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
 
         if (config.debug) {
           bb.writeByte(ch)
-          logger.trace("RECV:\n{}", ByteBufUtil.prettyHexDump(bb))
+          logger.trace(s"RECV buffer(head: $head, tail: $tail)\n${ByteBufUtil.prettyHexDump(bb)}")
         }
       }
       else if (ch == -1) {
@@ -378,7 +379,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
 
     def dumpDebugBuffer(): Unit = {
       if (config.debug){
-        logger.trace("RECV:\n{}", ByteBufUtil.prettyHexDump(debugBuffer))
+        logger.trace(s"RECV buffer(head: $head, tail: $tail)\n${ByteBufUtil.prettyHexDump(debugBuffer)}")
         debugBuffer.clear()
       }
     }
