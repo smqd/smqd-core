@@ -278,23 +278,29 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
 
   private def read0(): Int = buffer.synchronized {
     val in = client.inputStream
+    var readCount = 0
 
-    if (tail > head) {
+    val rt = if (tail > head) {
       val ch = buffer(head)
       head += 1
       ch
     }
     else {
-      val cnt = in.read(buffer, tail, buffer.length - tail)
-      if (cnt <= 0) {
+      readCount = in.read(buffer, tail, buffer.length - tail)
+      if (readCount <= 0) {
         return -1
       }
-      tail += cnt
+      else {
+        tail += readCount
 
-      val ch = buffer(head)
-      head += 1
-      ch
+        val ch = buffer(head)
+        head += 1
+        ch
+      }
     }
+
+    logger.trace(s"buffer read, head=$head, tail=$tail, readCount=$readCount")
+    rt
   }
 
   /**
