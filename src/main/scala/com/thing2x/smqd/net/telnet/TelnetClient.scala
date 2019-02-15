@@ -401,9 +401,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
               loop = false
             case _ => // text doesn't contain the expected content
               // abandon the text after leaving log
-              if (config.debug) {
-                logger.debug(s"Content not found '${content.get.toString}' in $text")
-              }
+              logger.trace(s"Content not found '${content.get.toString}' in $text")
               // reset the buffers
               textBuffer.setLength(0)
               expectingBuffer.setLength(0)
