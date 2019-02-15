@@ -280,10 +280,9 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     val in = client.inputStream
     var readCount = 0
 
-    val rt = if (tail > head) {
-      val ch = buffer(head)
+    if (tail > head) {
       head += 1
-      ch
+      buffer(head - 1)
     }
     else {
       readCount = in.read(buffer, tail, buffer.length - tail)
@@ -293,14 +292,11 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
       else {
         tail += readCount
 
-        val ch = buffer(head)
         head += 1
-        ch
+        logger.trace(s"buffer read, head=$head, tail=$tail, readCount=$readCount")
+        buffer(head - 1)
       }
     }
-
-    logger.trace(s"buffer read, head=$head, tail=$tail, readCount=$readCount")
-    rt
   }
 
   /**
