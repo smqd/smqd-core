@@ -115,14 +115,13 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
 
       implicit val ec: ExecutionContext = smqd.Implicit.gloablDispatcher
 
-      val grabber = new ProcessGrabber()
-
       // 초기 상태: Unknown
       val job = Job(name, HealthStatus.Unknown)
 
       val runnable = new Runnable{
         override def run(): Unit = {
           val previousStatus = job.status
+          val grabber = new ProcessGrabber()
 
           try {
             val result = command.!(grabber)
@@ -151,7 +150,7 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
         }
       }
 
-      job.token = Option(smqd.Implicit.system.scheduler.schedule(3 seconds, interval, runnable))
+      job.token = Option(smqd.Implicit.system.scheduler.schedule(interval, interval, runnable))
       job
     }
   }
