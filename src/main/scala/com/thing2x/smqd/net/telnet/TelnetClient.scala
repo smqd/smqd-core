@@ -146,6 +146,7 @@ object TelnetClient {
 
   sealed trait ExpectResult
   case class Expected(prompt: String, text: String) extends ExpectResult
+  case class Unexpected(message: String) extends ExpectResult
 
   sealed trait ExecResult extends Result
   case class ExecSuccess(text: String) extends ExecResult
@@ -287,7 +288,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     else {
       readCount = in.read(buffer, tail, buffer.length - tail)
       if (readCount <= 0) {
-        return -1
+        throw new EOFException(s"the last read count is $readCount")
       }
       else {
         tail += readCount
@@ -360,8 +361,16 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
       Await.result(f, timeout)
     }
     catch {
+      case _: EOFException =>
+        val prompt = expectingPrompt.toString
+        val content = if (expectingContent.isDefined) s" containing '${expectingContent.get.toString}'" else ""
+        val remain = expectingBuffer.toString
+        Unexpected(s"Unexpected EOF when client is expecting for '$prompt'$content, the remainings in the buffer is '$remain'")
       case _: TimeoutException =>
-        Timeout(s"Timeout when client is expecting for '${expectingPrompt.toString}'${if (expectingContent.isDefined) s" containing '${expectingContent.toString}'" else ""}, the remainings in the buffer is '${expectingBuffer.toString}'")
+        val prompt = expectingPrompt.toString
+        val content = if (expectingContent.isDefined) s" containing '${expectingContent.get.toString}'" else ""
+        val remain = expectingBuffer.toString
+        Timeout(s"Timeout when client is expecting for '$prompt'$content, the remainings in the buffer is '$remain'")
     }
   }
 
