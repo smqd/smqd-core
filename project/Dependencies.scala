@@ -6,9 +6,9 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val scala = "2.12.7"
-    val akka = "2.5.17"
-    val akkaHttp = "10.1.5"
+    val scala = "2.12.8"
+    val akka = "2.5.21"
+    val akkaHttp = "10.1.7"
     val netty = "4.1.30.Final"
     val alpakka = "0.20"
   }

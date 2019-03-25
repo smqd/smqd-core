@@ -17,7 +17,7 @@ package com.thing2x.smqd.session
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import akka.cluster.Cluster
 import akka.cluster.ddata.Replicator._
-import akka.cluster.ddata.{DistributedData, LWWMap, LWWMapKey}
+import akka.cluster.ddata.{DistributedData, LWWMap, LWWMapKey, SelfUniqueAddress}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.thing2x.smqd.ChiefActor.ReadyAck
@@ -221,7 +221,7 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
   private val ddata = DistributedData(context.system).replicator
   private val SessionsKey = LWWMapKey[String, ActorRef]("smqd.sessions")
 
-  private implicit val node: Cluster = smqd.cluster.get
+  private implicit val selfUniqueAddress: SelfUniqueAddress = SelfUniqueAddress(smqd.cluster.get.selfUniqueAddress)
 
   private val readConsistency = ReadMajority(timeout = 2.second)
   private val writeConsistency = WriteMajority(timeout = 2.second)
@@ -295,7 +295,7 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
     ddata ! Update(SessionsKey, LWWMap.empty[String, ActorRef], writeConsistency, Some((clientId, promise, "registered"))){ m =>
       sstore.setSessionState(clientId, connected = true)
       logger.trace(s"[$clientId] ddata register (${clientId.id} -> ${sessionActor.toString})")
-      m + (clientId.id, sessionActor)
+      m :+ (clientId.id, sessionActor)
     }
 
     implicit val timeout: Timeout = 2.second
@@ -307,7 +307,7 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
     ddata ! Update(SessionsKey, LWWMap.empty[String, ActorRef], writeConsistency, Some((clientId, promise, "unregistered"))){ m =>
       sstore.setSessionState(clientId, connected = false)
       logger.trace(s"[$clientId] ddata unregister")
-      m - clientId.id
+      m.remove(selfUniqueAddress, clientId.id)
     }
 
     implicit val timeout: Timeout = 2.second

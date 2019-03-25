@@ -36,6 +36,8 @@ object TelnetClient {
     var port: Int = 23
     var debug: Boolean = false
 
+    var bufferSize: Int = 4096
+
     var autoLogin: Boolean = false
 
     var loginPrompt: Regex = ".*ogin:".r
@@ -120,6 +122,8 @@ object TelnetClient {
 
     def withShellPrompt(prompt: Regex): Builder = { config.shellPrompt = prompt; this }
 
+    def withBufferSize(size: Int): Builder = { config.bufferSize = size; this }
+
     def build(): TelnetClient = {
       if (protocol == "TELNET")
         new TelnetClient(config, new TelnetProtocolSupport())
@@ -142,6 +146,7 @@ object TelnetClient {
 
   sealed trait ExpectResult
   case class Expected(prompt: String, text: String) extends ExpectResult
+  case class Unexpected(message: String) extends ExpectResult
 
   sealed trait ExecResult extends Result
   case class ExecSuccess(text: String) extends ExecResult
@@ -152,7 +157,7 @@ object TelnetClient {
 
 class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends StrictLogging {
 
-  private val buffer = new Array[Byte](4096)
+  private val buffer = new Array[Byte](config.bufferSize)
   private var head = 0
   private var tail = 0
 
@@ -262,32 +267,36 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
   }
 
 
-  private def compactBuffer0(): Unit = {
+  private def compactBuffer0(): Unit = buffer.synchronized {
+    logger.trace(s"buffer compaction before, head=$head, tail=$tail")
     if (head > 0) { // buffer compaction
       Array.copy(buffer, head, buffer, 0, tail - head)
       tail = tail - head
       head = 0
     }
+    logger.trace(s"buffer compaction after, head=$head, tail=$tail")
   }
 
   private def read0(): Int = buffer.synchronized {
     val in = client.inputStream
+    var readCount = 0
 
     if (tail > head) {
-      val ch = buffer(head)
       head += 1
-      ch
+      buffer(head - 1)
     }
     else {
-      val cnt = in.read(buffer, tail, buffer.length - tail)
-      if (cnt == -1) {
-        return -1
+      readCount = in.read(buffer, tail, buffer.length - tail)
+      if (readCount <= 0) {
+        throw new EOFException(s"the last read count is $readCount")
       }
-      tail += cnt
+      else {
+        tail += readCount
 
-      val ch = buffer(head)
-      head += 1
-      ch
+        head += 1
+        logger.trace(s"buffer read, head=$head, tail=$tail, readCount=$readCount")
+        buffer(head - 1)
+      }
     }
   }
 
@@ -319,7 +328,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
 
         if (config.debug) {
           bb.writeByte(ch)
-          logger.trace("RECV:\n{}", ByteBufUtil.prettyHexDump(bb))
+          logger.trace(s"RECV buffer(head: $head, tail: $tail)\n${ByteBufUtil.prettyHexDump(bb)}")
         }
       }
       else if (ch == -1) {
@@ -352,8 +361,16 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
       Await.result(f, timeout)
     }
     catch {
+      case _: EOFException =>
+        val prompt = expectingPrompt.toString
+        val content = if (expectingContent.isDefined) s" containing '${expectingContent.get.toString}'" else ""
+        val remain = expectingBuffer.toString
+        Unexpected(s"Unexpected EOF when client is expecting for '$prompt'$content, the remainings in the buffer is '$remain'")
       case _: TimeoutException =>
-        Timeout(s"Timeout when client is expecting for '${expectingPrompt.toString}'${if (expectingContent.isDefined) s" containing '${expectingContent.toString}'" else ""}, the remainings in the buffer is '${expectingBuffer.toString}'")
+        val prompt = expectingPrompt.toString
+        val content = if (expectingContent.isDefined) s" containing '${expectingContent.get.toString}'" else ""
+        val remain = expectingBuffer.toString
+        Timeout(s"Timeout when client is expecting for '$prompt'$content, the remainings in the buffer is '$remain'")
     }
   }
 
@@ -366,7 +383,17 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
 
     textBuffer.setLength(0)
     expectingBuffer.setLength(0)
+
     val debugBuffer = if (config.debug) Unpooled.buffer(1024) else null
+
+    def appendDebugBuffer(c: Int): Unit = if (config.debug) debugBuffer.writeByte(c)
+
+    def dumpDebugBuffer(): Unit = {
+      if (config.debug){
+        logger.trace(s"RECV buffer(head: $head, tail: $tail)\n${ByteBufUtil.prettyHexDump(debugBuffer)}")
+        debugBuffer.clear()
+      }
+    }
 
     do {
       val str = expectingBuffer.toString
@@ -374,6 +401,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
         case Some(_) if content.isEmpty => // find the prompt
           result = Expected(str, textBuffer.toString)
           loop = false
+          dumpDebugBuffer()
         case Some(_) if content.isDefined => // find the prompt, then check if the expected content is contained
           val text = textBuffer.toString
           content.get.findFirstIn(text) match {
@@ -382,28 +410,24 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
               loop = false
             case _ => // text doesn't contain the expected content
               // abandon the text after leaving log
-              if (config.debug) {
-                logger.debug(s"Content doesn't contain the expected content '${content.get.toString}' in $text")
-              }
+              logger.trace(s"Content not found '${content.get.toString}' in $text")
               // reset the buffers
               textBuffer.setLength(0)
               expectingBuffer.setLength(0)
+              compactBuffer0()
           }
+          dumpDebugBuffer()
         case _ =>
           if (str.endsWith("\n")) {
             expectingBuffer.setLength(0)
             val trimmed = if (str.endsWith("\r\n")) str.substring(0, str.length-2) else str.substring(0, str.length-1)
-            if (config.debug){
-              logger.trace("RECV:\n{}", ByteBufUtil.prettyHexDump(debugBuffer))
-              debugBuffer.clear()
-            }
-
             textBuffer.append(trimmed).append("\n")
+            dumpDebugBuffer()
           }
           else {
             val code = read0()
-            if (config.debug) debugBuffer.writeByte(code)
             expectingBuffer.append(code.toChar)
+            appendDebugBuffer(code)
           }
       }
     }

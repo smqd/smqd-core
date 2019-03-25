@@ -19,12 +19,13 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.{Actor, ActorRef, Props}
 import akka.cluster.Cluster
 import akka.cluster.ddata.Replicator._
-import akka.cluster.ddata.{DistributedData, ORMultiMap, ORMultiMapKey}
+import akka.cluster.ddata.{DistributedData, ORMultiMap, ORMultiMapKey, SelfUniqueAddress}
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.registry.{Registration, Registry}
 import com.thing2x.smqd.session.SessionActor.OutboundPublish
 import com.typesafe.scalalogging.StrictLogging
 import io.circe._
+
 import scala.concurrent.duration._
 
 // 2018. 6. 15. - Created by Kwon, Yeong Eon
@@ -124,7 +125,7 @@ object RoutesReplicator {
 }
 
 class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry) extends Actor with StrictLogging {
-  private implicit val node: Cluster = Cluster(context.system)
+  private implicit val selfUniqueAddress: SelfUniqueAddress = SelfUniqueAddress(Cluster(context.system).selfUniqueAddress)
   private val replicator = DistributedData(context.system).replicator
   private val FiltersKey = ORMultiMapKey[FilterPath, SmqdRoute]("smqd.filters")
 
@@ -183,11 +184,11 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
         if (!blindRoutingFlag) { // enable blind routing
           blindRoutingFlag = true
           logger.warn("Blind routing triggered: > {}", blindRoutingThreshold)
-          replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding("#", SmqdRoute("#", localRouter, smqd.nodeName)))
+          replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(selfUniqueAddress, "#", SmqdRoute("#", localRouter, smqd.nodeName)))
         }
       }
       else {
-        replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
+        replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(selfUniqueAddress, filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
       }
     }
   }
@@ -197,7 +198,7 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
       // do nothing
     }
     else {
-      replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.removeBinding(filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
+      replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.removeBinding(selfUniqueAddress, filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
     }
   }
 }

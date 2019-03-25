@@ -67,8 +67,11 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
       context.actorOf(Props(classOf[LocalModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
     }
 
+    val metricInitialDelay = smqd.config.getDuration("smqd.metric.initial_delay").toMillis.millis
+    val metricDelay = smqd.config.getDuration("smqd.metric.delay").toMillis.millis
+    val metricConfig = MetricActor.Config(metricInitialDelay, metricDelay)
     context.actorOf(Props(classOf[JvmMonitoringActor]), JvmMonitoringActor.actorName)
-    context.actorOf(Props(classOf[MetricActor], smqd), MetricActor.actorName)
+    context.actorOf(Props(classOf[MetricActor], smqd, metricConfig), MetricActor.actorName)
 
     context.children.foreach{ child =>
       try {

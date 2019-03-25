@@ -17,7 +17,7 @@ package com.thing2x.smqd
 import akka.actor.Actor
 import akka.cluster.Cluster
 import akka.cluster.ddata.Replicator._
-import akka.cluster.ddata.{DistributedData, LWWMap, LWWMapKey}
+import akka.cluster.ddata.{DistributedData, LWWMap, LWWMapKey, SelfUniqueAddress}
 import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd.QoS.QoS
 import com.typesafe.scalalogging.StrictLogging
@@ -91,7 +91,7 @@ object RetainsReplicator {
 }
 
 class RetainsReplicator(smqd: Smqd, retainer: ClusterModeRetainer) extends Actor with StrictLogging {
-  private implicit val node: Cluster = Cluster(context.system)
+  private implicit val node: SelfUniqueAddress = SelfUniqueAddress(Cluster(context.system).selfUniqueAddress)
   private val replicator = DistributedData(context.system).replicator
   private val RetainsKey = LWWMapKey[TopicPath, Array[Byte]]("smqd.retains")
 
@@ -120,10 +120,10 @@ class RetainsReplicator(smqd: Smqd, retainer: ClusterModeRetainer) extends Actor
   }
 
   private[smqd] def addRetainedMessage(topic: TopicPath, msg: Array[Byte]): Unit = {
-    replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], writeConsistency)( _ + (topic, msg))
+    replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], writeConsistency)( _ :+ (topic, msg))
   }
 
   private[smqd] def removeRetainedMessage(topic: TopicPath): Unit = {
-    replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], writeConsistency)( _ - topic)
+    replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], writeConsistency)( _.remove(node, topic))
   }
 }

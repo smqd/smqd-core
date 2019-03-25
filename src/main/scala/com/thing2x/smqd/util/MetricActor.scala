@@ -43,16 +43,18 @@ object MetricActor {
   case class TimerValue(count: Long, rates: RateValue, snapshot: SnapshotValue)
 
   case object Tick
+
+  case class Config(initialDelay: FiniteDuration = 5.seconds, delay: FiniteDuration = 10.seconds)
 }
 
 import MetricActor._
 
-class MetricActor(smqdInstance: Smqd) extends Actor with StrictLogging {
+class MetricActor(smqdInstance: Smqd, config: Config) extends Actor with StrictLogging {
   private var schedule: Option[Cancellable] = None
 
   override def preStart(): Unit = {
     import context.dispatcher
-    val sc = context.system.scheduler.schedule(5.second, 10.second, self, Tick)
+    val sc = context.system.scheduler.schedule(config.initialDelay, config.delay, self, Tick)
     schedule = Option(sc)
   }
 
@@ -101,7 +103,7 @@ class MetricActor(smqdInstance: Smqd) extends Actor with StrictLogging {
       val v = HistogramValue(hist.getCount,
         SnapshotValue(ss.getMean, ss.getMax, ss.getMin, ss.getMedian, ss.getStdDev,
           ss.get75thPercentile, ss.get95thPercentile, ss.get98thPercentile, ss.get99thPercentile, ss.get999thPercentile))
-      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}}""")
     }
 
     // Meters
@@ -109,7 +111,7 @@ class MetricActor(smqdInstance: Smqd) extends Actor with StrictLogging {
       val topic = keyPrefix(key)
       val v = MeterValue(meter.getCount,
         RateValue(meter.getMeanRate, meter.getOneMinuteRate, meter.getFiveMinuteRate, meter.getFifteenMinuteRate))
-      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}}""")
     }
 
     // Timers
@@ -120,7 +122,7 @@ class MetricActor(smqdInstance: Smqd) extends Actor with StrictLogging {
         RateValue(timer.getMeanRate, timer.getOneMinuteRate, timer.getFiveMinuteRate, timer.getFifteenMinuteRate),
         SnapshotValue(ss.getMean, ss.getMax, ss.getMin, ss.getMedian, ss.getStdDev,
           ss.get75thPercentile, ss.get95thPercentile, ss.get98thPercentile, ss.get99thPercentile, ss.get999thPercentile))
-      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}""")
+      smqdInstance.publish(topic, s"""{"$key":${v.asJson.noSpaces}}""")
     }
   }
 }
