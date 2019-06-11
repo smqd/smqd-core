@@ -7,10 +7,10 @@ object Dependencies {
 
   object Versions {
     val scala = "2.12.8"
-    val akka = "2.5.21"
-    val akkaHttp = "10.1.7"
+    val akka = "2.5.23"
+    val akkaHttp = "10.1.8"
     val netty = "4.1.30.Final"
-    val alpakka = "0.20"
+    val alpakka = "1.0.2"
   }
 
   val smqdLibs: Seq[ModuleID] = Seq(
@@ -57,7 +57,7 @@ object Dependencies {
     "io.circe" %% "circe-core",
     "io.circe" %% "circe-generic",
     "io.circe" %% "circe-parser"
-  ).map( _ % "0.9.3")
+  ).map( _ % "0.10.0")
 
   val netty: Seq[ModuleID] = Seq(
     "io.netty" % "netty-buffer" % Versions.netty,
@@ -84,7 +84,7 @@ object Dependencies {
     "org.bouncycastle" % "bcprov-jdk15on" % "1.60"
   )
 
-  val metricsVersion = "4.1.0-rc2" // updated 04-May-2018
+  val metricsVersion = "4.1.0" // updated 06-May-2019
   val metrics: Seq[ModuleID] = Seq(
     "io.dropwizard.metrics" % "metrics-core" % metricsVersion,
     "io.dropwizard.metrics" % "metrics-logback" % metricsVersion,
