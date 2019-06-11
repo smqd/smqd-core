@@ -13,6 +13,10 @@ object Dependencies {
     val alpakka = "0.20"
   }
 
+  val smqdLibs: Seq[ModuleID] = Seq(
+    "com.thing2x" %% "smqd-lib-logging" % "0.1.0"
+  )
+  
   val akka: Seq[ModuleID] = Seq(
     //////////////////////////////////
     // akka actor
