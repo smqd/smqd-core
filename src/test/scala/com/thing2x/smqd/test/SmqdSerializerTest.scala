@@ -19,19 +19,21 @@ import akka.serialization.SerializationExtension
 import akka.testkit.{ImplicitSender, TestActors, TestKit}
 import com.typesafe.config.ConfigFactory
 import io.netty.buffer.ByteBuf
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.matchers.must.Matchers
 import com.thing2x.smqd.{RoutableMessage, TopicPath}
 
 // 2018. 6. 15. - Created by Kwon, Yeong Eon
 
-class SmqdSerializerTest extends TestKit(ActorSystem("serializer", ConfigFactory.load("smqd-ref.conf")))
-  with ImplicitSender
-  with WordSpecLike
-  with Matchers
-  with BeforeAndAfterAll {
+class SmqdSerializerTest
+    extends TestKit(ActorSystem("serializer", ConfigFactory.load("smqd-ref.conf")))
+    with ImplicitSender
+    with AnyWordSpecLike
+    with Matchers
+    with BeforeAndAfterAll {
 
-
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 

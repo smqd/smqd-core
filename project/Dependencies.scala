@@ -37,19 +37,19 @@ object Dependencies {
     "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % Versions.alpakka,
     //////////////////////////////////
     // plugin package management
-    "org.scala-sbt" %% "librarymanagement-ivy" % "1.2.0-M3",
+    "org.scala-sbt" %% "librarymanagement-ivy" % "1.5.0-M6",
     //////////////////////////////////
     // Logging
     "com.typesafe.akka" %% "akka-slf4j" % Versions.akka force (),
     "ch.qos.logback" % "logback-classic" % "1.2.3", // 01-Apr-2017 updated
-    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
     //////////////////////////////////
     // Test
     "com.typesafe.akka" %% "akka-testkit" % Versions.akka % Test,
     "com.typesafe.akka" %% "akka-multi-node-testkit" % Versions.akka % Test,
     "com.typesafe.akka" %% "akka-stream-testkit" % Versions.akka % Test,
     "com.typesafe.akka" %% "akka-http-testkit" % Versions.akkaHttp % Test,
-    "org.scalatest" %% "scalatest" % "3.0.5" % Test,
+    "org.scalatest" %% "scalatest" % "3.2.6" % Test,
     "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2" % Test
   )
 
@@ -77,7 +77,7 @@ object Dependencies {
     "net.wimpi" % "telnetd-x" % "2.1.1",
     "commons-net" % "commons-net" % "3.6",
     "org.slf4j" % "log4j-over-slf4j" % "1.7.7",
-    "com.github.scopt" %% "scopt" % "3.7.0"
+    "com.github.scopt" %% "scopt" % "4.0.1"
   )
 
   val crypto: Seq[ModuleID] = Seq(
@@ -92,6 +92,6 @@ object Dependencies {
   )
 
   val jwt: Seq[ModuleID] = Seq(
-    "com.pauldijou" %% "jwt-core" % "0.16.0"
+    "com.pauldijou" %% "jwt-core" % "5.0.0"
   )
 }

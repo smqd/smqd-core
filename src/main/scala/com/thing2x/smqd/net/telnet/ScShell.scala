@@ -23,7 +23,7 @@ import net.wimpi.telnetd.io.BasicTerminalIO
 import net.wimpi.telnetd.net.{Connection, ConnectionEvent}
 import net.wimpi.telnetd.shell.Shell
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object ScShell {
   private var delegate: Option[ScShellDelegate] = None
@@ -94,16 +94,16 @@ class ScShell extends Shell with StrictLogging {
         cmd = ef.getValue
         ef.clear()
 
-        _history = ef.getHistory.asScala
+        _history = ef.getHistory.asScala.toSeq
         _historyOffset = ef.getHistoryOffset
 
         val args = cmd.split("\\s+").toSeq
 
-        if (args.nonEmpty && args.head.length > 0) {
+        if (args.nonEmpty && args.head.nonEmpty) {
 
           val finalArgs = _commandProvider.alias(args.head) match {
-            case Some(newCmd) =>  newCmd +: args.drop(1)
-            case None => args
+            case Some(newCmd) => newCmd +: args.drop(1)
+            case None         => args
           }
 
           _commandProvider.command(finalArgs) match {
@@ -115,18 +115,15 @@ class ScShell extends Shell with StrictLogging {
               _terminal.printStream.println(s"Command not found: ${args.head}")
           }
         }
-      }
-      while ( _connection.isActive && isAlive )
-    }
-    catch {
+      } while (_connection.isActive && isAlive)
+    } catch {
       case _: EOFException =>
         logger.info("Client send quit signal.")
       case _: SocketException =>
         logger.info("Client close the connection.")
       case ex: Exception =>
         logger.error("run()", ex)
-    }
-    finally {
+    } finally {
       _connection.removeConnectionListener(this)
       ScShell.delegate.foreach(_.afterShellStop(this))
       onConnectionClose()
@@ -148,13 +145,12 @@ class ScShell extends Shell with StrictLogging {
   }
 
   private def evalDeferred(): Unit = {
-    deferred.foreach{ defer =>
+    deferred.foreach { defer =>
       Console.withOut(_terminal.outputStream) {
         Console.withErr(_terminal.outputStream) {
-          try{
+          try {
             defer.eval
-          }
-          catch {
+          } catch {
             case e: Throwable =>
               logger.debug("deferred blocks", e)
           }
@@ -184,14 +180,12 @@ class ScShell extends Shell with StrictLogging {
   }
 
   override def connectionTimedOut(ce: ConnectionEvent): Unit = {
-    try
-      onConnectionClose()
+    try onConnectionClose()
     catch {
       case ex: Exception =>
         logger.error("clear env failure", ex)
     }
-    try
-      _connection.close()
+    try _connection.close()
     catch {
       case ex: Exception =>
         logger.error("close connection failure", ex)
@@ -225,8 +219,7 @@ class ScShell extends Shell with StrictLogging {
     }
   }
 
-  /**
-    * @param pattern wild expression for scsh file; *.scsh , abc*.scsh, abc?.scsh
+  /** @param pattern wild expression for scsh file; *.scsh , abc*.scsh, abc?.scsh
     */
   def findAllBshFiles(pattern: String): Array[File] = _commandProvider.findAllScriptFiles(pattern)
 

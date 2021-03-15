@@ -19,14 +19,13 @@ import com.thing2x.smqd.net.mqtt.MqttService
 import com.thing2x.smqd.plugin.{InstanceDefinition, PluginManager, Service}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.sys.process._
 
-/**
-  * 2018. 7. 4. - Created by Kwon, Yeong Eon
+/** 2018. 7. 4. - Created by Kwon, Yeong Eon
   */
-class PluginManagerTest extends FlatSpec with StrictLogging {
+class PluginManagerTest extends AnyFlatSpec with StrictLogging {
 
   "PluginManager" should "initialize - empty" in {
     var mgr = PluginManager("", "")
@@ -46,7 +45,7 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
   private val codebase = getClass.getProtectionDomain.getCodeSource.getLocation.getPath
   logger.debug(s"PWD: $pwd, codebase: $codebase")
 
-  val mgr = PluginManager( codebase, "", s"file://$pwd/src/test/conf/smqd-plugins-manifest-custom.conf", "")
+  val mgr = PluginManager(codebase, "", s"file://$pwd/src/test/conf/smqd-plugins-manifest-custom.conf", "")
 
   "PluginManager" should "initialize" in {
     val repos = mgr.repositoryDefinitions
@@ -60,7 +59,6 @@ class PluginManagerTest extends FlatSpec with StrictLogging {
       }
     }
   }
-
 
   it should "filter a package by name" in {
 

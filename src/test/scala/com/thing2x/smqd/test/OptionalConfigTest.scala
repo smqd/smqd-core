@@ -16,13 +16,13 @@ package com.thing2x.smqd.test
 
 import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
 
 // 2018. 6. 25. - Created by Kwon, Yeong Eon
 
-class OptionalConfigTest extends FlatSpec {
+class OptionalConfigTest extends AnyFlatSpec {
   val config: Config = ConfigFactory.parseString("""
     smqd {
       strSome = "some value"
@@ -44,7 +44,7 @@ class OptionalConfigTest extends FlatSpec {
 
   it should "Config" in {
     var c: Option[Config] = None
-    c =config.getOptionConfig("smqd.configSome")
+    c = config.getOptionConfig("smqd.configSome")
     assert(c.isDefined)
   }
 }

@@ -14,7 +14,6 @@
 
 package com.thing2x.smqd.net.telnet
 
-
 import java.io._
 import java.net.{InetSocketAddress, Socket, SocketAddress, UnknownHostException}
 import java.nio.charset.StandardCharsets
@@ -50,9 +49,9 @@ object TelnetClient {
   }
 
   trait ProtocolSupport {
-    def connect(host: String, port: Int)
-    def disconnect()
-    def flush()
+    def connect(host: String, port: Int): Unit
+    def disconnect(): Unit
+    def flush(): Unit
     def inputStream(): InputStream
     def outputStream(): OutputStream
   }
@@ -115,10 +114,10 @@ object TelnetClient {
     def withAutoLogin(autoLogin: Boolean): Builder = { config.autoLogin = autoLogin; this }
 
     def withLogin(login: String): Builder = { config.login = login; this }
-    def withLoginPrompt(loginPrompt: Regex): Builder = {config.loginPrompt = loginPrompt; this }
+    def withLoginPrompt(loginPrompt: Regex): Builder = { config.loginPrompt = loginPrompt; this }
 
     def withPassword(password: String): Builder = { config.password = password; this }
-    def withPasswordPrompt(passwordPrompt: Regex): Builder = {config.passwordPrompt = passwordPrompt; this }
+    def withPasswordPrompt(passwordPrompt: Regex): Builder = { config.passwordPrompt = passwordPrompt; this }
 
     def withShellPrompt(prompt: Regex): Builder = { config.shellPrompt = prompt; this }
 
@@ -161,8 +160,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
   private var head = 0
   private var tail = 0
 
-  /**
-    * connect to remote host
+  /** connect to remote host
     */
   def connect()(implicit ec: ExecutionContext, timeout: Duration): ConnectResult = {
     val f = Future {
@@ -191,16 +189,14 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
           case m =>
             LoginFailure(m.toString)
         }
-      }
-      else {
+      } else {
         connect0()
       }
     }
 
     try {
       Await.result(f, timeout)
-    }
-    catch {
+    } catch {
       case _: TimeoutException =>
         Timeout(s"Timeout during login, the remainings in the buffer is '${expectingBuffer.toString}'")
     }
@@ -213,8 +209,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     try {
       client.connect(config.host, config.port)
       result = Connected
-    }
-    catch {
+    } catch {
       case _: UnknownHostException =>
         result = UnknownHost(config.host)
       case e: SecurityException =>
@@ -226,8 +221,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     result
   }
 
-  /**
-    * disconnect
+  /** disconnect
     */
   def disconnect()(implicit ec: ExecutionContext, timeout: Duration): DisconnectResult = {
     val f = Future {
@@ -239,9 +233,8 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
   private def disconnect0(): DisconnectResult = {
     try {
       client.disconnect()
-    }
-    catch {
-      case _: IOException =>  // ignore - socket already closed
+    } catch {
+      case _: IOException => // ignore - socket already closed
       // callback(NetworkFailure(e))
     }
     Disconnected
@@ -251,8 +244,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     client.flush()
   }
 
-  /**
-    * write a line
+  /** write a line
     */
   def writeLine(s: String): Unit = {
     write(s"$s\r\n")
@@ -263,9 +255,8 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     if (config.debug) {
       logger.trace("SEND: {}", s.trim)
     }
-    client.outputStream.write(s.getBytes(StandardCharsets.UTF_8))
+    client.outputStream().write(s.getBytes(StandardCharsets.UTF_8))
   }
-
 
   private def compactBuffer0(): Unit = buffer.synchronized {
     logger.trace(s"buffer compaction before, head=$head, tail=$tail")
@@ -278,19 +269,17 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
   }
 
   private def read0(): Int = buffer.synchronized {
-    val in = client.inputStream
+    val in = client.inputStream()
     var readCount = 0
 
     if (tail > head) {
       head += 1
       buffer(head - 1)
-    }
-    else {
+    } else {
       readCount = in.read(buffer, tail, buffer.length - tail)
       if (readCount <= 0) {
         throw new EOFException(s"the last read count is $readCount")
-      }
-      else {
+      } else {
         tail += readCount
 
         head += 1
@@ -300,8 +289,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     }
   }
 
-  /**
-    * read a line
+  /** read a line
     */
   def readLine()(implicit ec: ExecutionContext, timeout: Duration): String = {
     val f = Future { readLine0() }
@@ -330,37 +318,32 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
           bb.writeByte(ch)
           logger.trace(s"RECV buffer(head: $head, tail: $tail)\n${ByteBufUtil.prettyHexDump(bb)}")
         }
-      }
-      else if (ch == -1) {
+      } else if (ch == -1) {
         if (readLineBuffer.length > 0) {
           rt = readLineBuffer.toString
         }
         loop = false
-      }
-      else {
+      } else {
         if (config.debug) {
           bb.writeByte(ch)
         }
         readLineBuffer.append(ch.toChar)
         prev = ch
       }
-    }
-    while(loop)
+    } while (loop)
 
     compactBuffer0()
 
     rt
   }
 
-  /**
-    * expect for a string that specified by regular expression
+  /** expect for a string that specified by regular expression
     */
   def expect(expectingPrompt: Regex, expectingContent: Option[Regex] = None)(implicit ec: ExecutionContext, timeout: Duration): ExpectResult = {
     val f = Future { expect0(expectingPrompt, expectingContent) }
     try {
       Await.result(f, timeout)
-    }
-    catch {
+    } catch {
       case _: EOFException =>
         val prompt = expectingPrompt.toString
         val content = if (expectingContent.isDefined) s" containing '${expectingContent.get.toString}'" else ""
@@ -389,7 +372,7 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     def appendDebugBuffer(c: Int): Unit = if (config.debug) debugBuffer.writeByte(c)
 
     def dumpDebugBuffer(): Unit = {
-      if (config.debug){
+      if (config.debug) {
         logger.trace(s"RECV buffer(head: $head, tail: $tail)\n${ByteBufUtil.prettyHexDump(debugBuffer)}")
         debugBuffer.clear()
       }
@@ -420,18 +403,16 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
         case _ =>
           if (str.endsWith("\n")) {
             expectingBuffer.setLength(0)
-            val trimmed = if (str.endsWith("\r\n")) str.substring(0, str.length-2) else str.substring(0, str.length-1)
+            val trimmed = if (str.endsWith("\r\n")) str.substring(0, str.length - 2) else str.substring(0, str.length - 1)
             textBuffer.append(trimmed).append("\n")
             dumpDebugBuffer()
-          }
-          else {
+          } else {
             val code = read0()
             expectingBuffer.append(code.toChar)
             appendDebugBuffer(code)
           }
       }
-    }
-    while(loop)
+    } while (loop)
     compactBuffer0()
 
     result
@@ -441,8 +422,8 @@ class TelnetClient(config: TelnetClient.Config, client: ProtocolSupport) extends
     writeLine(cmd)
     expect(expectingPrompt, expectingContent) match {
       case Expected(_, text) => ExecSuccess(text)
-      case t: Timeout => t
-      case m => ExecFailure(m.toString)
+      case t: Timeout        => t
+      case m                 => ExecFailure(m.toString)
     }
   }
 }

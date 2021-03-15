@@ -17,15 +17,13 @@ object ClusterPingPongConfig extends MultiNodeConfig {
   val node1: RoleName = role("node1")
   val node2: RoleName = role("node2")
 
-  private val node1Cfg = ConfigFactory.parseString(
-    """
+  private val node1Cfg = ConfigFactory.parseString("""
       | akka {
       |   remote.netty.tcp.port = 0
       | }
     """.stripMargin)
 
-  private val node2Cfg = ConfigFactory.parseString(
-    """
+  private val node2Cfg = ConfigFactory.parseString("""
       | akka {
       |   remote.netty.tcp.port = 0
       | }
@@ -37,17 +35,13 @@ object ClusterPingPongConfig extends MultiNodeConfig {
 
 object ClusterTestBase {
   class Ponger extends Actor {
-    def receive: Receive = {
-      case "ping" => sender ! "pong"
+    def receive: Receive = { case "ping" =>
+      sender() ! "pong"
     }
   }
 }
 
-class ClusterTestBase extends MultiNodeSpec(ClusterPingPongConfig)
-  with ClusterTestSpec
-  with BeforeAndAfterAll
-  with ImplicitSender
-  with StrictLogging {
+class ClusterTestBase extends MultiNodeSpec(ClusterPingPongConfig) with ClusterTestSpec with BeforeAndAfterAll with ImplicitSender with StrictLogging {
 
   import ClusterPingPongConfig._
   import ClusterTestBase._
@@ -71,7 +65,7 @@ class ClusterTestBase extends MultiNodeSpec(ClusterPingPongConfig)
       }
 
       runOn(node2) {
-        system.actorOf(Props[Ponger], "ponger")
+        system.actorOf(Props[Ponger](), "ponger")
         enterBarrier("deployed")
         enterBarrier("finish")
       }

@@ -17,13 +17,13 @@ package com.thing2x.smqd.test
 import com.thing2x.smqd.registry.TPathTrie
 import com.thing2x.smqd.{FilterPath, TopicPath}
 import com.typesafe.scalalogging.StrictLogging
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
 
 // 2018. 7. 11. - Created by Kwon, Yeong Eon
 
-class TPathTriePerfTest extends FlatSpec with StrictLogging{
+class TPathTriePerfTest extends AnyFlatSpec with StrictLogging {
   val trie = TPathTrie[String]()
   val sbuilder = new StringBuilder()
   var savedShape = ""
@@ -32,23 +32,23 @@ class TPathTriePerfTest extends FlatSpec with StrictLogging{
   "TPathTrie" should "append children" in {
     trie.add(FilterPath(""), context = "empty")
     trie.add(FilterPath("#"), context = "#")
-    trie.add(FilterPath("sensor/+/temp"), context="temp:1")
-    trie.add(FilterPath("sensor/+/temp"), context="temp:2")
-    trie.add(FilterPath("sensor/+/temp"), context="temp:3")
-    trie.add(FilterPath("$queue/sensor/+/temp"), context="temp:q1")
-    trie.add(FilterPath("$queue/sensor/+/temp"), context="temp:q2")
-    trie.add(FilterPath("sensor/abc/temp"), context="abc:temp")
-    trie.add(FilterPath("sensor/abc"), context="abc")
-    trie.add(FilterPath("sensor/#"), context="sensor/#")
+    trie.add(FilterPath("sensor/+/temp"), context = "temp:1")
+    trie.add(FilterPath("sensor/+/temp"), context = "temp:2")
+    trie.add(FilterPath("sensor/+/temp"), context = "temp:3")
+    trie.add(FilterPath("$queue/sensor/+/temp"), context = "temp:q1")
+    trie.add(FilterPath("$queue/sensor/+/temp"), context = "temp:q2")
+    trie.add(FilterPath("sensor/abc/temp"), context = "abc:temp")
+    trie.add(FilterPath("sensor/abc"), context = "abc")
+    trie.add(FilterPath("sensor/#"), context = "sensor/#")
     trie.add(FilterPath("houses/mine/bedroom/1/humidity"), "roomhum1")
     trie.add(FilterPath("houses/mine/bedroom/2/humidity"), "roomhum2")
     trie.add(FilterPath("houses/mine/bedroom/3/humidity"), "roomhum3")
     trie.add(FilterPath("houses/mine/bedroom/1/temp"), "roomtemp1")
     trie.add(FilterPath("houses/mine/bedroom/2/temp"), "roomtemp2")
     trie.add(FilterPath("houses/mine/bedroom/3/temp"), "roomtemp3")
-    trie.add(FilterPath("/buildings/+/maybe"), context="building")
-    trie.add(FilterPath("/buildings/+/maybe/#"), context="building-all")
-    trie.add(FilterPath("$local/$SYS/protocols/#"), context="protocol")
+    trie.add(FilterPath("/buildings/+/maybe"), context = "building")
+    trie.add(FilterPath("/buildings/+/maybe/#"), context = "building-all")
+    trie.add(FilterPath("$local/$SYS/protocols/#"), context = "protocol")
 
     initialCount = trie.snapshot.length
 
@@ -136,7 +136,7 @@ class TPathTriePerfTest extends FlatSpec with StrictLogging{
   it should "count snapshot" in {
     time("count total filters with snapshot") {
       val s = trie.snapshot
-      assert(s.length == (groupRange * filterRange)*2 + initialCount)
+      assert(s.length == (groupRange * filterRange) * 2 + initialCount)
       //logger.info(s"===========+> ${s.length}")
     }
   }

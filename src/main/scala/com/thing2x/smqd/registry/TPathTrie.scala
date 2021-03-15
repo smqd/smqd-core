@@ -23,7 +23,6 @@ import scala.collection.mutable
 // 2018. 9. 13. - Created by Kwon, Yeong Eon
 
 /**
-  *
   */
 object TPathTrie {
   def apply[T]() = new TPathTrie[T]()
@@ -35,8 +34,7 @@ class TPathTrie[T] {
     private val children: TrieMap[TName, Node] = TrieMap.empty
     private val contexts: mutable.ListBuffer[T] = mutable.ListBuffer()
 
-    /**
-      * @return number of current number of contexts
+    /** @return number of current number of contexts
       */
     @tailrec
     final def addDescendants(des: Seq[TName], context: T): Int = {
@@ -45,8 +43,7 @@ class TPathTrie[T] {
           contexts += context
           contexts.length
         }
-      }
-      else {
+      } else {
         val current = des.head
         val child = children.synchronized {
           children.get(current) match {
@@ -67,12 +64,11 @@ class TPathTrie[T] {
         contexts.synchronized {
           contexts.find(contextMatcher) match {
             case Some(ctx) => contexts -= ctx
-            case _ =>
+            case _         =>
           }
           contexts.length
         }
-      }
-      else {
+      } else {
         children.synchronized {
           val current = des.head
           children.get(current) match {
@@ -86,14 +82,13 @@ class TPathTrie[T] {
               if (children.isEmpty)
                 contexts.length * -1 // ask parent not to remove me, i still have contexts
               else
-                children.size * -1  // ask parent not to remove me, i still have children
+                children.size * -1 // ask parent not to remove me, i still have children
           }
         }
       }
     }
 
-    /**
-      * @return 0 >= number of remaining contexts, < 0 means non-existing path
+    /** @return 0 >= number of remaining contexts, < 0 means non-existing path
       */
     final def removeDescendants(des: Seq[TName], context: T): Int = {
       if (des.isEmpty) {
@@ -101,8 +96,7 @@ class TPathTrie[T] {
           contexts -= context
           contexts.length
         }
-      }
-      else {
+      } else {
         children.synchronized {
           val current = des.head
           children.get(current) match {
@@ -116,7 +110,7 @@ class TPathTrie[T] {
               if (children.isEmpty)
                 contexts.length * -1 // ask parent not to remove me, i still have contexts
               else
-                children.size * -1  // ask parent not to remove me, i still have children
+                children.size * -1 // ask parent not to remove me, i still have children
           }
         }
       }
@@ -128,12 +122,11 @@ class TPathTrie[T] {
         children.get(TNameMultiWildcard) match {
           case Some(multi) =>
             // filter that ends with '#'. e.g) filter 'sensor/#' should match with topic 'sensor'
-            multi.contexts ++ contexts
+            (multi.contexts ++ contexts).toSeq
           case None =>
-            contexts
+            contexts.toSeq
         }
-      }
-      else {
+      } else {
         val current = des.head
         val remains = des.tail
 
@@ -152,17 +145,16 @@ class TPathTrie[T] {
     final def dump(lvl: Int, sb: StringBuilder): Unit = {
       if (lvl == 0) {
         sb.append("<root>\n")
-      }
-      else {
+      } else {
         (0 until lvl).foldLeft(sb)((sb, _) => sb.append("  "))
-        sb.append("").append(if(token.name.length == 0) "''" else token.name).append("\t")
+        sb.append("").append(if (token.name.length == 0) "''" else token.name).append("\t")
         if (contexts.nonEmpty) sb.append("=> ")
         contexts.foldLeft(sb)((sb, ctx) => sb.append("[").append(ctx.toString).append("] "))
         sb.append("\n")
       }
 
-      children.foreach{ case (_, child) =>
-        child.dump(lvl+1, sb)
+      children.foreach { case (_, child) =>
+        child.dump(lvl + 1, sb)
       }
     }
   }
@@ -204,4 +196,3 @@ class TPathTrie[T] {
     root.dump(0, sb)
   }
 }
-

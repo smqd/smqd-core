@@ -30,7 +30,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 import sbt.librarymanagement.UnresolvedWarning
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
 import scala.util.Try
 
@@ -40,18 +40,18 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
   //////////////////////////////////////////////////
   // repository definitions
   private[plugin] val repositoryDefs =
-  // repo def for core plugins (internal)
-  RepositoryDefinition(CORE_PKG, "http://www.thing2x.com", new URI("https://github.com/smqd"), installable = false, "smqd core plugins") +:
-    // repo def for manually installed
-    RepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false, "manually installed plugins") +:
-    findRepositoryDefinitions(findManifest(pluginManifestUri))
+    // repo def for core plugins (internal)
+    RepositoryDefinition(CORE_PKG, "http://www.thing2x.com", new URI("https://github.com/smqd"), installable = false, "smqd core plugins") +:
+      // repo def for manually installed
+      RepositoryDefinition(STATIC_PKG, "n/a", new URI("https://github.com/smqd"), installable = false, "manually installed plugins") +:
+      findRepositoryDefinitions(findManifest(pluginManifestUri))
 
   def repositoryDefinitions: Seq[RepositoryDefinition] = repositoryDefs
   def repositoryDefinition(name: String): Option[RepositoryDefinition] = repositoryDefs.find(p => p.name == name)
 
   private def findRepositoryDefinitions(conf: Config): Seq[RepositoryDefinition] = {
     val cfs = conf.getConfigList("smqd-plugin.repositories").asScala
-    cfs.map(repositoryDefinition)
+    cfs.map(repositoryDefinition).toSeq
   }
 
   private def repositoryDefinition(conf: Config): RepositoryDefinition = {
@@ -62,8 +62,7 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
     if (conf.hasPath("location")) {
       val location = new URI(conf.getString("location"))
       RepositoryDefinition(name, provider, location, installable = true, description)
-    }
-    else {
+    } else {
       val group = conf.getString("group")
       val artifact = conf.getString("artifact")
       val version = conf.getString("version")
@@ -94,11 +93,10 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
       // try to find from uri
       val in = uri.toURL.openStream()
 
-      if (in == null){
+      if (in == null) {
         logger.warn(s"Can not access plugin manifest: ${uri.toString}")
         ref
-      }
-      else {
+      } else {
         ConfigFactory.parseReader(new InputStreamReader(in)).withFallback(ref)
       }
     } catch {
@@ -107,7 +105,6 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
         ref
     }
   }
-
 
   private[plugin] def installHttp(uri: URI, rootDir: File)(implicit system: ActorSystem, mat: Materializer): Option[File] = {
     // TODO: not tested
@@ -129,17 +126,16 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
         val source = Source.single(request, ())
         val requestResponseFlow = Http().superPool[Unit]()
 
-        source.via(requestResponseFlow)
+        source
+          .via(requestResponseFlow)
           .map(responseOrFail)
           .map(_._1)
           .runWith(Sink.foreach(writeFile(file)))
         Some(file)
-      }
-      else {
+      } else {
         None
       }
-    }
-    catch {
+    } catch {
       case ex: Throwable =>
         logger.error(s"Fail to download plugin '${uri.toString}")
         None
@@ -164,19 +160,17 @@ class RepositoryManager(pm: PluginManager, pluginManifestUri: Option[String]) ex
     val ivyConfig = InlineIvyConfiguration().withLog(ivyLogger).withResolutionCacheDir(fileCache).withResolvers(ivyResolvers)
     val lm = IvyDependencyResolution(ivyConfig)
     val isSnapshot = moduleDef.artifact.toUpperCase.endsWith("-SNAPSHOT")
-    val exclusionRules = Array(
-      ExclusionRule("com.thing2x", "smqd-core_2.12"),
-      ExclusionRule("org.scala-lang", "scala-library"))
+    val exclusionRules = Array(ExclusionRule("com.thing2x", "smqd-core_2.12"), ExclusionRule("org.scala-lang", "scala-library"))
 
     val module =
       if (isSnapshot)
-        moduleDef.group % moduleDef.artifact % moduleDef.version changing() excludeAll(exclusionRules:_*) force()
+        stringToOrganization(moduleDef.group).%(moduleDef.artifact).%(moduleDef.version).changing().excludeAll(exclusionRules.toIndexedSeq: _*).force()
       else
-        moduleDef.group % moduleDef.artifact % moduleDef.version excludeAll(exclusionRules:_*) force()
+        stringToOrganization(moduleDef.group).%(moduleDef.artifact).%(moduleDef.version).excludeAll(exclusionRules.toIndexedSeq: _*).force()
 
     lm.retrieve(module, scalaModuleInfo = None, fileRetrieve, ivyLogger) match {
       case Left(w: UnresolvedWarning) =>
-        val str= w.failedPaths.map(_.toString).mkString("\n", "\n", "\n")
+        val str = w.failedPaths.map(_.toString).mkString("\n", "\n", "\n")
         logger.warn(s"UnresolvedWarning -- $str", w.resolveException)
         None
       case Right(files: Vector[File]) =>

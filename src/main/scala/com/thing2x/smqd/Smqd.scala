@@ -39,17 +39,17 @@ import scala.language.postfixOps
 
 // 2018. 6. 12. - Created by Kwon, Yeong Eon
 
-/**
-  * smqd core instance and providing APIs for embedding applications
+/** smqd core instance and providing APIs for embedding applications
   */
-class Smqd(val config: Config,
-           _system: ActorSystem,
-           serviceDefs: Map[String, Config],
-           userDelegateOption: Option[UserDelegate] = None,
-           clientDelegateOption: Option[ClientDelegate] = None,
-           registryDelegateOption: Option[RegistryDelegate] = None,
-           sessionStoreDelegateOption: Option[SessionStoreDelegate] = None)
-  extends LifeCycle
+class Smqd(
+    val config: Config,
+    _system: ActorSystem,
+    serviceDefs: Map[String, Config],
+    userDelegateOption: Option[UserDelegate] = None,
+    clientDelegateOption: Option[ClientDelegate] = None,
+    registryDelegateOption: Option[RegistryDelegate] = None,
+    sessionStoreDelegateOption: Option[SessionStoreDelegate] = None
+) extends LifeCycle
     with ActorIdentifying
     with JvmAware
     with AkkaSystemAware
@@ -57,8 +57,7 @@ class Smqd(val config: Config,
 
   object Implicit {
     implicit val system: ActorSystem = _system
-    private val materializerSettings = ActorMaterializerSettings.create(system)
-    implicit val materializer: Materializer = ActorMaterializer(materializerSettings, system.name)
+    implicit val materializer: Materializer = Materializer(system)
     implicit val gloablDispatcher: MessageDispatcher = system.dispatchers.defaultGlobalDispatcher
   }
 
@@ -85,11 +84,11 @@ class Smqd(val config: Config,
   private val registryDelegate = registryDelegateOption.getOrElse(facilityFactory.registryDelegate)
   private val sessionStoreDelegate = sessionStoreDelegateOption.getOrElse(facilityFactory.sessionStoreDelegate)
 
-  private val registry       = Registry(this, config.getBoolean("smqd.registry.verbose"))
-  private val router         = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose"))  else new LocalModeRouter(registry)
-  private val retainer       = if (isClusterMode) new ClusterModeRetainer()  else new LocalModeRetainer()
-  private val sessionStore   = new SessionStore(this, sessionStoreDelegate)
-  private val requestor      = new Requestor()
+  private val registry = Registry(this, config.getBoolean("smqd.registry.verbose"))
+  private val router = if (isClusterMode) new ClusterModeRouter(config.getBoolean("smqd.router.verbose")) else new LocalModeRouter(registry)
+  private val retainer = if (isClusterMode) new ClusterModeRetainer() else new LocalModeRetainer()
+  private val sessionStore = new SessionStore(this, sessionStoreDelegate)
+  private val requestor = new Requestor()
 
   private var chiefActor: ActorRef = _
 
@@ -108,8 +107,7 @@ class Smqd(val config: Config,
         case ChiefActor.ReadyAck =>
           logger.info("ActorSystem ready.")
       }
-    }
-    catch {
+    } catch {
       case ex: Throwable =>
         logger.error("ActorSystem failed", ex)
         System.exit(1)
@@ -138,11 +136,10 @@ class Smqd(val config: Config,
         pluginManager.loadInstance(this, pconf) match {
           case None =>
             logger.error(s"Plugin loading filaure...")
-          case _ =>  // already started by plugin manager if plugin has auto-start=true
+          case _ => // already started by plugin manager if plugin has auto-start=true
         }
       }
-    }
-    catch {
+    } catch {
       case ex: Throwable =>
         logger.error("Initialization failed", ex)
         System.exit(1)
@@ -163,8 +160,7 @@ class Smqd(val config: Config,
       pluginManager.pluginDefinitions.reverse.flatMap(_.instances).foreach { p =>
         try {
           p.instance.execStop()
-        }
-        catch {
+        } catch {
           case ex: Throwable =>
             logger.error("Stopping failed", ex)
         }
@@ -172,8 +168,7 @@ class Smqd(val config: Config,
 
       try {
         facilityFactory.release()
-      }
-      catch {
+      } catch {
         case ex: Throwable =>
           logger.error("Stopping facility factory failed", ex)
       }
@@ -198,7 +193,8 @@ class Smqd(val config: Config,
   def nodes: Future[Seq[NodeInfo]] = chief.nodeInfo
   def node(nodeName: String): Future[Option[NodeInfo]] = chief.nodeInfo(nodeName: String)
 
-  def service(name: String): Option[Service] = pluginManager.servicePluginDefinitions.flatMap(_.instances).find(pi => pi.instance.name == name).map(p => p.instance.asInstanceOf[Service])
+  def service(name: String): Option[Service] =
+    pluginManager.servicePluginDefinitions.flatMap(_.instances).find(pi => pi.instance.name == name).map(p => p.instance.asInstanceOf[Service])
 
   def loadClass(className: String, recursive: Boolean = false): Option[Class[_]] = {
     try {
@@ -213,10 +209,10 @@ class Smqd(val config: Config,
     }
   }
 
-  private lazy val faultManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+FaultNotificationManager.actorName)(system)
+  private lazy val faultManager: ActorRef = identifyActor("user/" + ChiefActor.actorName + "/" + FaultNotificationManager.actorName)(system)
   def notifyFault(fault: SmqResult): Unit = faultManager ! fault
 
-  private lazy val protocolManager: ActorRef = identifyActor("user/"+ChiefActor.actorName+"/"+ProtocolNotificationManager.actorName)(system)
+  private lazy val protocolManager: ActorRef = identifyActor("user/" + ChiefActor.actorName + "/" + ProtocolNotificationManager.actorName)(system)
   def notifyProtocol(proto: ProtocolNotification): Unit = protocolManager ! proto
 
   def snapshotSessions(search: Option[String] = None): Future[Seq[ClientData]] =
@@ -239,11 +235,14 @@ class Smqd(val config: Config,
 
   /** Java API */
   def subscribe(filterPath: FilterPath, receivable: MessageReceivable): Future[ActorRef] =
-    registry.subscribe(filterPath){ case (topic: TopicPath, msg: Any) => receivable.onMessage(topic, msg) }
+    registry.subscribe(filterPath) { case (topic: TopicPath, msg: Any) => receivable.onMessage(topic, msg) }
 
   def unsubscribe(filterPath: FilterPath, actor: ActorRef): Boolean = unsubscribe(actor, Some(filterPath))
   def unsubscribe(actor: ActorRef, filterPath: Option[FilterPath] = None): Boolean =
-    filterPath match { case Some(filter) => registry.unsubscribe(filter, actor) case _ => registry.unsubscribe(actor) }
+    filterPath match {
+      case Some(filter) => registry.unsubscribe(filter, actor)
+      case _            => registry.unsubscribe(actor)
+    }
 
   def publish(topicPath: TopicPath, message: Any, isRetain: Boolean = false): Unit =
     router.routes(RoutableMessage(topicPath, message, isRetain))
@@ -302,7 +301,7 @@ object Smqd {
 
   private[smqd] def registerMetricRegistry(): Unit = {
     // lock is required if multiple smqd instnaces exist in a JVM
-    synchronized{
+    synchronized {
       if (SharedMetricRegistries.tryGetDefault == null) {
         SharedMetricRegistries.setDefault("smqd", new MetricRegistry())
       }

@@ -22,7 +22,7 @@ import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 // 2018. 7. 10. - Created by Kwon, Yeong Eon
 
@@ -30,15 +30,13 @@ private[plugin] object PackageLoader {
   def apply(pm: PluginManager, file: File): PackageLoader = {
     if (file.isDirectory) {
       new PackageLoader(pm, Array(file.toURI.toURL), getClass.getClassLoader)
-    }
-    else if (file.isFile && file.getPath.endsWith(".plugin")) {
+    } else if (file.isFile && file.getPath.endsWith(".plugin")) {
       val meta = ConfigFactory.parseFile(file)
       val pver = meta.getString("version")
       val jars = meta.getStringList("resolved").asScala
       val urls = jars.map(new File(pm.libDirectory.get, _)).map(_.toURI.toURL).toArray
       new PackageLoader(pm, urls, getClass.getClassLoader, pver)
-    }
-    else { // if (file.isFile && file.getPath.endsWith(".jar")) {
+    } else { // if (file.isFile && file.getPath.endsWith(".jar")) {
       new PackageLoader(pm, Array(file.toURI.toURL), getClass.getClassLoader)
     }
   }
@@ -66,7 +64,7 @@ private[plugin] class PackageLoader(pm: PluginManager, urls: Array[URL], parent:
 
       val defaultVersion = if (packageName.equals(CORE_PKG)) pm.coreVersion else packageDefaultVersion
 
-      val plugins = config.getConfigList("package.plugins").asScala.map{ c =>
+      val plugins = config.getConfigList("package.plugins").asScala.map { c =>
         val pluginName = c.getString("name")
         val className = c.getString("class")
         val multiInst = c.getOptionBoolean("multi-instantiable").getOrElse(false)
@@ -80,16 +78,13 @@ private[plugin] class PackageLoader(pm: PluginManager, urls: Array[URL], parent:
         PluginDefinition(pluginName, clazz, packageName, version, multiInst, conf, confSchema)
       }
 
-      val pkg = PackageDefinition(packageName, packageVendor, packageDescription, plugins, classLoader, repo)
+      val pkg = PackageDefinition(packageName, packageVendor, packageDescription, plugins.toSeq, classLoader, repo)
       repo.setInstalledPackage(pkg)
       Some(pkg)
-    }
-    catch {
+    } catch {
       case ex: Throwable =>
         logger.warn(s"Plugin fail to loading", ex)
         None
     }
   }
 }
-
-

@@ -25,16 +25,15 @@ import io.circe.{Encoder, Json}
 import io.circe.syntax._
 import com.thing2x.smqd.util.FailFastCirceSupport._
 
-
 // 2018. 7. 12. - Created by Kwon, Yeong Eon
 
-class SubscriptionController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging  {
+class SubscriptionController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
   override def routes: Route = context.oauth2.authorized { _ => clients }
 
   private def clients: Route = {
     ignoreTrailingSlash {
       get {
-        parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, search) =>
+        parameters("curr_page".as[Int].?, "page_size".as[Int].?, "query".as[String].?) { (currPage, pageSize, search) =>
           path(Remaining.?) { topic =>
             getSubscriptions(topic, search, currPage, pageSize)
           }
@@ -57,25 +56,21 @@ class SubscriptionController(name: String, context: HttpServiceContext) extends 
           case Some(q) => // query
             // there might be a bug in akka http to unescape %23 (#) properly, %2B (+) is ok
             val query = q.replaceAll("%23", "#")
-            rt.filter(r => r.filterPath.toString.contains(query)).groupBy(r => r.filterPath).toSeq.sortWith{ case ((lf, _), (rf, _)) => lf.compare(rf) < 0 }
+            rt.filter(r => r.filterPath.toString.contains(query)).groupBy(r => r.filterPath).toSeq.sortWith { case ((lf, _), (rf, _)) => lf.compare(rf) < 0 }
           case None => // all
-            rt.groupBy(r => r.filterPath).toSeq.sortWith{ case ((lf, _), (rf, _)) => lf.compare(rf) < 0 }
+            rt.groupBy(r => r.filterPath).toSeq.sortWith { case ((lf, _), (rf, _)) => lf.compare(rf) < 0 }
         }
     }
 
     implicit val resultEncoder: Encoder[(FilterPath, Seq[Registration])] = new Encoder[(FilterPath, Seq[Registration])] {
       override def apply(r: (FilterPath, Seq[Registration])): Json = {
-        Json.obj(
-          ("topic", Json.fromString(r._1.toString)),
-          ("subscribers", r._2.map(_.asJson).asJson
-          ))
+        Json.obj(("topic", Json.fromString(r._1.toString)), ("subscribers", r._2.map(_.asJson).asJson))
       }
     }
 
     if (result.nonEmpty) { // may find subscriptions Seq[(FilterPath, Seq[Registration])]
       complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
-    }
-    else { // or not found
+    } else { // or not found
       complete(StatusCodes.NotFound, restError(404, s"Subscription not found: ${topic.getOrElse(search.getOrElse(""))}"))
     }
   }

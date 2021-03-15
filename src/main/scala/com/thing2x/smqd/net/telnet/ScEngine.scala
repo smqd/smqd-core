@@ -15,19 +15,19 @@
 package com.thing2x.smqd.net.telnet
 
 import java.io.{Reader, Writer}
-
 import com.typesafe.scalalogging.StrictLogging
-import javax.script._
 
-import scala.collection.JavaConverters._
-import scala.tools.nsc.interpreter.IMain
+import javax.script._
+import scala.jdk.CollectionConverters._
+import scala.tools.nsc.interpreter.ScriptedRepl
+import scala.tools.nsc.interpreter.shell.Scripted
 
 object ScEngine extends StrictLogging {
   def apply(): ScEngine = new ScEngine()
 
   def debugAvailableEngines(): Unit = {
     val factoryManager = new ScriptEngineManager()
-    factoryManager.getEngineFactories.asScala.foreach{ ef =>
+    factoryManager.getEngineFactories.asScala.foreach { ef =>
       logger.debug(s"${ef.getEngineName}, ${ef.getEngineVersion}, ${ef.getLanguageName}, ${ef.getNames}")
     }
   }
@@ -38,7 +38,7 @@ class ScEngine extends StrictLogging {
   private val engine = new ScriptEngineManager().getEngineByName("scala").asInstanceOf[ScriptEngine with Compilable]
   private val context = engine.getContext
 
-  private[telnet] val intp: IMain = engine.asInstanceOf[scala.tools.nsc.interpreter.Scripted].intp
+  private[telnet] val intp: ScriptedRepl = engine.asInstanceOf[Scripted].intp
   def setWriter(writer: Writer): Unit = context.setWriter(writer)
   def setErrorWriter(writer: Writer): Unit = context.setErrorWriter(writer)
   def setReader(reader: Reader): Unit = context.setReader(reader)

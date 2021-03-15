@@ -36,7 +36,8 @@ package object plugin {
         "status" -> Json.fromString(obj.status),
         "auto-start" -> Json.fromBoolean(obj.autoStart),
         "plugin" -> Json.fromString(obj.pluginDef.name),
-        "package" -> Json.fromString(obj.pluginDef.packageName))
+        "package" -> Json.fromString(obj.pluginDef.packageName)
+      )
 
       obj.instance.status match {
         case InstanceStatus.FAIL if obj.instance.failure.isDefined =>
@@ -47,7 +48,7 @@ package object plugin {
           pw.close()
           val stack = new String(buffer.toString)
 
-          (entities + ("failure" -> Json.obj (
+          (entities + ("failure" -> Json.obj(
             ("message", Json.fromString(cause.getMessage)),
             ("stack", Json.fromString(stack))
           ))).asJson
@@ -70,17 +71,17 @@ package object plugin {
         "SINGLE"
       }
 
-      val instances = obj.instances.map(_.asJson)
+      val instances = obj.instances.map(_.asJson)(Ordering.by[Json, String](_.name))
 
       Json.obj(
-        ("name",            Json.fromString(obj.name)),
-        ("class",           Json.fromString(obj.clazz.getCanonicalName)),
-        ("class-archive",   Json.fromString(obj.clazz.getProtectionDomain.getCodeSource.getLocation.toString)),
-        ("package",         Json.fromString(obj.packageName)),
-        ("version",         Json.fromString(obj.version)),
-        ("type",            Json.fromString(ptype)),
+        ("name", Json.fromString(obj.name)),
+        ("class", Json.fromString(obj.clazz.getCanonicalName)),
+        ("class-archive", Json.fromString(obj.clazz.getProtectionDomain.getCodeSource.getLocation.toString)),
+        ("package", Json.fromString(obj.packageName)),
+        ("version", Json.fromString(obj.version)),
+        ("type", Json.fromString(ptype)),
         ("instantiability", Json.fromString(multi)),
-        ("instances",       instances.asJson)
+        ("instances", instances.asJson)
       )
     }
   }
@@ -88,26 +89,25 @@ package object plugin {
   implicit val pluginRepositoryDefinitionEncoder: Encoder[RepositoryDefinition] = new Encoder[RepositoryDefinition] {
     override def apply(obj: RepositoryDefinition): Json = {
       if (obj.location.isDefined) {
-        Json.obj (
-          ("name",        Json.fromString(obj.name)),
-          ("provider",    Json.fromString(obj.provider)),
+        Json.obj(
+          ("name", Json.fromString(obj.name)),
+          ("provider", Json.fromString(obj.provider)),
           ("installable", Json.fromBoolean(obj.installable)),
-          ("installed",   Json.fromBoolean(obj.installed)),
+          ("installed", Json.fromBoolean(obj.installed)),
           ("description", Json.fromString(obj.description)),
-          ("location",    Json.fromString(obj.location.get.toString))
+          ("location", Json.fromString(obj.location.get.toString))
         )
-      }
-      else {
-        Json.obj (
-          ("name",        Json.fromString(obj.name)),
-          ("provider",    Json.fromString(obj.provider)),
+      } else {
+        Json.obj(
+          ("name", Json.fromString(obj.name)),
+          ("provider", Json.fromString(obj.provider)),
           ("installable", Json.fromBoolean(obj.installable)),
-          ("installed",   Json.fromBoolean(obj.installed)),
+          ("installed", Json.fromBoolean(obj.installed)),
           ("description", Json.fromString(obj.description)),
-          ("group",       Json.fromString(obj.module.get.group)),
-          ("artifact",    Json.fromString(obj.module.get.artifact)),
-          ("version",     Json.fromString(obj.module.get.version)),
-          ("reolvers",    obj.module.get.resolvers.asJson)
+          ("group", Json.fromString(obj.module.get.group)),
+          ("artifact", Json.fromString(obj.module.get.artifact)),
+          ("version", Json.fromString(obj.module.get.version)),
+          ("reolvers", obj.module.get.resolvers.asJson)
         )
       }
     }
@@ -115,13 +115,13 @@ package object plugin {
 
   implicit val pluginPackageDefinitionEncoder: Encoder[PackageDefinition] = new Encoder[PackageDefinition] {
     final def apply(obj: PackageDefinition): Json = Json.obj(
-      ("name",        Json.fromString(obj.name)),
-      ("vendor",      Json.fromString(obj.vendor)),
+      ("name", Json.fromString(obj.name)),
+      ("vendor", Json.fromString(obj.vendor)),
       ("description", Json.fromString(obj.description)),
-      ("origin",      Json.fromString(obj.repository.location.toString)),
+      ("origin", Json.fromString(obj.repository.location.toString)),
       ("installable", Json.fromBoolean(obj.repository.installable)),
-      ("installed",   Json.fromBoolean(obj.repository.installed)),
-      ("plugins",     obj.plugins.map(_.asJson).asJson)
+      ("installed", Json.fromBoolean(obj.repository.installed)),
+      ("plugins", obj.plugins.map(_.asJson).asJson)
     )
   }
 

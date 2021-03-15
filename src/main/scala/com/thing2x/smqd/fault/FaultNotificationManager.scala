@@ -20,8 +20,7 @@ import com.thing2x.smqd.ChiefActor.ReadyAck
 import com.thing2x.smqd._
 import com.thing2x.smqd.util.ClassLoading
 
-/**
-  * 2018. 6. 3. - Created by Kwon, Yeong Eon
+/** 2018. 6. 3. - Created by Kwon, Yeong Eon
   */
 
 object FaultNotificationManager {
@@ -33,18 +32,15 @@ import com.thing2x.smqd.fault.FaultNotificationManager._
 
 class FaultNotificationManager(smqd: Smqd) extends Actor with ClassLoading with StrictLogging {
 
-  override def preStart(): Unit = {
+  override def preStart(): Unit = {}
+
+  override def receive: Receive = { case ChiefActor.Ready =>
+    context.become(receive0)
+    sender() ! ReadyAck
   }
 
-  override def receive: Receive = {
-    case ChiefActor.Ready =>
-      context.become(receive0)
-      sender ! ReadyAck
-  }
-
-  def receive0: Receive = {
-    case ft: Fault =>
-      // publish fault message
-      smqd.publish(topic, ft)
+  def receive0: Receive = { case ft: Fault =>
+    // publish fault message
+    smqd.publish(topic, ft)
   }
 }

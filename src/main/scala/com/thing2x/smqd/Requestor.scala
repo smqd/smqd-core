@@ -26,7 +26,6 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.language.postfixOps
 
-
 // 2018. 6. 20. - Created by Kwon, Yeong Eon
 
 class Requestor extends StrictLogging {
@@ -46,10 +45,11 @@ class Requestor extends StrictLogging {
 
 case class RequestMessage[T](topicPath: TopicPath, message: Any, promise: Promise[T], timeout: Timeout)
 case class ResponsibleMessage(replyTo: TopicPath, message: Any) {
-  /** Java API **/
+
+  /** Java API * */
   def getReplyTo: TopicPath = replyTo
 
-  /** Java API **/
+  /** Java API * */
   def getMessage: Any = message
 }
 
@@ -64,7 +64,6 @@ import com.thing2x.smqd.RequestManagerActor._
 
 class RequestManagerActor(smqd: Smqd, requestor: Requestor) extends Actor with StrictLogging {
 
-
   private val reqIdGenerator = new AtomicLong()
 
   private val waitingBoard = mutable.HashMap[Long, Waiting]()
@@ -76,7 +75,7 @@ class RequestManagerActor(smqd: Smqd, requestor: Requestor) extends Actor with S
 
   override def preStart(): Unit = {
     import smqd.Implicit._
-    scheduler = context.system.scheduler.schedule(1 second, 1 second, self, Check)
+    scheduler = context.system.scheduler.scheduleAtFixedRate(1 second, 1 second, self, Check)
     // subscribe topic to receive the reponse message
     Future { // need to be a different thread
       smqd.subscribe(reponseFilter, self)
@@ -91,11 +90,10 @@ class RequestManagerActor(smqd: Smqd, requestor: Requestor) extends Actor with S
     scheduler.cancel()
   }
 
-  override def receive: Receive = {
-    case Ready =>
-      context.become(receive0)
-      requestor.setRequestManager(self)
-      sender ! ReadyAck
+  override def receive: Receive = { case Ready =>
+    context.become(receive0)
+    requestor.setRequestManager(self)
+    sender() ! ReadyAck
   }
 
   def receive0: Receive = {
@@ -130,7 +128,7 @@ class RequestManagerActor(smqd: Smqd, requestor: Requestor) extends Actor with S
     // cleaning waiting board
     case Check =>
       val cur = System.currentTimeMillis()
-      waitingBoard.filter{ case (reqId, w) => cur - w.requestTime > w.timeout }.keys.foreach{ reqId =>
+      waitingBoard.filter { case (reqId, w) => cur - w.requestTime > w.timeout }.keys.foreach { reqId =>
         waitingBoard.remove(reqId) match {
           case Some(w) =>
             logger.warn("Waiting board timeout: reqId({}), dest: {}", reqId, w.dest)

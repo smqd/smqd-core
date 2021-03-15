@@ -30,13 +30,13 @@ import scala.util.{Failure, Success}
 
 // 2018. 7. 6. - Created by Kwon, Yeong Eon
 
-class ClientController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging  {
-  override def routes: Route = context.oauth2.authorized{ claim => clients(claim) }
+class ClientController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
+  override def routes: Route = context.oauth2.authorized { claim => clients(claim) }
 
   private def clients(claim: OAuth2Claim): Route = {
     ignoreTrailingSlash {
       get {
-        parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
+        parameters("curr_page".as[Int].?, "page_size".as[Int].?, "query".as[String].?) { (currPage, pageSize, searchName) =>
           path(Segment.?) { clientId =>
             getClients(clientId, searchName, currPage, pageSize)
           }
@@ -46,32 +46,33 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
   }
 
   private def clientSubscriptionToJson(subscriptions: Seq[SubscriptionData]): Json =
-    Json.arr(
-      subscriptions.map{ s => Json.obj(
+    Json.arr(subscriptions.map { s =>
+      Json.obj(
         ("topic", Json.fromString(s.filterPath.toString)),
         ("qos", Json.fromLong(s.qos.id))
-      )}: _*)
+      )
+    }: _*)
 
   private def clientInfoToJson(cid: String, channelId: String, subscriptions: Seq[SubscriptionData], pendingMessages: Long): Json =
     Json.obj(
       ("clientId", Json.fromString(cid)),
       ("channelId", Json.fromString(channelId)),
       ("pendingMessages", Json.fromLong(pendingMessages)),
-      ("subscriptions", clientSubscriptionToJson(subscriptions)))
+      ("subscriptions", clientSubscriptionToJson(subscriptions))
+    )
 
   private def getClientExactMatch(clientId: String): Route = {
     import context.smqdInstance.Implicit._
     val f = context.smqdInstance.snapshotSessions(None)
-    val jsResult = f.map{ list =>
-      val filtered = list.filter( _.clientId.id == clientId)
+    val jsResult = f.map { list =>
+      val filtered = list.filter(_.clientId.id == clientId)
       if (filtered.nonEmpty) { // may find multiple registrations of a client
         val clientId = filtered.head.clientId
         val subscriptions = filtered.head.subscriptions
         val pendings = filtered.head.pendingMessageSize
 
         restSuccess(0, clientInfoToJson(clientId.id, clientId.channelId.getOrElse(""), subscriptions, pendings))
-      }
-      else {
+      } else {
         restError(404, s"Not found: $clientId")
       }
     }
@@ -82,7 +83,8 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
     import context.smqdInstance.Implicit._
     val f = context.smqdInstance.snapshotSessions(None)
     val jsResult = f.map { list =>
-      val filtered = list.filter(_.clientId.id.contains(search))
+      val filtered = list
+        .filter(_.clientId.id.contains(search))
         .sortWith { case (lk, rk) => lk.clientId.id.compare(rk.clientId.id) < 0 }
         .map { data =>
           clientInfoToJson(data.clientId.id, data.clientId.channelId.getOrElse(""), data.subscriptions, data.pendingMessageSize)
@@ -96,7 +98,8 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
     import context.smqdInstance.Implicit._
     val f = context.smqdInstance.snapshotSessions(None)
     val jsResult = f.map { list =>
-      val filtered = list.sortWith{ case (lk, rk) => lk.clientId.id.compare(rk.clientId.id) < 0 }
+      val filtered = list
+        .sortWith { case (lk, rk) => lk.clientId.id.compare(rk.clientId.id) < 0 }
         .map { data =>
           clientInfoToJson(data.clientId.id, data.clientId.channelId.getOrElse(""), data.subscriptions, data.pendingMessageSize)
         }
@@ -109,7 +112,7 @@ class ClientController(name: String, context: HttpServiceContext) extends RestCo
     clientId match {
       case Some(cid) => // exact match
         getClientExactMatch(cid)
-      case None =>      // search
+      case None => // search
         searchName match {
           case Some(search) => // query
             getClientsWithClientId(search, currPage, pageSize)

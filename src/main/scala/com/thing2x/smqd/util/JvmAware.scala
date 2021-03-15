@@ -19,12 +19,11 @@ import java.lang.management.ManagementFactory
 import com.sun.management.UnixOperatingSystemMXBean
 import com.thing2x.smqd.util.JvmAware.{JvmMemoryPoolUsage, JvmOperatingSystem}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 // 2018. 7. 1. - Created by Kwon, Yeong Eon
 
-/**
-  * Getting runtime information of the JVM
+/** Getting runtime information of the JVM
   */
 object JvmAware {
   case class JvmMemoryPoolUsage(name: String, `type`: String, used: Long, max: Long)
@@ -42,7 +41,7 @@ trait JvmAware {
     memoryPoolMXBeans.asScala.map { mb =>
       val usage = mb.getUsage
       JvmMemoryPoolUsage(mb.getName, mb.getType.toString, usage.getUsed, usage.getMax)
-    }
+    }.toSeq
   }
 
   def javaOperatingSystem: JvmOperatingSystem = {

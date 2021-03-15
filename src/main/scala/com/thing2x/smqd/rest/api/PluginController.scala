@@ -33,69 +33,69 @@ import io.circe.syntax._
 
 class PluginController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
 
-  override def routes: Route = context.oauth2.authorized{ _ => packages ~ plugins }
+  override def routes: Route = context.oauth2.authorized { _ => packages ~ plugins }
 
   private def packages: Route = {
     ignoreTrailingSlash {
       get {
-        parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
+        parameters("curr_page".as[Int].?, "page_size".as[Int].?, "query".as[String].?) { (currPage, pageSize, searchName) =>
           path("packages" / Segment.?) { packageName =>
             getPackages(packageName, searchName, currPage, pageSize)
           }
         }
       } ~
-      put {
-        path("packages" / Segment / Segment) { (packageName, cmd) =>
-          putPackage(packageName, cmd)
+        put {
+          path("packages" / Segment / Segment) { (packageName, cmd) =>
+            putPackage(packageName, cmd)
+          }
         }
-      }
     }
   }
 
   private def plugins: Route = {
     ignoreTrailingSlash {
       get {
-        parameters('curr_page.as[Int].?, 'page_size.as[Int].?, 'query.as[String].?) { (currPage, pageSize, searchName) =>
+        parameters("curr_page".as[Int].?, "page_size".as[Int].?, "query".as[String].?) { (currPage, pageSize, searchName) =>
           path("plugins" / Segment / "config") { pluginName =>
             getPluginConfig(pluginName)
           } ~
-          path("plugins" / Segment / "instances" / Segment / "config") { (pluginName, instanceName) =>
-            getPluginInstanceConfig(pluginName, instanceName)
-          } ~
-          path("plugins" / Segment / "instances" / Segment.?) { (pluginName, instanceName) =>
-            getPluginInstances(pluginName, instanceName, searchName, currPage, pageSize)
-          } ~
-          path("plugins" / Segment.?) { pluginName =>
-            getPlugins(pluginName, searchName, currPage, pageSize)
-          }
+            path("plugins" / Segment / "instances" / Segment / "config") { (pluginName, instanceName) =>
+              getPluginInstanceConfig(pluginName, instanceName)
+            } ~
+            path("plugins" / Segment / "instances" / Segment.?) { (pluginName, instanceName) =>
+              getPluginInstances(pluginName, instanceName, searchName, currPage, pageSize)
+            } ~
+            path("plugins" / Segment.?) { pluginName =>
+              getPlugins(pluginName, searchName, currPage, pageSize)
+            }
         }
       } ~
-      put {
-        path("plugins" / Segment / "instances" / Segment / Segment) { (pluginName, instanceName, cmd) =>
-          putPlugin(pluginName, instanceName, cmd)
-        }
-      } ~
-      path("plugins" / Segment / "instances" / Segment) { (pluginName, instanceName) =>
-        post {
-          entity(as[com.typesafe.config.Config]) { conf =>
-            createPluginInstance(pluginName, instanceName, conf)
-          } ~
-          entity(as[String]) { str =>
-            createPluginInstance(pluginName, instanceName, str)
+        put {
+          path("plugins" / Segment / "instances" / Segment / Segment) { (pluginName, instanceName, cmd) =>
+            putPlugin(pluginName, instanceName, cmd)
           }
         } ~
-        patch {
-          entity(as[com.typesafe.config.Config]) { conf =>
-            updatePluginInstance(pluginName, instanceName, conf)
+        path("plugins" / Segment / "instances" / Segment) { (pluginName, instanceName) =>
+          post {
+            entity(as[com.typesafe.config.Config]) { conf =>
+              createPluginInstance(pluginName, instanceName, conf)
+            } ~
+              entity(as[String]) { str =>
+                createPluginInstance(pluginName, instanceName, str)
+              }
           } ~
-          entity(as[String]) { str =>
-            updatePluginInstance(pluginName, instanceName, str)
-          }
-        } ~
-        delete {
-          deletePluginInstance(pluginName, instanceName)
+            patch {
+              entity(as[com.typesafe.config.Config]) { conf =>
+                updatePluginInstance(pluginName, instanceName, conf)
+              } ~
+                entity(as[String]) { str =>
+                  updatePluginInstance(pluginName, instanceName, str)
+                }
+            } ~
+            delete {
+              deletePluginInstance(pluginName, instanceName)
+            }
         }
-      }
     }
   }
 
@@ -149,14 +149,13 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
     import smqdInstance.Implicit._
     pm.repositoryDefinition(packageName) match {
       case Some(rdef) =>
-
         cmd.toLowerCase match {
           case "install" =>
             val jval = for {
               rt <- pm.installPackage(smqdInstance, rdef)
               result = rt match {
                 case _: InstallSuccess => restSuccess(0, rdef.asJson)
-                case e: InstallResult => restError(500, e.msg)
+                case e: InstallResult  => restError(500, e.msg)
               }
             } yield result
             complete(StatusCodes.OK, jval)
@@ -165,15 +164,15 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
               rt <- pm.reloadPackage(smqdInstance, rdef)
               result = rt match {
                 case _: ReloadSuccess => restSuccess(0, rdef.asJson)
-                case e: ReloadResult => restError(500, e.msg)
+                case e: ReloadResult  => restError(500, e.msg)
               }
             } yield result
             complete(StatusCodes.OK, jval)
           case command =>
-            val params: Map[String, Any] =  if (pm.libDirectory.isDefined) Map("plugin.dir" -> pm.libDirectory.get) else Map.empty
+            val params: Map[String, Any] = if (pm.libDirectory.isDefined) Map("plugin.dir" -> pm.libDirectory.get) else Map.empty
             val result = rdef.exec(command, params) map {
               case ExecSuccess(_) => restSuccess(0, rdef.asJson)
-              case rt => execResult(rt)
+              case rt             => execResult(rt)
             }
             complete(StatusCodes.OK, result)
         }
@@ -191,7 +190,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
       case Some(instance) =>
         val result = instance.exec(command.toLowerCase) map {
           case ExecSuccess(_) => restSuccess(0, instance.asJson)
-          case rt => execResult(rt)
+          case rt             => execResult(rt)
         }
         complete(StatusCodes.OK, result)
       case None =>
@@ -263,23 +262,35 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
     }
   }
 
-  private def getPluginInstanceConfig(pluginName:String, instanceName: String): Route = {
+  private def getPluginInstanceConfig(pluginName: String, instanceName: String): Route = {
     val pm = context.smqdInstance.pluginManager
     pm.instance(pluginName, instanceName) match {
       case Some(inst) =>
         val autoStart = inst.autoStart
         inst.instance match {
           case ap: AbstractPlugin =>
-            complete(StatusCodes.OK, restSuccess(0, Json.obj(
-              ("auto-start", Json.fromBoolean(autoStart)),
-              ("config", ap.config.asJson)
-            )))
+            complete(
+              StatusCodes.OK,
+              restSuccess(
+                0,
+                Json.obj(
+                  ("auto-start", Json.fromBoolean(autoStart)),
+                  ("config", ap.config.asJson)
+                )
+              )
+            )
           case _ =>
-            complete(StatusCodes.OK, restSuccess(0, Json.obj(
-              ("auto-start", Json.fromBoolean(autoStart)),
-              ("config", Json.Null)
-            )))
-            //complete(StatusCodes.NotAcceptable, s"Plugin instance is not a configurable")
+            complete(
+              StatusCodes.OK,
+              restSuccess(
+                0,
+                Json.obj(
+                  ("auto-start", Json.fromBoolean(autoStart)),
+                  ("config", Json.Null)
+                )
+              )
+            )
+          //complete(StatusCodes.NotAcceptable, s"Plugin instance is not a configurable")
         }
 
       case None =>
@@ -299,11 +310,9 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
         val file = new File(confDir, s"$pluginName-$instanceName.conf")
         if (file.exists()) {
           complete(StatusCodes.PreconditionFailed, restError(412, "same plugin and instance name already exists"))
-        }
-        else if (!file.getParentFile.canRead || !file.getParentFile.canWrite) {
+        } else if (!file.getParentFile.canRead || !file.getParentFile.canWrite) {
           complete(StatusCodes.PreconditionFailed, restError(412, s"access denied. can't write the instance '$pluginName-$instanceName'"))
-        }
-        else {
+        } else {
           smqdInstance.pluginManager.createInstanceConfigFile(smqdInstance, pluginName, instanceName, file, conf) match {
             case Some(_) =>
               getPluginInstanceConfig(pluginName, instanceName)
@@ -337,8 +346,7 @@ class PluginController(name: String, context: HttpServiceContext) extends RestCo
               case InstanceStatus.STOPPED | InstanceStatus.FAIL =>
                 if (pm.updateInstanceConfigFile(smqdInstance, pluginName, instanceName, file, conf)) {
                   getPluginInstanceConfig(pluginName, instanceName)
-                }
-                else {
+                } else {
                   complete(StatusCodes.InternalServerError, restError(500, s"Fail to delete instance '$pluginName' '$instanceName'"))
                 }
             }

@@ -34,7 +34,7 @@ class MgmtController(name: String, context: HttpServiceContext) extends RestCont
     val smqdInstance = context.smqdInstance
     path("version") {
       get {
-        parameters('fmt.?) {
+        parameters("fmt".?) {
           case Some("version") =>
             complete(StatusCodes.OK, restSuccess(0, Json.obj(("version", Json.fromString(smqdInstance.version)))))
           case Some("commit") =>
@@ -43,14 +43,19 @@ class MgmtController(name: String, context: HttpServiceContext) extends RestCont
             val os = smqdInstance.javaOperatingSystem
             val osjs = Json.fromString(s"${os.name}/${os.version}/${os.arch} (${os.processors} cores)")
 
-            complete(StatusCodes.OK, restSuccess(0,
-              Json.obj(
-                ("version", Json.fromString(smqdInstance.version)),
-                ("commitVersion", Json.fromString(smqdInstance.commitVersion)),
-                ("nodename", Json.fromString(smqdInstance.nodeName)),
-                ("jvm", Json.fromString(smqdInstance.javaVersionString)),
-                ("os", osjs)
-              )))
+            complete(
+              StatusCodes.OK,
+              restSuccess(
+                0,
+                Json.obj(
+                  ("version", Json.fromString(smqdInstance.version)),
+                  ("commitVersion", Json.fromString(smqdInstance.commitVersion)),
+                  ("nodename", Json.fromString(smqdInstance.nodeName)),
+                  ("jvm", Json.fromString(smqdInstance.javaVersionString)),
+                  ("os", osjs)
+                )
+              )
+            )
         }
       }
     }
@@ -59,11 +64,11 @@ class MgmtController(name: String, context: HttpServiceContext) extends RestCont
   private def nodes: Route = {
     ignoreTrailingSlash {
       path("nodes") {
-        get { getNodes(None)  }
+        get { getNodes(None) }
       } ~
-      path("nodes" / Segment.?) { nodeName =>
-        get { getNodes(nodeName) }
-      }
+        path("nodes" / Segment.?) { nodeName =>
+          get { getNodes(nodeName) }
+        }
     }
   }
 

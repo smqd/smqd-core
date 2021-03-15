@@ -21,12 +21,11 @@ import io.netty.handler.codec.mqtt._
 import com.thing2x.smqd.protocol._
 import com.thing2x.smqd.session.SessionState
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
-/**
-  * 2018. 5. 30. - Created by Kwon, Yeong Eon
+/** 2018. 5. 30. - Created by Kwon, Yeong Eon
   */
-object MqttProtocolInboundHandler{
+object MqttProtocolInboundHandler {
   def apply() = new MqttProtocolInboundHandler()
 }
 
@@ -51,7 +50,7 @@ class MqttProtocolInboundHandler extends ChannelInboundHandlerAdapter with MqttP
   }
 }
 
-object MqttProtocolOutboundHandler{
+object MqttProtocolOutboundHandler {
   def apply() = new MqttProtocolOutboundHandler()
 }
 
@@ -82,19 +81,19 @@ trait MqttProtocolNotifier {
     val channelId = channelCtx.channelId.stringId
     val msgType = msg.fixedHeader.messageType
     val msgDebug = msg match {
-      case m: MqttConnectMessage => s"(cleanSession: ${m.variableHeader.isCleanSession}, will: ${m.variableHeader.isWillFlag})"
-      case m: MqttConnAckMessage => s"(${m.variableHeader.connectReturnCode}, sessionPresent: ${m.variableHeader.isSessionPresent})"
+      case m: MqttConnectMessage                   => s"(cleanSession: ${m.variableHeader.isCleanSession}, will: ${m.variableHeader.isWillFlag})"
+      case m: MqttConnAckMessage                   => s"(${m.variableHeader.connectReturnCode}, sessionPresent: ${m.variableHeader.isSessionPresent})"
       case _: MqttMessage if msgType == DISCONNECT => ""
-      case _: MqttMessage if msgType == PINGREQ => ""
-      case _: MqttMessage if msgType == PINGRESP => ""
+      case _: MqttMessage if msgType == PINGREQ    => ""
+      case _: MqttMessage if msgType == PINGRESP   => ""
       case _: MqttMessage if msgType == PUBREL || msgType == PUBREC || msgType == PUBCOMP =>
         msg.variableHeader match {
           case id: MqttMessageIdVariableHeader =>
             s"(mid: ${id.messageId.toString})"
           case _ => ""
         }
-      case m: MqttSubscribeMessage => s"(mid: ${m.variableHeader.messageId}, ${stringify(m.payload.topicSubscriptions.asScala)})"
-      case m: MqttSubAckMessage => s"(mid: ${m.variableHeader.messageId}, grantedQoS: ${m.payload.grantedQoSLevels()})"
+      case m: MqttSubscribeMessage   => s"(mid: ${m.variableHeader.messageId}, ${stringifySeq(m.payload.topicSubscriptions.asScala.toSeq)})"
+      case m: MqttSubAckMessage      => s"(mid: ${m.variableHeader.messageId}, grantedQoS: ${m.payload.grantedQoSLevels()})"
       case m: MqttUnsubscribeMessage => s"(mid: ${m.variableHeader.messageId})"
       case m: MqttPublishMessage =>
         val fh = m.fixedHeader()
@@ -109,8 +108,7 @@ trait MqttProtocolNotifier {
     channelCtx.smqd.notifyProtocol(MqttProtocolNotification(dir, clientId, channelId, msgType.toString, msgDebug))
   }
 
-
-  private def stringify(subs: Seq[MqttTopicSubscription]): String = {
+  private def stringifySeq(subs: Seq[MqttTopicSubscription]): String = {
     subs.map(stringify).mkString("[", ",", "]")
   }
 

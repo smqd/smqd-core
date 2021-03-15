@@ -33,7 +33,7 @@ import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -64,8 +64,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   val oauth2Algorithm: String = config.getOptionString("oauth2.algorithm").getOrElse("HS256")
 
   val oauth2 = OAuth2(oauth2SecretKey, oauth2Algorithm, oauth2TokenExpire, oauth2RefreshTokenExpire)
-  setAuthSimulationMode(config.getOptionBoolean("oauth2.simulation_mode").getOrElse(false),
-    config.getOptionString("oauth2.simulation_identifier").getOrElse("admin"))
+  setAuthSimulationMode(config.getOptionBoolean("oauth2.simulation_mode").getOrElse(false), config.getOptionString("oauth2.simulation_identifier").getOrElse("admin"))
 
   private var binding: Option[ServerBinding] = None
   private var tlsBinding: Option[ServerBinding] = None
@@ -96,17 +95,18 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
     val logAdapter: HttpServiceLogger = new HttpServiceLogger(logger, name)
 
     // load routes configuration or from `loadRoutes()` of sub class
-    val rs = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfigList("routes").asScala) else loadRoutes(config)
-    val cs = if (config.hasPath("statics")) loadStaticFromConfig(config.getConfigList("statics").asScala) else loadStatics(config)
+    val rs = if (config.hasPath("routes")) loadRouteFromConfig(config.getConfigList("routes").asScala.toSeq) else loadRoutes(config)
+    val cs = if (config.hasPath("statics")) loadStaticFromConfig(config.getConfigList("statics").asScala.toSeq) else loadStatics(config)
 
     val routes = rs ++ cs
 
     // merge all routes into a single route value
     // then encapsulate with log directives
     finalRoutes = {
-      val rs = if (routes.isEmpty) emptyRoute
-      else if (routes.size == 1) routes.head
-      else routes.tail.foldLeft(routes.head)((prev, r) => prev ~ r)
+      val rs =
+        if (routes.isEmpty) emptyRoute
+        else if (routes.size == 1) routes.head
+        else routes.tail.foldLeft(routes.head)((prev, r) => prev ~ r)
 
       if (corsEnabled) corsHandler(rs) else rs
     }
@@ -115,14 +115,16 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
       val routes = logRequestResult(LoggingMagnet(_ => logAdapter.accessLog(System.nanoTime, remoteAddress))) {
         finalRoutes
       }
-      Route.asyncHandler(routes)
+      Route.toFunction(routes)
     }
 
     if (localEnabled) {
       val serverSource = Http().bind(localBindAddress, localBindPort, ConnectionContext.noEncryption(), ServerSettings(actorSystem), logAdapter)
-      val bindingFuture = serverSource.to(Sink.foreach{ connection =>
-        connection.handleWithAsyncHandler(handler(connection.remoteAddress), localParallelism)
-      }).run()
+      val bindingFuture = serverSource
+        .to(Sink.foreach { connection =>
+          connection.handleWithAsyncHandler(handler(connection.remoteAddress), localParallelism)
+        })
+        .run()
 
       bindingFuture.onComplete {
         case Success(b) =>
@@ -143,9 +145,11 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
           case Some(sslContext) =>
             val connectionContext = ConnectionContext.https(sslContext)
             val serverSource = Http().bind(localSecureBindAddress, localSecureBindPort, connectionContext, ServerSettings(actorSystem), logAdapter)
-            val tlsBindingFuture = serverSource.to(Sink.foreach{ connection =>
-              connection.handleWithAsyncHandler(handler(connection.remoteAddress), localSecureParallelism)
-            }).run()
+            val tlsBindingFuture = serverSource
+              .to(Sink.foreach { connection =>
+                connection.handleWithAsyncHandler(handler(connection.remoteAddress), localSecureParallelism)
+              })
+              .run()
 
             tlsBindingFuture.onComplete {
               case Success(b) =>
@@ -177,8 +181,7 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
           b.unbind().onComplete { // trigger unbinding from the port
             _ => logger.debug(s"[$name] unbind ${b.localAddress.toString} done.")
           }
-        }
-        catch {
+        } catch {
           case ex: java.util.NoSuchElementException =>
             logger.warn(s"[$name] Binding was unbound before it was completely finished")
           case ex: Throwable =>
@@ -189,17 +192,16 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
 
     tlsBinding match {
       case Some(b) =>
-      try {
-        b.unbind().onComplete { // trigger unbinding from the port
-          _ => logger.info(s"[$name] unbind ${b.localAddress.toString} done.")
+        try {
+          b.unbind().onComplete { // trigger unbinding from the port
+            _ => logger.info(s"[$name] unbind ${b.localAddress.toString} done.")
+          }
+        } catch {
+          case ex: java.util.NoSuchElementException =>
+            logger.warn(s"[$name] Binding was unbound before it was completely finished")
+          case ex: Throwable =>
+            logger.warn(s"[$name] tls tcp port unbind failed.", ex)
         }
-      }
-      catch {
-        case ex: java.util.NoSuchElementException =>
-          logger.warn(s"[$name] Binding was unbound before it was completely finished")
-        case ex: Throwable =>
-          logger.warn(s"[$name] tls tcp port unbind failed.", ex)
-      }
       case None =>
     }
 
@@ -214,11 +216,9 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   protected def ltrimSlash(p: String): String = if (p.startsWith("/")) p.substring(1) else p
   protected def rtrimSlash(p: String): String = if (p.endsWith("/")) p.substring(0, p.length - 1) else p
 
-  def localBound(address: InetSocketAddress): Unit = {
-  }
+  def localBound(address: InetSocketAddress): Unit = {}
 
-  def localSecureBound(address: InetSocketAddress): Unit = {
-  }
+  def localSecureBound(address: InetSocketAddress): Unit = {}
 
   def routes: Route = finalRoutes
 
@@ -233,24 +233,25 @@ class HttpService(name: String, smqdInstance: Smqd, config: Config) extends Serv
   }
 
   protected def loadRoute(rname: String, prefix: String, className: String, conf: Config): server.Route = {
-    val tokens = prefix.split(Array('/', '"')).filterNot( _ == "") // split prefix into token array
+    val tokens = prefix.split(Array('/', '"')).filterNot(_ == "") // split prefix into token array
     smqdInstance.loadClass(className, recursive = true) match { // load a class that inherits RestController
       case Some(clazz) =>
-        val ctrl = try {
-          val context = new HttpServiceContext(this, oauth2, smqdInstance, conf)
-          val cons = clazz.getConstructor(classOf[String], classOf[HttpServiceContext]) // find construct that has parameters(String, HttpServiceContext)
-          cons.newInstance(rname, context).asInstanceOf[RestController]
-        } catch {
-          case _: NoSuchMethodException =>
-            val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
-            logger.warn(s"!!Warning!! controller '$className' has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
-            cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
-        }
+        val ctrl =
+          try {
+            val context = new HttpServiceContext(this, oauth2, smqdInstance, conf)
+            val cons = clazz.getConstructor(classOf[String], classOf[HttpServiceContext]) // find construct that has parameters(String, HttpServiceContext)
+            cons.newInstance(rname, context).asInstanceOf[RestController]
+          } catch {
+            case _: NoSuchMethodException =>
+              val cons = clazz.getConstructor(classOf[String], classOf[Smqd], classOf[Config]) // find construct that has parameters (String, Smqd, Config)
+              logger.warn(s"!!Warning!! controller '$className' has deprecated constructor (String, Smqd, Config), update it with new constructor api (String, HttpServiceContext)")
+              cons.newInstance(rname, smqdInstance, conf).asInstanceOf[RestController] // create instance of RestController
+          }
 
         logger.debug(s"[$name] add route $rname: $prefix = $className")
 
         // make pathPrefix routes from tokens
-        tokens.foldRight(ctrl.routes) { (tok, routes) => pathPrefix(tok)(routes)}
+        tokens.foldRight(ctrl.routes) { (tok, routes) => pathPrefix(tok)(routes) }
       case None =>
         throw new ClassNotFoundException(s"Controller class '$className' not found")
     }

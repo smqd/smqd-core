@@ -22,7 +22,7 @@ import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 // 2018. 7. 4. - Created by Kwon, Yeong Eon
@@ -40,8 +40,7 @@ object PluginManager extends StrictLogging {
     val pluginInstanceConfDirPath =
       if (config.hasPath("conf")) {
         config.getString("conf")
-      }
-      else {
+      } else {
         logger.trace("origin of plugin config: {}", config.origin.filename)
         val configFilePath = config.origin.filename
         if (configFilePath != null) {
@@ -50,16 +49,14 @@ object PluginManager extends StrictLogging {
             val pluginConfDir = new File(file.getParentFile, PM_CONF_DIR_NAME)
             pluginConfDir.mkdir()
             pluginConfDir.getPath
-          }
-          else {
+          } else {
             new File(new File(pluginDirPath), PM_CONF_DIR_NAME).getPath
           }
-        }
-        else {
+        } else {
           new File(new File(pluginDirPath), PM_CONF_DIR_NAME).getPath
         }
       }
-    val staticPlugins = if (config.hasPath("static")) config.getStringList("static").asScala else  Seq.empty
+    val staticPlugins = if (config.hasPath("static")) config.getStringList("static").asScala.toSeq else Seq.empty
 
     new PluginManager(pluginDirPath, pluginInstanceConfDirPath, config.getOptionString("manifest"), staticPlugins, coreVersion)
   }
@@ -72,7 +69,7 @@ object PluginManager extends StrictLogging {
 
   trait InstallResult { def msg: String }
   case class InstallSuccess(msg: String) extends InstallResult
-  case class NotInstallable(msg: String)  extends InstallResult
+  case class NotInstallable(msg: String) extends InstallResult
   case class PackageNotFound(msg: String) extends InstallResult
   case class InvalidStateToInstall(msg: String) extends InstallResult
   case class InstallFailure(msg: String, cause: Option[Throwable]) extends InstallResult
@@ -96,28 +93,35 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   val configDirectory: Option[File] = findConfigDir(pluginConfPath)
 
   private var packageDefs: Seq[PackageDefinition] =
-    findPluginCandidateFiles(libDirectory, staticPlugins)  // plugin files in the root directories
-      .map(findPackageLoader)          // plugin loaders
-      .flatMap(_.definition)           // to plugin definitions
+    findPluginCandidateFiles(libDirectory, staticPlugins) // plugin files in the root directories
+      .map(findPackageLoader) // plugin loaders
+      .flatMap(_.definition) // to plugin definitions
 
   /** all package definitions */
   def packageDefinitions: Seq[PackageDefinition] = packageDefs
 
   /** all plugin definitions */
   def pluginDefinitions: Seq[PluginDefinition] = packageDefs.flatMap(pd => pd.plugins)
+
   /** find plugin definitions by package name */
   def pluginDefinitionsInPackage(packageName: String): Seq[PluginDefinition] = packageDefs.filter(_.name == packageName).flatMap(p => p.plugins)
+
   /** find plugin definitions that has name contains searchName */
   def pluginDefinitions(searchName: String): Seq[PluginDefinition] = packageDefs.flatMap(_.plugins).filter(_.name.contains(searchName))
+
   /** find plugin definition that has name exactly matached */
   def pluginDefinition(pluginName: String): Option[PluginDefinition] = packageDefs.flatMap(_.plugins).find(_.name == pluginName)
 
   /** find all plugin instances of the plugin */
   def instances(pluginName: String): Seq[InstanceDefinition[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances)
+
   /** find all plugin instances of the plugin that has name contains searchName */
-  def instances(pluginName: String, searchName: String): Seq[InstanceDefinition[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).filter(_.name.contains(searchName))
+  def instances(pluginName: String, searchName: String): Seq[InstanceDefinition[Plugin]] =
+    packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).filter(_.name.contains(searchName))
+
   /** find the plugin instance by plugin name and instance name */
-  def instance(pluginName: String, instanceName: String): Option[InstanceDefinition[Plugin]] = packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).find(_.name == instanceName)
+  def instance(pluginName: String, instanceName: String): Option[InstanceDefinition[Plugin]] =
+    packageDefs.flatMap(_.plugins).filter(_.name == pluginName).flatMap(_.instances).find(_.name == instanceName)
 
   def servicePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[Service].isAssignableFrom(pd.clazz))
   def bridgePluginDefinitions: Seq[PluginDefinition] = pluginDefinitions.filter(pd => classOf[BridgeDriver].isAssignableFrom(pd.clazz))
@@ -142,8 +146,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
           logger.info(s"Plugin '$instName' not found as POJO")
           None
       }
-    }
-    catch {
+    } catch {
       case ex: Throwable =>
         logger.error(s"Fail to load and create an instance of plugin '$instName'", ex)
         None
@@ -153,15 +156,13 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   private def findPackageLoader(file: File): PackageLoader = {
     if (file.isDirectory) {
       new PackageLoader(this, Array(file.toURI.toURL), getClass.getClassLoader)
-    }
-    else if (file.isFile && file.getPath.endsWith(".plugin")) {
+    } else if (file.isFile && file.getPath.endsWith(".plugin")) {
       val meta = ConfigFactory.parseFile(file)
       val pver = meta.getString("version")
       val jars = meta.getStringList("resolved").asScala
       val urls = jars.map(new File(libDirectory.get, _)).map(_.toURI.toURL).toArray
       new PackageLoader(this, urls, getClass.getClassLoader, pver)
-    }
-    else { // if (file.isFile && file.getPath.endsWith(".jar")) {
+    } else { // if (file.isFile && file.getPath.endsWith(".jar")) {
       new PackageLoader(this, Array(file.toURI.toURL), getClass.getClassLoader)
     }
   }
@@ -179,7 +180,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
         }
         val instStatus = plugins.flatMap(_.instances).map(idef => s"${idef.pluginDef.name} ${idef.name}(${idef.status})")
         logger.info(s"Replacing package '${oldDef.name}' having plugins $instStatus")
-        pdefs.filterNot( _ eq oldDef )
+        pdefs.filterNot(_ eq oldDef)
       case None =>
         pdefs
     }
@@ -217,11 +218,9 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
       codeBaseDir.listFiles { file =>
         file.canRead && file.isFile && file.getName.endsWith(".jar")
       }.toSeq
-    }
-    else {
+    } else {
       Seq.empty
     }
-
 
     // plugin directory에 들어 있는 파일들
     val fileListInPlugin = rootDir match {
@@ -234,7 +233,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
           else if (file.isDirectory) true
           else false
         }.toSeq
-      case None =>
+      case _ =>
         Seq.empty
     }
 
@@ -251,8 +250,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     if (file.isDirectory && file.canRead && file.canWrite) {
       logger.info("Plugin repo directory is {}", file.getPath)
       Some(file)
-    }
-    else {
+    } else {
       logger.info("Plugin repo directory is not accessible: {}", rootDir)
       None
     }
@@ -263,8 +261,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     if (file.isDirectory && file.canRead && file.canWrite) {
       logger.info("Plugin config directory is {}", file.getPath)
       Some(file)
-    }
-    else {
+    } else {
       logger.info("Plugin config directory is not accessible: {}", confDir)
       None
     }
@@ -274,10 +271,10 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     //// display list of repositories for information
     repositoryDefinitions.foreach { repo =>
       repo.packageDefinitions.foreach { pkg =>
-          val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
-          val info = pkg.plugins.map( _.name).mkString(", ")
-          val size = pkg.plugins.size
-          logger.info(s"Plugin package '${pkg.name}' has $size $inst plugin${ if(size > 1) "s" else ""}: $info")
+        val inst = if (repo.installed) "installed" else if (repo.installable) "installable" else "non-installable"
+        val info = pkg.plugins.map(_.name).mkString(", ")
+        val size = pkg.plugins.size
+        logger.info(s"Plugin package '${pkg.name}' has $size $inst plugin${if (size > 1) "s" else ""}: $info")
       }
     }
   }
@@ -289,8 +286,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
     if (libDirectory.isEmpty) {
       logger.warn("Root directory of plugin manager is not defined")
       Nil
-    }
-    else {
+    } else {
       val rootDir = libDirectory.get
       findInstanceConfigFiles(rootDir).map(ConfigFactory.parseFile)
     }
@@ -353,8 +349,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
           loadInstanceFromConfigFile(smqd, file)
           true
-        }
-        else {
+        } else {
           false
         }
       case None =>
@@ -367,8 +362,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
       case Some(pdef) =>
         if (pdef.removeInstance(instanceName)) {
           file.delete()
-        }
-        else {
+        } else {
           false
         }
       case None =>
@@ -402,12 +396,10 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
 
   def installPackage(smqd: Smqd, rdef: RepositoryDefinition)(implicit ec: ExecutionContext): Future[InstallResult] = {
     if (!rdef.installable) {
-      Future{ NotInstallable(s"Package '${rdef.name}' is not installable") }
-    }
-    else if (libDirectory.isEmpty) {
-      Future{ InvalidStateToInstall(s"Plugin manager's root directory is not defined")}
-    }
-    else if (rdef.isRemoteFile) {
+      Future { NotInstallable(s"Package '${rdef.name}' is not installable") }
+    } else if (libDirectory.isEmpty) {
+      Future { InvalidStateToInstall(s"Plugin manager's root directory is not defined") }
+    } else if (rdef.isRemoteFile) {
       import smqd.Implicit._
       repositoryManager.installHttp(rdef.location.get, libDirectory.get) match {
         case Some(file) =>
@@ -420,8 +412,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
         case None =>
           Future { InstallFailure(s"Install failure", None) }
       }
-    }
-    else if (rdef.isMavenModule) {
+    } else if (rdef.isMavenModule) {
       repositoryManager.installMaven(rdef.name, rdef.module.get, libDirectory.get) match {
         case Some(meta) =>
           postInstallPluginPackageMeta(meta) map {
@@ -433,8 +424,7 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
         case None =>
           Future { InstallFailure(s"Install failure", None) }
       }
-    }
-    else {
+    } else {
       Future { InvalidStateToInstall(s"Package '${rdef.name}' has no valid repository information") }
     }
   }
@@ -450,15 +440,16 @@ class PluginManager(pluginLibPath: String, pluginConfPath: String, pluginManifes
   }
 
   def loadClass(className: String): Option[Class[_]] = {
-    packageDefs.find{pd =>
-      try {
-        val _ = pd.classLoader.loadClass(className)
-        true
+    packageDefs
+      .find { pd =>
+        try {
+          val _ = pd.classLoader.loadClass(className)
+          true
+        } catch {
+          case ex: Throwable =>
+            false
+        }
       }
-      catch {
-        case ex: Throwable =>
-          false
-      }
-    }.map(_.classLoader.loadClass(className))
+      .map(_.classLoader.loadClass(className))
   }
 }

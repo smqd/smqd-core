@@ -21,7 +21,9 @@ import akka.util.Timeout
 import com.thing2x.smqd._
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -33,10 +35,9 @@ import scala.util.{Failure, Success}
 object PublishTest {
 
   class SubsribeActor(origin: ActorRef) extends Actor with StrictLogging {
-    override def receive: Receive = {
-      case (topic: TopicPath, msg: Any) =>
-        // logger.info(s"==-==> ${topic} ${msg.toString}")
-        origin ! msg
+    override def receive: Receive = { case (topic: TopicPath, msg: Any) =>
+      // logger.info(s"==-==> ${topic} ${msg.toString}")
+      origin ! msg
     }
   }
 
@@ -50,21 +51,28 @@ object PublishTest {
           smqd.publish(replyTo, new RuntimeException("failure test"))
       // else case, do not reply for testing timeout
       case m =>
-        logger.info("Unknown message: "+m)
+        logger.info("Unknown message: " + m)
     }
   }
 }
 
-class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseString(
-  """
+class PublishTest
+    extends TestKit(
+      ActorSystem(
+        "pubtest",
+        ConfigFactory
+          .parseString("""
     |akka.actor.provider=local
     |akka.cluster.seed-nodes=["akka.tcp://smqd@127.0.0.1:2551"]
-  """.stripMargin).withFallback(ConfigFactory.load("smqd-ref.conf"))))
-  with ImplicitSender
-  with WordSpecLike
-  with Matchers
-  with BeforeAndAfterAll
-  with StrictLogging {
+  """.stripMargin)
+          .withFallback(ConfigFactory.load("smqd-ref.conf"))
+      )
+    )
+    with ImplicitSender
+    with AnyWordSpecLike
+    with Matchers
+    with BeforeAndAfterAll
+    with StrictLogging {
 
   private val smqd = new SmqdBuilder(system.settings.config)
     .setActorSystem(system)
@@ -127,7 +135,7 @@ class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseStri
         origin ! msg
       }
 
-      val f = smqd.subscribe("registry/test/callback/+/temp", callback _ )
+      val f = smqd.subscribe("registry/test/callback/+/temp", callback _)
 
       val actor = Await.result(f, 1.second)
 
@@ -211,4 +219,3 @@ class PublishTest extends TestKit(ActorSystem("pubtest", ConfigFactory.parseStri
     }
   }
 }
-

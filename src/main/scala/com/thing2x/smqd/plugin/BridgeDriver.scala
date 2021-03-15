@@ -21,7 +21,7 @@ import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.{SortedSet, mutable}
 
 // 2018. 7. 7. - Created by Kwon, Yeong Eon
@@ -81,8 +81,11 @@ abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends Ab
   protected def createBridge(config: Config, index: Long = indexes.getAndIncrement()): Bridge
 
   override def toString: String = new StringBuilder("BridgeDriver '")
-    .append(name).append("' ")
-    .append(" has ").append(bridgeSet.size).append(" bridge(s)")
+    .append(name)
+    .append("' ")
+    .append(" has ")
+    .append(bridgeSet.size)
+    .append(" bridge(s)")
     .toString
 
   /////////////////////////////////
@@ -99,8 +102,7 @@ abstract class BridgeDriver(name: String, smqd: Smqd, config: Config) extends Ab
         bridgeConfigs.asScala.foreach { bconf =>
           try {
             addBridge(bconf)
-          }
-          catch {
+          } catch {
             case ex: Throwable => logger.error(s"BridgeDriver '$name' fail to create bridge\n${bconf.toString}\n", ex)
           }
         }

@@ -35,7 +35,7 @@ trait Router {
 
   def filter(topicPath: TopicPath): Seq[SmqdRoute]
   def routes(topicPath: TopicPath): Seq[ActorRef]
-  def routes(rm: RoutableMessage): Unit = this.routes(rm.topicPath).foreach( _ ! rm)
+  def routes(rm: RoutableMessage): Unit = this.routes(rm.topicPath).foreach(_ ! rm)
 
   private[smqd] def addRoute(filterPath: FilterPath): Unit
   private[smqd] def removeRoute(filterPath: FilterPath): Unit
@@ -51,9 +51,7 @@ case class SmqdRoute(filterPath: FilterPath, actor: ActorRef, nodeName: String) 
 
 object SmqdRoute {
   implicit val smqRouteEncoder: Encoder[SmqdRoute] = new Encoder[SmqdRoute] {
-    override def apply(rt: SmqdRoute): Json = Json.obj(
-        ("topic", Json.fromString(rt.filterPath.toString)),
-        ("node", Json.fromString(rt.actor.path.toString)))
+    override def apply(rt: SmqdRoute): Json = Json.obj(("topic", Json.fromString(rt.filterPath.toString)), ("node", Json.fromString(rt.actor.path.toString)))
   }
 }
 
@@ -67,10 +65,14 @@ class ClusterModeRouter(verbose: Boolean) extends Router with StrictLogging {
 
     if (verbose) {
       logger.trace(
-        routes.map{ case (f, s) =>
-          s"$f -> ${ s.map(_.nodeName).mkString(", ")
-          }"
-        }.toSeq.sortWith(_ < _).mkString("\nRoutes\n      ", "\n      ", ""))
+        routes
+          .map { case (f, s) =>
+            s"$f -> ${s.map(_.nodeName).mkString(", ")}"
+          }
+          .toSeq
+          .sortWith(_ < _)
+          .mkString("\nRoutes\n      ", "\n      ", "")
+      )
     }
   }
 
@@ -88,13 +90,14 @@ class ClusterModeRouter(verbose: Boolean) extends Router with StrictLogging {
 
   def filter(topicPath: TopicPath): Seq[SmqdRoute] = {
     // find all routes that matches with the topic
-    this.routes.filter{ case (filter, _) => filter.matchFor(topicPath) }.flatMap{ case (_, route) => route}.toList
+    this.routes.filter { case (filter, _) => filter.matchFor(topicPath) }.flatMap { case (_, route) => route }.toList
   }
 
   def routes(topicPath: TopicPath): Seq[ActorRef] = {
-    this.filter(topicPath)
-      .groupBy( _.filterPath.prefix )
-      .flatMap{ case (prefix, rtList) =>
+    this
+      .filter(topicPath)
+      .groupBy(_.filterPath.prefix)
+      .flatMap { case (prefix, rtList) =>
         prefix match {
           case FilterPathPrefix.NoPrefix =>
             rtList
@@ -108,17 +111,18 @@ class ClusterModeRouter(verbose: Boolean) extends Router with StrictLogging {
             rtList
 
           case FilterPathPrefix.Share =>
-            rtList.groupBy( r => r.filterPath.group.get ).map { case(group, list) =>
+            rtList.groupBy(r => r.filterPath.group.get).map { case (group, list) =>
               list(random.nextInt(list.size))
             }
 
           case _ => Nil
         }
       }
-      .map(r => r.actor).toSeq.distinct  // send a message per a node by 'distinct'
+      .map(r => r.actor)
+      .toSeq
+      .distinct // send a message per a node by 'distinct'
   }
 }
-
 
 object RoutesReplicator {
   val actorName = "routes_replicator"
@@ -135,16 +139,16 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
 
   private val writeCLTimeout = config.getDuration("smqd.router.write_consistency_timeout").toMillis.milli
   private val writeConsistency = config.getString("smqd.router.write_consistency_level").toLowerCase match {
-    case "majority" => WriteMajority(writeCLTimeout)
-    case "local"    => WriteLocal
-    case "all"      => WriteAll(writeCLTimeout)
+    case "majority"    => WriteMajority(writeCLTimeout)
+    case "local"       => WriteLocal
+    case "all"         => WriteAll(writeCLTimeout)
     case numRegex(str) => WriteTo(str.toInt, writeCLTimeout)
   }
   private val readCLTimeout = config.getDuration("smqd.router.read_consistency_timeout").toMillis.milli
   private val readConsistency = config.getString("smqd.router.read_consistency_level").toLowerCase match {
-    case "majority" => ReadMajority(readCLTimeout)
-    case "local"    => ReadLocal
-    case "all"      => ReadAll(readCLTimeout)
+    case "majority"    => ReadMajority(readCLTimeout)
+    case "local"       => ReadLocal
+    case "all"         => ReadAll(readCLTimeout)
     case numRegex(str) => ReadFrom(str.toInt, readCLTimeout)
   }
 
@@ -162,33 +166,33 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
     replicator ! Unsubscribe(FiltersKey, self)
   }
 
-  override def receive: Receive = {
-    case Ready =>
-      context.become(receive0)
-      router.setReplicator(this)
-      sender ! ReadyAck
+  override def receive: Receive = { case Ready =>
+    context.become(receive0)
+    router.setReplicator(this)
+    sender() ! ReadyAck
   }
 
-  def receive0: Receive = {
-    case c @ Changed(FiltersKey) =>
-      val data = c.get(FiltersKey)
-      router.set(data.entries)
+  def receive0: Receive = { case c @ Changed(FiltersKey) =>
+    val data = c.get(FiltersKey)
+    router.set(data.entries)
   }
 
   private[smqd] def addRoute(filter: FilterPath): Unit = {
     if (blindRoutingFlag) {
       // do nothing
-    }
-    else {
+    } else {
       if (blindRoutingThreshold != 0 && routesCount.incrementAndGet() >= blindRoutingThreshold) {
         if (!blindRoutingFlag) { // enable blind routing
           blindRoutingFlag = true
           logger.warn("Blind routing triggered: > {}", blindRoutingThreshold)
-          replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(selfUniqueAddress, "#", SmqdRoute("#", localRouter, smqd.nodeName)))
+          replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m =>
+            m.addBinding(selfUniqueAddress, "#", SmqdRoute("#", localRouter, smqd.nodeName))
+          )
         }
-      }
-      else {
-        replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.addBinding(selfUniqueAddress, filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
+      } else {
+        replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m =>
+          m.addBinding(selfUniqueAddress, filter, SmqdRoute(filter, localRouter, smqd.nodeName))
+        )
       }
     }
   }
@@ -196,49 +200,53 @@ class RoutesReplicator(smqd: Smqd, router: ClusterModeRouter, registry: Registry
   private[smqd] def removeRoute(filter: FilterPath): Unit = {
     if (blindRoutingFlag) {
       // do nothing
-    }
-    else {
-      replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m => m.removeBinding(selfUniqueAddress, filter, SmqdRoute(filter, localRouter, smqd.nodeName)))
+    } else {
+      replicator ! Update(FiltersKey, ORMultiMap.empty[FilterPath, SmqdRoute], writeConsistency)(m =>
+        m.removeBinding(selfUniqueAddress, filter, SmqdRoute(filter, localRouter, smqd.nodeName))
+      )
     }
   }
 }
 
-
-
 trait SendingOutboundPublish {
 
   def sendOutboundPublishByTypes(filteredList: Seq[Registration], rm: RoutableMessage)(implicit random: scala.util.Random): Unit = {
-    val matchedRegList = filteredList.groupBy(_.filterPath.prefix).flatMap { case (prefix, regList) =>
-      prefix match {
-        case FilterPathPrefix.NoPrefix =>
-          regList
+    val matchedRegList = filteredList
+      .groupBy(_.filterPath.prefix)
+      .flatMap { case (prefix, regList) =>
+        prefix match {
+          case FilterPathPrefix.NoPrefix =>
+            regList
 
-        case FilterPathPrefix.Local if rm.isLocal =>
-          regList
+          case FilterPathPrefix.Local if rm.isLocal =>
+            regList
 
-        case FilterPathPrefix.Local if rm.isRemote =>
-          // local subscriptions, if a message arrived from a remote node, simply ignore
-          Seq.empty
+          case FilterPathPrefix.Local if rm.isRemote =>
+            // local subscriptions, if a message arrived from a remote node, simply ignore
+            Seq.empty
 
-        case FilterPathPrefix.Queue =>
-          val dest = if (regList.size == 1) {
-            regList.head
-          }
-          else {
-            regList(random.nextInt(regList.size))
-          }
-          Seq(dest)
+          case FilterPathPrefix.Queue =>
+            val dest = if (regList.size == 1) {
+              regList.head
+            } else {
+              regList(random.nextInt(regList.size))
+            }
+            Seq(dest)
 
-        case FilterPathPrefix.Share =>
-          regList.groupBy(reg => reg.filterPath.group.get).map{ case (_, seq) =>
-            // send one message per a group
-            seq(random.nextInt(seq.size))
-          }.toSeq
+          case FilterPathPrefix.Share =>
+            regList
+              .groupBy(reg => reg.filterPath.group.get)
+              .map { case (_, seq) =>
+                // send one message per a group
+                seq(random.nextInt(seq.size))
+              }
+              .toSeq
 
-        case _ =>
-          Seq.empty
+          case _ =>
+            Seq.empty
+        }
       }
-    }.toSeq
+      .toSeq
 
     sendOutboundPublish(matchedRegList, rm)
   }
@@ -246,8 +254,9 @@ trait SendingOutboundPublish {
   // [MQTT-3.3.5-1] Filtering overlap subscriptions,
   // send a message for a subscriber with maximum QoS of all the matching subscriptions.
   def sendOutboundPublish(regList: Seq[Registration], rm: RoutableMessage): Unit = {
-    regList.groupBy(reg => reg.actor)
-      .foreach{ case (_, regs) =>
+    regList
+      .groupBy(reg => reg.actor)
+      .foreach { case (_, regs) =>
         val reg = regs.sortWith((l, r) => l.qos > r.qos).head
         sendOutboundPubish(reg, rm)
       }
@@ -256,8 +265,7 @@ trait SendingOutboundPublish {
   def sendOutboundPubish(reg: Registration, rm: RoutableMessage): Unit = {
     if (reg.clientId.isDefined) { // session associated subscriber, which means this is not a internal actor (callback)
       reg.actor ! OutboundPublish(rm.topicPath, reg.qos, rm.isRetain, rm.msg)
-    }
-    else { // no session, this subscriber is internal actor (callback)
+    } else { // no session, this subscriber is internal actor (callback)
       reg.actor ! (rm.topicPath, rm.msg)
     }
   }
@@ -286,9 +294,9 @@ class LocalModeRouter(registry: Registry) extends Router with SendingOutboundPub
 
   override def routes(topicPath: TopicPath): Seq[ActorRef] = Nil
 
-  override private[smqd] def addRoute(filterPath: FilterPath): Unit = { } // do nothing
+  override private[smqd] def addRoute(filterPath: FilterPath): Unit = {} // do nothing
 
-  override private[smqd] def removeRoute(filterPath: FilterPath): Unit = { } // do nothing
+  override private[smqd] def removeRoute(filterPath: FilterPath): Unit = {} // do nothing
 
   override def routes(rm: RoutableMessage): Unit = {
     sendOutboundPublishByTypes(registry.filter(rm.topicPath), rm)(random)

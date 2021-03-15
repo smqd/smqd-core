@@ -15,7 +15,6 @@
 package com.thing2x.smqd.net.telnet
 
 import java.io._
-
 import com.typesafe.scalalogging.StrictLogging
 import net.wimpi.telnetd.io.BasicTerminalIO
 
@@ -28,6 +27,15 @@ object ScTerm {
   val MAGENTA = 35
   val CYAN = 36
   val WHITE = 37
+
+  private final class WriterOutputStream(wr: Writer) extends OutputStream {
+    override def write(b: Array[Byte], off: Int, len: Int): Unit = {
+      val str = new String(b, off, len)
+      wr.write(str, 0, str.length)
+    }
+
+    def write(b: Int): Unit = write(Array(b.toByte), 0, 1)
+  }
 }
 
 class ScTerm(termio: BasicTerminalIO) extends StrictLogging {
@@ -54,14 +62,14 @@ class ScTerm(termio: BasicTerminalIO) extends StrictLogging {
   val writer: Writer = new Writer {
     override def write(cbuf: Array[Char], off: Int, len: Int): Unit = {
       //term.write(new String(cbuf, off, len))
-      cbuf.drop(off).take(len).foreach(termio.write)
+      cbuf.slice(off, off + len).foreach(termio.write)
     }
 
     override def flush(): Unit = termio.flush()
-    override def close(): Unit = Unit
+    override def close(): Unit = ()
   }
 
-  val outputStream: OutputStream = new scala.tools.nsc.interpreter.WriterOutputStream(writer)
+  val outputStream: OutputStream = new ScTerm.WriterOutputStream(writer)
 
   val printStream: PrintStream = new PrintStream(outputStream)
 

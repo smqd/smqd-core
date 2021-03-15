@@ -27,7 +27,7 @@ import com.thing2x.smqd.util.FailFastCirceSupport._
 // 2018. 6. 21. - Created by Kwon, Yeong Eon
 
 class RouteController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
-  override def routes: Route = context.oauth2.authorized{ _ => routes0 }
+  override def routes: Route = context.oauth2.authorized { _ => routes0 }
 
   private def routes0: Route = {
     ignoreTrailingSlash {
@@ -35,37 +35,38 @@ class RouteController(name: String, context: HttpServiceContext) extends RestCon
         path(Remaining) { topicStr =>
           // GET api/v1/routes/{topic}
           val topicPath = TopicPath(topicStr)
-          val result = context.smqdInstance.snapshotRoutes.filter( _._1.matchFor(topicPath) )
+          val result = context.smqdInstance.snapshotRoutes.filter(_._1.matchFor(topicPath))
 
           if (result.isEmpty) {
             complete(StatusCodes.NotFound, restError(404, s"Not Found - $topicStr"))
-          }
-          else {
-            val json = result.map{ case (topicName, rs) => Json.obj(
-              ("topic", Json.fromString(topicName.toString)),
-              ("nodes", rs.map(r => r.actor.path.address.hostPort).asJson)
-            )}.asJson
+          } else {
+            val json = result.map { case (topicName, rs) =>
+              Json.obj(
+                ("topic", Json.fromString(topicName.toString)),
+                ("nodes", rs.map(r => r.actor.path.address.hostPort).asJson)
+              )
+            }.asJson
             complete(StatusCodes.OK, restSuccess(0, json))
           }
         } ~
-        pathEnd {
-          parameters('curr_page.as[Int].?, 'page_size.as[Int].?) { (currPage, pageSize) =>
-            // GET api/v1/routes?curr_page={page_no}&page_size={page_size}
+          pathEnd {
+            parameters("curr_page".as[Int].?, "page_size".as[Int].?) { (currPage, pageSize) =>
+              // GET api/v1/routes?curr_page={page_no}&page_size={page_size}
 
-            implicit val RouteEncoder: Encoder[(FilterPath, Set[SmqdRoute])] = new Encoder[(FilterPath, Set[SmqdRoute])] {
-              override def apply(r: (FilterPath, Set[SmqdRoute])): Json = {
-                val topic = r._1; val routeSet = r._2
-                Json.obj (
-                  ("topic", Json.fromString(topic.toString)),
-                  ("nodes", routeSet.map(elm => elm.nodeName).asJson)
-                )
+              implicit val RouteEncoder: Encoder[(FilterPath, Set[SmqdRoute])] = new Encoder[(FilterPath, Set[SmqdRoute])] {
+                override def apply(r: (FilterPath, Set[SmqdRoute])): Json = {
+                  val topic = r._1; val routeSet = r._2
+                  Json.obj(
+                    ("topic", Json.fromString(topic.toString)),
+                    ("nodes", routeSet.map(elm => elm.nodeName).asJson)
+                  )
+                }
               }
-            }
 
-            val result = context.smqdInstance.snapshotRoutes
-            complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
+              val result = context.smqdInstance.snapshotRoutes
+              complete(StatusCodes.OK, restSuccess(0, pagenate(result, currPage, pageSize)))
+            }
           }
-        }
       }
     }
   }

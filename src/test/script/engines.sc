@@ -1,5 +1,5 @@
 import javax.script.ScriptEngineManager
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 val manager = new ScriptEngineManager
 val factories = manager.getEngineFactories.asScala

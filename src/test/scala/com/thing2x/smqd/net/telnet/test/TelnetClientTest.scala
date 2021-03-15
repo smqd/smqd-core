@@ -14,7 +14,6 @@
 
 package com.thing2x.smqd.net.telnet.test
 
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.testkit.TestKit
@@ -23,26 +22,24 @@ import com.thing2x.smqd.net.telnet.TelnetClient._
 import com.thing2x.smqd.{Smqd, SmqdBuilder}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
-import org.scalatest.{BeforeAndAfterAll, FlatSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.concurrent.Promise
 import scala.concurrent.duration._
 
-class TelnetClientTest extends FlatSpec
-  with BeforeAndAfterAll
-  with ScalatestRouteTest
-  with StrictLogging {
+class TelnetClientTest extends AnyFlatSpec with BeforeAndAfterAll with ScalatestRouteTest with StrictLogging {
 
   // configure smqd's telnet server
-  val config: Config = ConfigFactory.parseString(
-    """
+  val config: Config = ConfigFactory
+    .parseString("""
       |smqd {
       |  services=["core-telnetd"]
       |}
-    """.stripMargin).withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
+    """.stripMargin)
+    .withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
 
-  val telnetTestConf = ConfigFactory.parseString(
-    """
+  val telnetTestConf = ConfigFactory.parseString("""
       |host=127.0.0.1
       |port=6623
       |user=admin
@@ -54,10 +51,10 @@ class TelnetClientTest extends FlatSpec
   private val login = telnetConf.getString("user")
   private val passwd = telnetConf.getString("password")
 
-  private val bshPrompt = ".*scsh.*> ".r  // linuxPrompt = "^.*[$] ".r
+  private val bshPrompt = ".*scsh.*> ".r // linuxPrompt = "^.*[$] ".r
 
   private var smqdInstance: Smqd = _
-  private val shutdownPromise = Promise[Boolean]
+  private val shutdownPromise = Promise[Boolean]()
 
   override def createActorSystem(): ActorSystem = ActorSystem(actorSystemNameFrom(getClass), config)
 
@@ -79,7 +76,8 @@ class TelnetClientTest extends FlatSpec
   "TelnetClient" should "work in step by step procedure" in {
     implicit val timeout: Duration = 15.seconds
 
-    val client = TelnetClient.Builder()
+    val client = TelnetClient
+      .Builder()
       .withHost(telnetConf.getString("host"))
       .withPort(telnetConf.getInt("port"))
       .withDebug(false)
@@ -137,7 +135,8 @@ class TelnetClientTest extends FlatSpec
   it should "work with auto login" in {
     implicit val timeout: Duration = 15.seconds
 
-    val client = TelnetClient.Builder()
+    val client = TelnetClient
+      .Builder()
       .withHost(telnetConf.getString("host"))
       .withPort(telnetConf.getInt("port"))
       .withDebug(false)
@@ -179,4 +178,3 @@ class TelnetClientTest extends FlatSpec
     shutdownPromise.success(true)
   }
 }
-
