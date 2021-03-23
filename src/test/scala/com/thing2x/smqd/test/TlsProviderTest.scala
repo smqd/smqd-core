@@ -17,16 +17,16 @@ package com.thing2x.smqd.test
 import com.thing2x.smqd._
 import com.thing2x.smqd.util.ConfigUtil._
 import com.typesafe.config.ConfigFactory
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
 // 2018. 6. 26. - Created by Kwon, Yeong Eon
 
-class TlsProviderTest extends FlatSpec{
+class TlsProviderTest extends AnyFlatSpec {
 
   "tsl provider" should "create from file" in {
 
-    val conf = ConfigFactory.parseString(
-      """
+    val conf = ConfigFactory
+      .parseString("""
         | smqd {
         |   tls {
         |     storetype = jks
@@ -35,7 +35,8 @@ class TlsProviderTest extends FlatSpec{
         |     keypass = smqd.demo.key
         |   }
         | }
-      """.stripMargin).resolve()
+      """.stripMargin)
+      .resolve()
 
     val tlsConf = conf.getOptionConfig("smqd.tls")
     assert(tlsConf.isDefined)

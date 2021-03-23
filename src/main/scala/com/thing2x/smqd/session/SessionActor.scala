@@ -33,8 +33,7 @@ import scala.concurrent.{Future, Promise}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
-/**
-  * 2018. 6. 2. - Created by Kwon, Yeong Eon
+/** 2018. 6. 2. - Created by Kwon, Yeong Eon
   */
 
 object SessionActor {
@@ -60,11 +59,10 @@ object SessionActor {
   case class ChannelClosed(channelActor: ActorRef, clearSession: Boolean)
 }
 
-class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken)
-  extends Actor with Timers with ActorIdentifying with StrictLogging {
+class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore, stoken: SessionStoreToken) extends Actor with Timers with ActorIdentifying with StrictLogging {
 
   private val localMessageId: AtomicLong = new AtomicLong(1)
-  private def nextMessageId: Int = math.abs((localMessageId.getAndIncrement() % 0xFFFF).toInt)
+  private def nextMessageId: Int = math.abs((localMessageId.getAndIncrement() % 0xffff).toInt)
 
   private val noOfSubscription = new AtomicInteger()
 
@@ -85,21 +83,21 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     sstore.flushSession(stoken)
     channelActor match {
       case Some(actor) => actor ! PoisonPill
-      case None =>
+      case None        =>
     }
   }
 
   override def receive: Receive = {
-    case Subscribe(subs, promise) =>    subscribe(subs, promise)
-    case Unsubscribe(subs, promise) =>  unsubscribe(subs, promise)
-    case ipub: InboundPublish =>        inboundPublish(ipub)
-    case opub: OutboundPublish =>       outboundPublish(opub)
-    case oack: OutboundPublishAck =>    outboundAck(oack)
-    case orec: OutboundPublishRec =>    outboundRec(orec)
-    case ocomp: OutboundPublishComp =>  outboundComp(ocomp)
-    case ChannelOpened(actor) =>        channelOpened(actor)
+    case Subscribe(subs, promise)           => subscribe(subs, promise)
+    case Unsubscribe(subs, promise)         => unsubscribe(subs, promise)
+    case ipub: InboundPublish               => inboundPublish(ipub)
+    case opub: OutboundPublish              => outboundPublish(opub)
+    case oack: OutboundPublishAck           => outboundAck(oack)
+    case orec: OutboundPublishRec           => outboundRec(orec)
+    case ocomp: OutboundPublishComp         => outboundComp(ocomp)
+    case ChannelOpened(actor)               => channelOpened(actor)
     case ChannelClosed(actor, clearSession) => channelClosed(actor, clearSession)
-    case challenge: NewSessionChallenge => challengeChannel(sender, challenge)
+    case challenge: NewSessionChallenge     => challengeChannel(sender(), challenge)
   }
 
   private def challengeChannel(replyTo: ActorRef, challenge: NewSessionChallenge): Unit = {
@@ -110,8 +108,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
       replyTo ! NewSessionChallengeAccepted(sessionCtx.clientId)
       // the actor picks its successor
       challengingActor = Some(replyTo)
-    }
-    else {
+    } else {
       // if the session actor is during the CONNECT process or has already successor(challengingAcotr),
       // makes other challengers failed.
       replyTo ! NewSessionChallengeDenied(sessionCtx.clientId)
@@ -132,7 +129,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
     smqd.publish(ipub.topicPath, ipub.payload)
 
     ipub.qos match {
-      case QoS.AtMostOnce =>  // 0, no ack
+      case QoS.AtMostOnce => // 0, no ack
       case QoS.AtLeastOnce => // 1, ack
         sessionCtx.writePubAck(ipub.packetId)
       case QoS.ExactlyOnce => // 2, exactly once
@@ -149,7 +146,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
 
     val payload = opub.msg match {
       case a: Array[Byte] => Unpooled.wrappedBuffer(a)
-      case b: ByteBuf => b
+      case b: ByteBuf     => b
       case x: ProtocolNotification =>
         Unpooled.wrappedBuffer(x.asJson.toString.getBytes(StandardCharsets.UTF_8))
       case f: Fault =>
@@ -205,8 +202,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
 
         // delete retained message
         smqd.unretain(ipub.topicPath)
-      }
-      else {
+      } else {
         // [MQTT-3.3.1-7] If the Server receives a QoS 0 message with the RETAIN flag set to 1 it MUST discard
         // any message previously retained for that topic. It SHOULD store the new QoS 0 message as the new retained
         // message for that topic, buf MAY choose to discard it at any time - if this happens there will be no
@@ -215,8 +211,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
         // store retained message
         smqd.retain(ipub.topicPath, ipub.payload)
       }
-    }
-    else {
+    } else {
       // [MQTT-3.3.1-12] If the RETAIN flag is 0, in a PUBLISH Packet sent by a Client to Server, the Server
       // MUST NOT store the message and MUST NOT remove or replace any existing retained message
     }
@@ -227,50 +222,52 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
 
     import smqd.Implicit._
 
-    val subscribeFutures = subs.map{ s =>
+    val subscribeFutures = subs.map { s =>
       // check if the topic name is valid
       TPath.parseForFilter(s.topicName) match {
         case Some(filterPath) =>
-          smqd.allowSubscribe(filterPath, s.qos, sessionCtx.clientId, sessionCtx.userName).map { qos =>
-            // check if subscription is allowed by registry
-            (qos, s.topicName, if(qos == QoS.Failure) "NotAllowed" else "Allowed")
-          }.recover {
-            // make over for not allowed cases
-            case x: Throwable => (QoS.Failure, s.topicName, x.getMessage)
-            case _ => (QoS.Failure, s.topicName, "DelegateFailure")
-          }.map { case (qos, topicName, msg) =>
-            // actual subscription, only for topics that are passed allowance check point
-            if (qos != QoS.Failure) {
-              smqd.subscribe(topicName, self, sessionCtx.clientId, qos)
-              (qos, topicName, msg)
+          smqd
+            .allowSubscribe(filterPath, s.qos, sessionCtx.clientId, sessionCtx.userName)
+            .map { qos =>
+              // check if subscription is allowed by registry
+              (qos, s.topicName, if (qos == QoS.Failure) "NotAllowed" else "Allowed")
             }
-            else {
-              (qos, topicName, msg)
+            .recover {
+              // make over for not allowed cases
+              case x: Throwable => (QoS.Failure, s.topicName, x.getMessage)
+              case _            => (QoS.Failure, s.topicName, "DelegateFailure")
             }
-          }
+            .map { case (qos, topicName, msg) =>
+              // actual subscription, only for topics that are passed allowance check point
+              if (qos != QoS.Failure) {
+                smqd.subscribe(topicName, self, sessionCtx.clientId, qos)
+                (qos, topicName, msg)
+              } else {
+                (qos, topicName, msg)
+              }
+            }
         case _ =>
           Future((QoS.Failure, s.topicName, "InvalidTopic"))
       }
     }
 
-    Future.sequence(subscribeFutures).onComplete{
+    Future.sequence(subscribeFutures).onComplete {
       case Success(results) =>
-        val acks = results.map{ case (qos, topic, reason) =>
+        val acks = results.map { case (qos, topic, reason) =>
           if (qos == QoS.Failure) {
             reason match {
-              case "NotAllowed" =>       // subscription not allowed
+              case "NotAllowed" => // subscription not allowed
                 smqd.notifyFault(TopicNotAllowedToSubscribe(sessionCtx.clientId.toString, s"Subscribe not allowed: $topic"))
-              case "InvalidTopic" =>     // failure if the topicName is unable to parse
+              case "InvalidTopic" => // failure if the topicName is unable to parse
                 smqd.notifyFault(InvalidTopicNameToSubscribe(sessionCtx.clientId.toString, s"Invalid topic to subscribe: $topic"))
-              case "DelegateFailure" =>  // subscription failure on registry delegate, so no retained messages
+              case "DelegateFailure" => // subscription failure on registry delegate, so no retained messages
                 smqd.notifyFault(UnknownErrorToSubscribe(sessionCtx.clientId.toString, s"Subscribe failed by delegate: $topic"))
-              case "RegistryFailure" =>  // subscription failure on registry
+              case "RegistryFailure" => // subscription failure on registry
                 smqd.notifyFault(UnknownErrorToSubscribe(sessionCtx.clientId.toString, s"Subscribe filaed by registry"))
-              case ex =>  // subscription failure, so no retained messages
+              case ex => // subscription failure, so no retained messages
                 smqd.notifyFault(UnknownErrorToSubscribe(sessionCtx.clientId.toString, s"Subscribe failed $ex: $topic"))
             }
-          }
-          else {
+          } else {
             // protocol tracking may make endless echo, to prevent it, remove protocol handlers from pipeline
             if (topic == "$SYS/protocols" || topic.startsWith("$SYS/protocols/")) {
               sessionCtx match {
@@ -300,7 +297,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
         //
         // [MQTT-3.3.1-8] When sending a PUBLISH packet to a Client the Server MUST set the RETAIN flag to 1
         // if a message is sent as a result of a new subscription being made by a Client
-        retained.foreach{ case RetainedMessage(topicPath, qos, msg) =>
+        retained.foreach { case RetainedMessage(topicPath, qos, msg) =>
           self ! OutboundPublish(topicPath, qos, isRetain = true, msg)
         }
 
@@ -318,7 +315,7 @@ class SessionActor(sessionCtx: SessionContext, smqd: Smqd, sstore: SessionStore,
           case Some(filterPath) =>
             sstore.deleteSubscription(stoken, filterPath)
             smqd.unsubscribe(filterPath, self)
-          case _=>
+          case _ =>
             // failure if the topicName is unable to parse
             smqd.notifyFault(InvalidTopicNameToUnsubscribe(sessionCtx.clientId.toString, topicName))
             false

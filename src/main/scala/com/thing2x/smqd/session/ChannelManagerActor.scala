@@ -26,7 +26,6 @@ import io.netty.channel.Channel
 // 2018. 8. 21. - Created by Kwon, Yeong Eon
 
 /**
-  *
   */
 object ChannelManagerActor {
   val actorName = "channels"
@@ -37,10 +36,9 @@ object ChannelManagerActor {
 
 class ChannelManagerActor(smqdInstance: Smqd) extends Actor with StrictLogging {
 
-  override def receive: Receive = {
-    case ChiefActor.Ready =>
-      sender ! ChiefActor.ReadyAck
-      context.become(receive0)
+  override def receive: Receive = { case ChiefActor.Ready =>
+    sender() ! ChiefActor.ReadyAck
+    context.become(receive0)
   }
 
   private def addr(addr: SocketAddress): String =
@@ -51,10 +49,9 @@ class ChannelManagerActor(smqdInstance: Smqd) extends Actor with StrictLogging {
     context.actorOf(Props(classOf[Mqtt4ChannelActor], smqdInstance, channel, listenerName), name)
   }
 
-  def receive0: Receive = {
-    case CreateChannelActorRequest(channel, listenerName) =>
-      val name = s"${addr(channel.remoteAddress)}-${addr(channel.localAddress)}"
-      val channelActor = context.actorOf(Props(classOf[Mqtt4ChannelActor], smqdInstance, channel, listenerName), name)
-      sender ! CreateChannelActorResponse(channelActor)
+  def receive0: Receive = { case CreateChannelActorRequest(channel, listenerName) =>
+    val name = s"${addr(channel.remoteAddress)}-${addr(channel.localAddress)}"
+    val channelActor = context.actorOf(Props(classOf[Mqtt4ChannelActor], smqdInstance, channel, listenerName), name)
+    sender() ! CreateChannelActorResponse(channelActor)
   }
 }

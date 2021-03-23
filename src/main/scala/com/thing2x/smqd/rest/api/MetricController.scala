@@ -23,7 +23,7 @@ import com.thing2x.smqd.util.FailFastCirceSupport._
 import com.typesafe.scalalogging.StrictLogging
 import io.circe.Json
 import io.circe.syntax._
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 // 2018. 6. 21. - Created by Kwon, Yeong Eon
 
@@ -34,10 +34,10 @@ object MetricController {
     override def write(c: Counter): JsValue = JsObject("count" -> JsNumber(c.getCount))
     override def read(json: JsValue): Counter = ???
   }
-  */
+   */
 }
 
-class MetricController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging  {
+class MetricController(name: String, context: HttpServiceContext) extends RestController(name, context) with Directives with StrictLogging {
   override def routes: Route = context.oauth2.authorized { _ => metrics }
 
   def metrics: Route = {
@@ -66,13 +66,13 @@ class MetricController(name: String, context: HttpServiceContext) extends RestCo
       case Some(prefixStr) if prefixStr.length > 0 =>
         val prefix = prefixNormalize(prefixStr)
         prefixLen = prefix.length
-        registry.getCounters( (name: String, _: Metric) => name.startsWith(prefix) ).asScala
+        registry.getCounters((name: String, _: Metric) => name.startsWith(prefix)).asScala
       case _ =>
         registry.getCounters.asScala
     }
 
-    val result = counters.map{ case (key: String, counter: Counter) => (key.substring(prefixLen), counter.getCount )}
-    var merged: Map[String, Json] = result.map{ case(key, num) => (key, Json.fromLong(num))}.toMap
+    val result = counters.map { case (key: String, counter: Counter) => (key.substring(prefixLen), counter.getCount) }
+    var merged: Map[String, Json] = result.map { case (key, num) => (key, Json.fromLong(num)) }.toMap
 
     ////////////////////////////////
     // Gauges
@@ -80,18 +80,18 @@ class MetricController(name: String, context: HttpServiceContext) extends RestCo
       case Some(prefixStr) if prefixStr.length > 0 =>
         val prefix = prefixNormalize(prefixStr)
         prefixLen = prefix.length
-        registry.getGauges( (name: String, _: Metric) => name.startsWith(prefix)).asScala
+        registry.getGauges((name: String, _: Metric) => name.startsWith(prefix)).asScala
       case _ =>
         registry.getGauges.asScala
     }
 
     merged ++= gauges.map { case (key: String, gauge) =>
-        gauge.getValue match {
-          case n: Int     => (key.substring(prefixLen), Json.fromInt(n))
-          case n: Long    => (key.substring(prefixLen), Json.fromLong(n))
-          case n: Float   => (key.substring(prefixLen), Json.fromFloat(n).getOrElse(Json.fromInt(-1)))
-          case n: Double  => (key.substring(prefixLen), Json.fromDouble(n).getOrElse(Json.fromInt(-1)))
-        }
+      gauge.getValue match {
+        case n: Int    => (key.substring(prefixLen), Json.fromInt(n))
+        case n: Long   => (key.substring(prefixLen), Json.fromLong(n))
+        case n: Float  => (key.substring(prefixLen), Json.fromFloat(n).getOrElse(Json.fromInt(-1)))
+        case n: Double => (key.substring(prefixLen), Json.fromDouble(n).getOrElse(Json.fromInt(-1)))
+      }
     }
 
     prefixOpt match {

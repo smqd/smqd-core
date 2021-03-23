@@ -54,7 +54,7 @@ class LocalModeRetainer extends Retainer {
     maps.remove(topicPath)
 
   override def filter(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage] = {
-    maps.filter{ case (k, _) => filterPath.matchFor(k) }.map{ case (topic, msg) => RetainedMessage(topic, qos, msg)}.toList
+    maps.filter { case (k, _) => filterPath.matchFor(k) }.map { case (topic, msg) => RetainedMessage(topic, qos, msg) }.toList
   }
 }
 
@@ -65,7 +65,7 @@ class ClusterModeRetainer extends Retainer with StrictLogging {
   def set(maps: Map[TopicPath, Array[Byte]]): Unit = {
     this.maps = maps
 
-    logger.trace(maps.map{ case (k, v) => s"${k.toString}\n${ByteBufUtil.hexDump(v)}"}.mkString("\nSet retained messages\n   \t", "\n   \t", ""))
+    logger.trace(maps.map { case (k, v) => s"${k.toString}\n${ByteBufUtil.hexDump(v)}" }.mkString("\nSet retained messages\n   \t", "\n   \t", ""))
   }
 
   override def put(topicPath: TopicPath, msg: Array[Byte]): Unit = {
@@ -77,7 +77,7 @@ class ClusterModeRetainer extends Retainer with StrictLogging {
   }
 
   override def filter(filterPath: FilterPath, qos: QoS): Seq[RetainedMessage] = {
-    maps.filter{ case (k, _) => filterPath.matchFor(k) }.map{ case (topic, msg) => RetainedMessage(topic, qos, msg)}.toList
+    maps.filter { case (k, _) => filterPath.matchFor(k) }.map { case (topic, msg) => RetainedMessage(topic, qos, msg) }.toList
   }
 
   private var replicator: RetainsReplicator = _
@@ -106,24 +106,22 @@ class RetainsReplicator(smqd: Smqd, retainer: ClusterModeRetainer) extends Actor
     replicator ! Unsubscribe(RetainsKey, self)
   }
 
-  override def receive: Receive = {
-    case Ready =>
-      context.become(receive0)
-      retainer.setReplicator(this)
-      sender ! ReadyAck
+  override def receive: Receive = { case Ready =>
+    context.become(receive0)
+    retainer.setReplicator(this)
+    sender() ! ReadyAck
   }
 
-  def receive0: Receive = {
-    case c @ Changed(RetainsKey) =>
-      val data = c.get(RetainsKey)
-      retainer.set(data.entries)
+  def receive0: Receive = { case c @ Changed(RetainsKey) =>
+    val data = c.get(RetainsKey)
+    retainer.set(data.entries)
   }
 
   private[smqd] def addRetainedMessage(topic: TopicPath, msg: Array[Byte]): Unit = {
-    replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], writeConsistency)( _ :+ (topic, msg))
+    replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], writeConsistency)(_ :+ (topic, msg))
   }
 
   private[smqd] def removeRetainedMessage(topic: TopicPath): Unit = {
-    replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], writeConsistency)( _.remove(node, topic))
+    replicator ! Update(RetainsKey, LWWMap.empty[TopicPath, Array[Byte]], writeConsistency)(_.remove(node, topic))
   }
 }

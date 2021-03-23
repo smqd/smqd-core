@@ -23,13 +23,12 @@ import com.thing2x.smqd.util.SslUtil
 import com.thing2x.smqd.{SmqResult, SmqSuccess, UserDelegate}
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 // 2018. 7. 18. - Created by Kwon, Yeong Eon
 
 /**
-  *
   */
 class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogging {
 
@@ -72,8 +71,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
         //logger.trace(s"stored pw=${pw} vs. user pw=${SslUtil.getSha1Hash(password)}")
         if (pw != null && pw == SslUtil.getSha1Hash(password)) {
           SmqSuccess()
-        }
-        else {
+        } else {
           UserWrongPassword("Bad username or password ")
         }
       }
@@ -84,7 +82,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
     Future {
       val props = load
       val us = props.stringPropertyNames().asScala
-      us.map( k => (k, props.getProperty(k)) ).map(u => User(u._1, u._2)).toSeq
+      us.map(k => (k, props.getProperty(k))).map(u => User(u._1, u._2)).toSeq
     }
   }
 
@@ -94,8 +92,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
         val props = load
         if (props.getProperty(user.username) != null) {
           UserAlreadyExists(user.username)
-        }
-        else {
+        } else {
           props.setProperty(user.username, SslUtil.getSha1Hash(user.password))
           store(props)
           SmqSuccess()
@@ -110,8 +107,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
         val props = load
         if (props.getProperty(user.username) == null) {
           UserNotExists(user.username)
-        }
-        else {
+        } else {
           props.setProperty(user.username, SslUtil.getSha1Hash(user.password))
           store(props)
           SmqSuccess()
@@ -126,8 +122,7 @@ class DefaultUserDelegate(passwdFile: File) extends UserDelegate with StrictLogg
         val props = load
         if (props.getProperty(username) == null) {
           SmqSuccess()
-        }
-        else {
+        } else {
           props.remove(username)
           store(props)
           SmqSuccess()

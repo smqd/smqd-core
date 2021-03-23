@@ -26,7 +26,9 @@ import com.thing2x.smqd.rest.api.UserController.LoginResponse
 import com.thing2x.smqd.{Smqd, SmqdBuilder}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
-import org.scalatest.{WordSpec, _}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 import io.circe._
 import io.circe.syntax._
 import io.circe.generic.auto._
@@ -37,15 +39,10 @@ import scala.concurrent.duration._
 
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
 
+class HttpServiceTest extends AnyWordSpec with BeforeAndAfterAll with Matchers with ScalatestRouteTest with StrictLogging {
 
-class HttpServiceTest extends WordSpec
-  with BeforeAndAfterAll
-  with Matchers
-  with ScalatestRouteTest
-  with StrictLogging {
-
-  private val config = ConfigFactory.parseString(
-    """
+  private val config = ConfigFactory
+    .parseString("""
       |akka.actor.provider=local
       |smqd {
       |  services=["rest-test"]
@@ -79,7 +76,8 @@ class HttpServiceTest extends WordSpec
       |    }
       |  }
       |}
-    """.stripMargin).withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
+    """.stripMargin)
+    .withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
 
   override def createActorSystem(): ActorSystem = ActorSystem(actorSystemNameFrom(getClass), config)
 
@@ -87,7 +85,7 @@ class HttpServiceTest extends WordSpec
 
   var smqdInstance: Smqd = _
   var routes: Route = _
-  val shutdownPromise: Promise[Boolean] = Promise[Boolean]
+  val shutdownPromise: Promise[Boolean] = Promise[Boolean]()
 
   override def beforeAll(): Unit = {
 
@@ -135,13 +133,15 @@ class HttpServiceTest extends WordSpec
     var refreshToken: String = ""
 
     "pass oauth login" in {
-      val loginReq = HttpEntity.apply(ContentTypes.`application/json`,
+      val loginReq = HttpEntity.apply(
+        ContentTypes.`application/json`,
         """
           |{
           |   "user": "admin",
           |   "password": "password"
           |}
-        """.stripMargin)
+        """.stripMargin
+      )
 
       // 1. login
       Post("/test/login", loginReq) ~> routes ~> check {
@@ -169,12 +169,14 @@ class HttpServiceTest extends WordSpec
 
       // 3. refresh
       logger.info(s"===> refresh: $refreshToken")
-      val refreshReq = HttpEntity(ContentTypes.`application/json`,
+      val refreshReq = HttpEntity(
+        ContentTypes.`application/json`,
         s"""
            |{
            |  "refresh_token": "$refreshToken"
            |}
-        """.stripMargin)
+        """.stripMargin
+      )
 
       Post("/test/refresh", refreshReq) ~> routes ~> check {
         status shouldEqual StatusCodes.OK

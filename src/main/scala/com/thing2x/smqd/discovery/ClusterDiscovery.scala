@@ -17,11 +17,10 @@ package com.thing2x.smqd.discovery
 import akka.actor.{ActorSystem, Address, AddressFromURIString}
 import com.typesafe.config.Config
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
-/**
-  * 2018. 6. 28. - Created by Kwon, Yeong Eon
+/** 2018. 6. 28. - Created by Kwon, Yeong Eon
   */
 trait ClusterDiscovery {
   def seeds: Future[Seq[akka.actor.Address]]
@@ -30,8 +29,10 @@ trait ClusterDiscovery {
 class StaticClusterDiscovery(config: Config)(implicit system: ActorSystem, ec: ExecutionContext) extends ClusterDiscovery {
   override def seeds: Future[Seq[Address]] = {
     Future {
-      config.getStringList("seeds").asScala
-        .map("akka.tcp://"+system.name+"@"+_)
+      config
+        .getStringList("seeds")
+        .asScala
+        .map("akka.tcp://" + system.name + "@" + _)
         .map(AddressFromURIString.parse)
         .toList
     }

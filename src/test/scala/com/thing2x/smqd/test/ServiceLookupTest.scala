@@ -21,22 +21,31 @@ import com.thing2x.smqd.fault.DefaultFaultListener
 import com.thing2x.smqd.protocol.DefaultProtocolListener
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.StrictLogging
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 // 2018. 6. 28. - Created by Kwon, Yeong Eon
 
-class ServiceLookupTest extends TestKit(ActorSystem("service_lookup", ConfigFactory.parseString(
-  """
+class ServiceLookupTest
+    extends TestKit(
+      ActorSystem(
+        "service_lookup",
+        ConfigFactory
+          .parseString("""
     |akka.actor.provider=local
     |akka.cluster.seed-nodes=["akka.tcp://smqd@127.0.0.1:2551"]
     |
     |smqd.services=["core-protocol", "core-fault"]
-  """.stripMargin).withFallback(ConfigFactory.load("smqd-ref.conf"))))
-  with ImplicitSender
-  with WordSpecLike
-  with Matchers
-  with BeforeAndAfterAll
-  with StrictLogging {
+  """.stripMargin)
+          .withFallback(ConfigFactory.load("smqd-ref.conf"))
+      )
+    )
+    with ImplicitSender
+    with AnyWordSpecLike
+    with Matchers
+    with BeforeAndAfterAll
+    with StrictLogging {
 
   private val smqd = new SmqdBuilder(system.settings.config)
     .setActorSystem(system)

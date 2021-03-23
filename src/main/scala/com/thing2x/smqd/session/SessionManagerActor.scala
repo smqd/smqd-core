@@ -33,8 +33,7 @@ import scala.util.{Failure, Success}
 
 // 2018. 6. 2. - Created by Kwon, Yeong Eon
 
-/**
-  * Session Management Actor
+/** Session Management Actor
   */
 object SessionManagerActor {
   val actorName = "sessions"
@@ -69,7 +68,7 @@ abstract class SessionManagerActor(smqdInstance: Smqd, sstore: SessionStore) ext
 
   override def receive: Receive = {
     case ChiefActor.Ready =>
-      sender ! ReadyAck
+      sender() ! ReadyAck
 
     case msg: CreateSession =>
       val clientId = msg.ctx.clientId
@@ -97,7 +96,7 @@ abstract class SessionManagerActor(smqdInstance: Smqd, sstore: SessionStore) ext
               } yield {
                 result
               }
-              r.map (c => msg.promise.success(c))
+              r.map(c => msg.promise.success(c))
 
             case Success(NewSessionChallengeDenied(previousClientId)) =>
               logger.trace(s"[$clientId] previous channel $previousClientId denied to give up")
@@ -169,8 +168,8 @@ abstract class SessionManagerActor(smqdInstance: Smqd, sstore: SessionStore) ext
     val response = sessionActor ? NewSessionChallenge(clientId, cleanSession)
     response.onComplete {
       case Success(r: NewSessionChallengeResult) => promise.success(r)
-      case Failure(ex) => logger.warn(s"[$clientId] challenged actor return exception", ex)
-      case m => promise.failure(new TimeoutException(s"challenged actor has unexpected answer: ${m.toString}"))
+      case Failure(ex)                           => logger.warn(s"[$clientId] challenged actor return exception", ex)
+      case m                                     => promise.failure(new TimeoutException(s"challenged actor has unexpected answer: ${m.toString}"))
     }
     promise.future.withTimeout(new TimeoutException("challenged actor has no answer"))
   }
@@ -248,7 +247,7 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
           logger.error("Unhandled message in replicator.GetSuccess: {}", m.getClass.getName)
       }
     case GetFailure(SessionsKey, reqOpt) =>
-      reqOpt.get.asInstanceOf[(ClientId, Promise[Option[ActorRef]])] match{
+      reqOpt.get.asInstanceOf[(ClientId, Promise[Option[ActorRef]])] match {
         case (clientId, promise) =>
           logger.trace(s"[$clientId] ddata get failed")
           promise.success(None)
@@ -283,7 +282,7 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
 
   override def findSession(clientId: ClientId): Future[Option[ActorRef]] = {
     logger.trace(s"[$clientId] finding existing session ${clientId.id}")
-    val promise = Promise[Option[ActorRef]]
+    val promise = Promise[Option[ActorRef]]()
     ddata ! Get(SessionsKey, readConsistency, Some((clientId, promise)))
 
     implicit val timeout: Timeout = 2.second
@@ -291,8 +290,8 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
   }
 
   override def registerSession(clientId: ClientId, sessionActor: ActorRef): Future[Boolean] = {
-    val promise = Promise[Boolean]
-    ddata ! Update(SessionsKey, LWWMap.empty[String, ActorRef], writeConsistency, Some((clientId, promise, "registered"))){ m =>
+    val promise = Promise[Boolean]()
+    ddata ! Update(SessionsKey, LWWMap.empty[String, ActorRef], writeConsistency, Some((clientId, promise, "registered"))) { m =>
       sstore.setSessionState(clientId, connected = true)
       logger.trace(s"[$clientId] ddata register (${clientId.id} -> ${sessionActor.toString})")
       m :+ (clientId.id, sessionActor)
@@ -303,8 +302,8 @@ class ClusterModeSessionManagerActor(smqd: Smqd, sstore: SessionStore) extends S
   }
 
   override def unregisterSession(clientId: ClientId): Future[Boolean] = {
-    val promise = Promise[Boolean]
-    ddata ! Update(SessionsKey, LWWMap.empty[String, ActorRef], writeConsistency, Some((clientId, promise, "unregistered"))){ m =>
+    val promise = Promise[Boolean]()
+    ddata ! Update(SessionsKey, LWWMap.empty[String, ActorRef], writeConsistency, Some((clientId, promise, "unregistered"))) { m =>
       sstore.setSessionState(clientId, connected = false)
       logger.trace(s"[$clientId] ddata unregister")
       m.remove(selfUniqueAddress, clientId.id)

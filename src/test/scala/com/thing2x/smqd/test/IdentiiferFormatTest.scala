@@ -15,11 +15,11 @@
 package com.thing2x.smqd.test
 
 import com.typesafe.config.ConfigFactory
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
 // 2018. 6. 1. - Created by Kwon, Yeong Eon
 
-class IdentiiferFormatTest extends FlatSpec {
+class IdentiiferFormatTest extends AnyFlatSpec {
 
   "Client Identifier" should "match" in {
     assert(valid("3"))
@@ -48,7 +48,7 @@ class IdentiiferFormatTest extends FlatSpec {
   private def valid(id: String): Boolean = {
     id match {
       case format(_*) => true
-      case _ => false
+      case _          => false
     }
   }
 }

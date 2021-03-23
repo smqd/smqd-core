@@ -25,7 +25,6 @@ import scala.concurrent.duration._
 // 2018. 7. 12. - Created by Kwon, Yeong Eon
 
 /**
-  *
   */
 object JvmMonitoringActor {
   val actorName = "jvm_monitor"
@@ -51,36 +50,59 @@ object JvmMonitoringActor {
       // but no need to run multiple jvm metrics collector in a vm
       // so only take caore of the first provider.
       false
-    }
-    else {
+    } else {
       provider = Option(p)
 
       val registry = SharedMetricRegistries.getDefault
 
-      registry.register(MetricRegistry.name("jvm.heap.total"), new Gauge[Long]{
-        override def getValue: Long = if (provider.isDefined) provider.get.heapTotal else 0
-      })
-      registry.register(MetricRegistry.name("jvm.heap.eden_space"), new Gauge[Long]{
-        override def getValue: Long = if (provider.isDefined) provider.get.heapEdenSpace else 0
-      })
-      registry.register(MetricRegistry.name("jvm.heap.survivor_space"), new Gauge[Long]{
-        override def getValue: Long = if (provider.isDefined) provider.get.heapSurvivorSpace else 0
-      })
-      registry.register(MetricRegistry.name("jvm.heap.old_gen"), new Gauge[Long]{
-        override def getValue: Long = if (provider.isDefined) provider.get.heapOldGen else 0
-      })
-      registry.register(MetricRegistry.name("jvm.heap.used"), new Gauge[Long]{
-        override def getValue: Long = if (provider.isDefined) provider.get.heapUsed else 0
-      })
-      registry.register(MetricRegistry.name("jvm.cpu.load"), new Gauge[Double]{
-        override def getValue: Double = if (provider.isDefined) provider.get.cpuLoad else 0
-      })
-      registry.register(MetricRegistry.name("jvm.thread.count"), new Gauge[Int]{
-        override def getValue: Int = if (provider.isDefined) provider.get.threadCount else 0
-      })
-      registry.register(MetricRegistry.name("jvm.fd.count"), new Gauge[Long]{
-        override def getValue: Long = if (provider.isDefined) provider.get.fdCount else 0
-      })
+      registry.register(
+        MetricRegistry.name("jvm.heap.total"),
+        new Gauge[Long] {
+          override def getValue: Long = if (provider.isDefined) provider.get.heapTotal else 0
+        }
+      )
+      registry.register(
+        MetricRegistry.name("jvm.heap.eden_space"),
+        new Gauge[Long] {
+          override def getValue: Long = if (provider.isDefined) provider.get.heapEdenSpace else 0
+        }
+      )
+      registry.register(
+        MetricRegistry.name("jvm.heap.survivor_space"),
+        new Gauge[Long] {
+          override def getValue: Long = if (provider.isDefined) provider.get.heapSurvivorSpace else 0
+        }
+      )
+      registry.register(
+        MetricRegistry.name("jvm.heap.old_gen"),
+        new Gauge[Long] {
+          override def getValue: Long = if (provider.isDefined) provider.get.heapOldGen else 0
+        }
+      )
+      registry.register(
+        MetricRegistry.name("jvm.heap.used"),
+        new Gauge[Long] {
+          override def getValue: Long = if (provider.isDefined) provider.get.heapUsed else 0
+        }
+      )
+      registry.register(
+        MetricRegistry.name("jvm.cpu.load"),
+        new Gauge[Double] {
+          override def getValue: Double = if (provider.isDefined) provider.get.cpuLoad else 0
+        }
+      )
+      registry.register(
+        MetricRegistry.name("jvm.thread.count"),
+        new Gauge[Int] {
+          override def getValue: Int = if (provider.isDefined) provider.get.threadCount else 0
+        }
+      )
+      registry.register(
+        MetricRegistry.name("jvm.fd.count"),
+        new Gauge[Long] {
+          override def getValue: Long = if (provider.isDefined) provider.get.fdCount else 0
+        }
+      )
       true
     }
   }
@@ -116,47 +138,46 @@ class JvmMonitoringActor extends Actor with StrictLogging with JvmAware with Jvm
     case Ready =>
       if (schedule.isDefined) // become is working only the scheduler is registered
         context.become(receive0)
-      sender ! ReadyAck
+      sender() ! ReadyAck
     case Tick =>
-      // ignore
+    // ignore
   }
 
-  def receive0: Receive = {
-    case Tick =>
-      var total: Long = 0
-      var eden: Long = 0
-      var suvivor: Long = 0
-      var oldgen: Long = 0
-      var used: Long = 0
+  def receive0: Receive = { case Tick =>
+    var total: Long = 0
+    var eden: Long = 0
+    var suvivor: Long = 0
+    var oldgen: Long = 0
+    var used: Long = 0
 
-      javaMemoryPoolUsage.foreach { usage =>
-        usage.`type` match {
-          case "Heap memory" =>
-            used += usage.used
-            if (usage.max > 0)
-              total += usage.max
+    javaMemoryPoolUsage.foreach { usage =>
+      usage.`type` match {
+        case "Heap memory" =>
+          used += usage.used
+          if (usage.max > 0)
+            total += usage.max
 
-            val ln = usage.name.toLowerCase
-            if (ln.contains("eden"))
-              eden = usage.used
-            else if (ln.contains("survivor"))
-              suvivor = usage.used
-            else if (ln.contains("old"))
-              oldgen = usage.used
-          case _ => // ignore
-        }
+          val ln = usage.name.toLowerCase
+          if (ln.contains("eden"))
+            eden = usage.used
+          else if (ln.contains("survivor"))
+            suvivor = usage.used
+          else if (ln.contains("old"))
+            oldgen = usage.used
+        case _ => // ignore
       }
+    }
 
-      this.heapTotal = total
-      this.heapEdenSpace = eden
-      this.heapSurvivorSpace = suvivor
-      this.heapOldGen = oldgen
-      this.heapUsed = used
+    this.heapTotal = total
+    this.heapEdenSpace = eden
+    this.heapSurvivorSpace = suvivor
+    this.heapOldGen = oldgen
+    this.heapUsed = used
 
-      this.cpuLoad = javaCpuUsage
+    this.cpuLoad = javaCpuUsage
 
-      this.threadCount = javaThreadCount
+    this.threadCount = javaThreadCount
 
-      this.fdCount = javaOperatingSystem.fd.getOrElse(0)
+    this.fdCount = javaOperatingSystem.fd.getOrElse(0)
   }
 }

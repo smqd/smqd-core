@@ -20,7 +20,7 @@ import com.thing2x.smqd.plugin.Service
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -28,8 +28,7 @@ import scala.sys.process._
 
 // 10/11/18 - Created by Kwon, Yeong Eon
 
-/**
-  *{{{
+/** {{{
   *   services = [hchk]
   *
   *   hchk = {
@@ -52,7 +51,7 @@ import scala.sys.process._
   *          ]
   *      }
   *   }
-  *}}}
+  * }}}
   *
   * How to get the healthy information
   *
@@ -78,11 +77,13 @@ object HealthChecker {
     case class ScriptFailure(message: String) extends HealthStatus
   }
 
-  private [HealthChecker] case class Job(name: String,
-                                         var status: HealthStatus,
-                                         var token: Option[Cancellable] = None,
-                                         var output: Option[String] = None,
-                                         var listeners: Seq[ActorRef] = Nil)
+  private[HealthChecker] case class Job(
+      name: String,
+      var status: HealthStatus,
+      var token: Option[Cancellable] = None,
+      var output: Option[String] = None,
+      var listeners: Seq[ActorRef] = Nil
+  )
 
   class ProcessGrabber extends ProcessLogger {
     private[this] val sb = new StringBuilder
@@ -100,7 +101,7 @@ object HealthChecker {
 
 import com.thing2x.smqd.util.HealthChecker._
 
-class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (name, smqd, config) with StrictLogging {
+class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service(name, smqd, config) with StrictLogging {
 
   private var jobs: Seq[Job] = Seq.empty
 
@@ -118,7 +119,7 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
       // 초기 상태: Unknown
       val job = Job(name, HealthStatus.Unknown)
 
-      val runnable = new Runnable{
+      val runnable = new Runnable {
         override def run(): Unit = {
           val previousStatus = job.status
           val grabber = new ProcessGrabber()
@@ -127,12 +128,10 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
             val result = command.!(grabber)
             if (result == expectExit) job.status = HealthStatus.Success
             else job.status = HealthStatus.Failure
-          }
-          catch {
+          } catch {
             case e: Exception =>
               job.status = HealthStatus.ScriptFailure(e.getMessage)
           }
-
 
           job.output = Some(grabber.result)
 
@@ -140,7 +139,7 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
           if (previousStatus != job.status || job.status.isInstanceOf[HealthStatus.ScriptFailure]) {
             val noti = HealthStatusChanged(previousStatus, job.status)
             // notify status change to listeners
-            job.listeners.foreach( _.tell(noti, Actor.noSender) )
+            job.listeners.foreach(_.tell(noti, Actor.noSender))
 
             if (job.status.isInstanceOf[HealthStatus.ScriptFailure])
               logger.warn(s"HealthChecker '$name' script failure: ${job.status}")
@@ -150,13 +149,13 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
         }
       }
 
-      job.token = Option(smqd.Implicit.system.scheduler.schedule(interval, interval, runnable))
+      job.token = Option(smqd.Implicit.system.scheduler.scheduleAtFixedRate(interval, interval)(runnable))
       job
-    }
+    }.toSeq
   }
 
   override def stop(): Unit = {
-    jobs.foreach(job => job.token.map(_.cancel))
+    jobs.foreach(job => job.token.map(_.cancel()))
   }
 
   def getStatus(name: String): HealthStatus = {
@@ -168,8 +167,7 @@ class HealthChecker(name: String, smqd: Smqd, config: Config) extends Service (n
     }
   }
 
-  /**
-    * whenever the status of 'name' process has changed, HealthChecker will fire a notification message
+  /** whenever the status of 'name' process has changed, HealthChecker will fire a notification message
     * `HealthStatusChanged` to the 'actor'
     */
   def addListener(name: String, actor: ActorRef): HealthStatus = {

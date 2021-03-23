@@ -14,7 +14,7 @@
 
 package com.thing2x.smqd
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorSelection, Props}
 import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberLeft, UnreachableMember}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -33,8 +33,7 @@ import scala.language.postfixOps
 
 // 2018. 6. 2. - Created by Kwon, Yeong Eon
 
-/**
-  * Top level actor that manages all actors working in smqd
+/** Top level actor that manages all actors working in smqd
   */
 object ChiefActor {
   val actorName = "chief"
@@ -47,8 +46,7 @@ object ChiefActor {
 
 import com.thing2x.smqd.ChiefActor._
 
-class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: Router, retainer: Retainer, sstore: SessionStore)
-  extends Actor with StrictLogging {
+class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: Router, retainer: Retainer, sstore: SessionStore) extends Actor with StrictLogging {
 
   override def preStart(): Unit = {
     context.actorOf(Props(classOf[FaultNotificationManager], smqd), FaultNotificationManager.actorName)
@@ -62,8 +60,7 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
       context.actorOf(Props(classOf[ClusterModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
       context.actorOf(Props(classOf[RoutesReplicator], smqd, router, registry), RoutesReplicator.actorName)
       context.actorOf(Props(classOf[RetainsReplicator], smqd, retainer), RetainsReplicator.actorName)
-    }
-    else {
+    } else {
       context.actorOf(Props(classOf[LocalModeSessionManagerActor], smqd, sstore), SessionManagerActor.actorName)
     }
 
@@ -73,7 +70,7 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
     context.actorOf(Props(classOf[JvmMonitoringActor]), JvmMonitoringActor.actorName)
     context.actorOf(Props(classOf[MetricActor], smqd, metricConfig), MetricActor.actorName)
 
-    context.children.foreach{ child =>
+    context.children.foreach { child =>
       try {
         implicit val readyTimeout: Timeout = 3 second
         val future = child ? ChiefActor.Ready
@@ -81,8 +78,7 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
           case ChiefActor.ReadyAck =>
             logger.info(s"${child.path} ready")
         }
-      }
-      catch {
+      } catch {
         case x: Throwable =>
           logger.error(s"${child.path} is NOT ready")
           throw x
@@ -104,12 +100,11 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
     }
   }
 
-  override def receive: Receive = {
-    case Ready =>
-      context.become(receive0)
-      smqd.setChiefActor(this)
-      // smqd.subscribe("$SYS/chief/committee/#", self) // may need in the future
-      sender ! ReadyAck
+  override def receive: Receive = { case Ready =>
+    context.become(receive0)
+    smqd.setChiefActor(this)
+    // smqd.subscribe("$SYS/chief/committee/#", self) // may need in the future
+    sender() ! ReadyAck
   }
 
   def receive0: Receive = {
@@ -132,19 +127,22 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
         case Some(cl) => // cluster mode
           val leaderAddress = cl.state.leader
           val m = cl.selfMember
-          NodeInfo(smqd.nodeName, smqd.apiEndpoint,
+          NodeInfo(
+            smqd.nodeName,
+            smqd.apiEndpoint,
             if (m.address.hasGlobalScope) m.address.hostPort else smqd.nodeHostPort,
             m.status.toString,
             m.roles.map(_.toString),
             m.dataCenter,
             leaderAddress match {
               case Some(addr) => m.address == addr
-              case _ => false
-            })
+              case _          => false
+            }
+          )
         case None => // non-cluster mode
-          NodeInfo(smqd.nodeName, smqd.apiEndpoint, smqd.nodeHostPort,  "Up", Set.empty, "<non-cluster>", isLeader = true)
+          NodeInfo(smqd.nodeName, smqd.apiEndpoint, smqd.nodeHostPort, "Up", Set.empty, "<non-cluster>", isLeader = true)
       }
-      sender ! node
+      sender() ! node
   }
 
   import smqd.Implicit._
@@ -152,14 +150,14 @@ class ChiefActor(smqd: Smqd, requestor: Requestor, registry: Registry, router: R
   def nodeInfo: Future[Seq[NodeInfo]] = {
     val actorSelections = smqd.cluster match {
       case Some(cl) => // cluster mode ask all nodes
-        cl.state.members.map{ m =>
-          context.system.actorSelection(m.address.toString+"/user/"+actorName)
-        }.toSeq
+        cl.state.members.map { m =>
+          context.system.actorSelection(m.address.toString + "/user/" + actorName)
+        }(Ordering.by[ActorSelection, String](_.pathString)).toSeq
       case None => // non-cluster mode
-        Seq(context.system.actorSelection("/user/"+actorName))
+        Seq(context.system.actorSelection("/user/" + actorName))
     }
 
-    val annsAsk = actorSelections.map{ selection =>
+    val annsAsk = actorSelections.map { selection =>
       implicit val timeout: Timeout = 3.second
       (selection ? NodeInfoReq).asInstanceOf[Future[NodeInfo]]
     }

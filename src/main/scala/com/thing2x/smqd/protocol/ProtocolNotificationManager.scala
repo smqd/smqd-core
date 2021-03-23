@@ -20,8 +20,7 @@ import com.thing2x.smqd.ChiefActor.{Ready, ReadyAck}
 import com.thing2x.smqd._
 import com.thing2x.smqd.util.ClassLoading
 
-/**
-  * 2018. 6. 3. - Created by Kwon, Yeong Eon
+/** 2018. 6. 3. - Created by Kwon, Yeong Eon
   */
 object ProtocolNotificationManager {
   val actorName: String = "protocols"
@@ -32,13 +31,11 @@ import ProtocolNotificationManager._
 
 class ProtocolNotificationManager(smqd: Smqd) extends Actor with ClassLoading with StrictLogging {
 
-  override def preStart(): Unit = {
-  }
+  override def preStart(): Unit = {}
 
-  override def receive: Receive = {
-    case Ready =>
-      context.become(receive0)
-      sender ! ReadyAck
+  override def receive: Receive = { case Ready =>
+    context.become(receive0)
+    sender() ! ReadyAck
   }
 
   def receive0: Receive = {
@@ -48,6 +45,3 @@ class ProtocolNotificationManager(smqd: Smqd) extends Actor with ClassLoading wi
       logger.warn(s"unhandled message: $m")
   }
 }
-
-
-

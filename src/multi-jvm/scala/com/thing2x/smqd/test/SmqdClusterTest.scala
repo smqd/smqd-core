@@ -19,8 +19,7 @@ object SmqdClusterTestConfig extends MultiNodeConfig {
   val node1: RoleName = role("node1")
   val node2: RoleName = role("node2")
 
-  private val commonCfg = ConfigFactory.parseString(
-    """
+  private val commonCfg = ConfigFactory.parseString("""
       | smqd {
       |   actor_system_name = "SmqdClusterTest"
       |   services = ["core-protocol"]
@@ -36,8 +35,7 @@ object SmqdClusterTestConfig extends MultiNodeConfig {
       | }
     """.stripMargin)
 
-  private val node1Cfg = ConfigFactory.parseString(
-    """
+  private val node1Cfg = ConfigFactory.parseString("""
       | smqd {
       |   node_name = "node1"
       | }
@@ -47,8 +45,7 @@ object SmqdClusterTestConfig extends MultiNodeConfig {
       | }
     """.stripMargin)
 
-  private val node2Cfg = ConfigFactory.parseString(
-    """
+  private val node2Cfg = ConfigFactory.parseString("""
       | smqd {
       |   node_name = "node1"
       | }
@@ -67,11 +64,7 @@ object SmqdClusterTestConfig extends MultiNodeConfig {
 class SmqdClusterTestMultiJvmNode1 extends SmqdClusterTest
 class SmqdClusterTestMultiJvmNode2 extends SmqdClusterTest
 
-class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
-  with ClusterTestSpec
-  with BeforeAndAfterAll
-  with ImplicitSender
-  with StrictLogging {
+class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig) with ClusterTestSpec with BeforeAndAfterAll with ImplicitSender with StrictLogging {
 
   import SmqdClusterTestConfig._
 
@@ -94,7 +87,7 @@ class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
     "subscribe to test/actor" in {
       runOn(node1) {
         val node1Sender = self
-        val f = smqd.subscribe("test/actor"){
+        val f = smqd.subscribe("test/actor") {
           case (topic, m: String) =>
             logger.info(s"======> ${topic.toString}: $m")
             enterBarrier("actor_sub_ready")
@@ -122,12 +115,12 @@ class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
   }
 
   "Subscriber with PartialFunction" must {
-    val done = Promise[Boolean]
+    val done = Promise[Boolean]()
 
     // node1 subscribe to 'test/hello' topic
     runOn(node1) {
       "subscribe to test/hello" in {
-        val f = smqd.subscribe("test/hello"){
+        val f = smqd.subscribe("test/hello") {
           case (_: TopicPath, "READY") =>
             logger.info(s"==========> READY.")
             enterBarrier("sub_pub_ready")
@@ -169,4 +162,3 @@ class SmqdClusterTest extends MultiNodeSpec(SmqdClusterTestConfig)
     }
   }
 }
-

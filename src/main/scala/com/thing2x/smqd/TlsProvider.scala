@@ -24,17 +24,16 @@ import javax.net.ssl._
 import com.thing2x.smqd.net.mqtt.TLS
 import com.thing2x.smqd.util.SslUtil
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 // 2018. 6. 26. - Created by Kwon, Yeong Eon
 
-/**
-  * TLS provider shared in smqd
+/** TLS provider shared in smqd
   *
   * set following parameter to debug
-  *{{{
+  * {{{
   *   -Djavax.net.debug=ssl
-  *}}}
+  * }}}
   */
 object TlsProvider {
   def apply(config: Config) = new TlsProvider(config)
@@ -48,9 +47,9 @@ object TlsProvider {
 class TlsProvider(config: Config) extends StrictLogging {
 
   private val keyStoreFile: String = config.getString("keystore")
-  private val keyStoreType : String = config.getString("storetype")
-  private val keyStorePassword : String = config.getString("storepass")
-  private val keyPassword : String = config.getString("keypass")
+  private val keyStoreType: String = config.getString("storetype")
+  private val keyStorePassword: String = config.getString("storepass")
+  private val keyPassword: String = config.getString("keypass")
   private val clientCredentialsService: Any = null
 
   private def trustManagers: Array[TrustManager] = {
@@ -58,8 +57,7 @@ class TlsProvider(config: Config) extends StrictLogging {
     val tsStream = if (file.exists) {
       logger.info(s"SSL keystore file: $keyStoreFile")
       new FileInputStream(file)
-    }
-    else {
+    } else {
       val loader = Thread.currentThread().getContextClassLoader
       val in = loader.getResourceAsStream(keyStoreFile)
       if (in == null)
@@ -83,8 +81,7 @@ class TlsProvider(config: Config) extends StrictLogging {
     val file = new File(keyStoreFile)
     val ksStream = if (file.exists) {
       new FileInputStream(file)
-    }
-    else {
+    } else {
       val loader = Thread.currentThread().getContextClassLoader
       val in = loader.getResourceAsStream(keyStoreFile)
       if (in == null)
@@ -93,7 +90,7 @@ class TlsProvider(config: Config) extends StrictLogging {
     }
 
     val ks = KeyStore.getInstance(keyStoreType)
-    ks.load( ksStream, keyStorePassword.toCharArray)
+    ks.load(ksStream, keyStorePassword.toCharArray)
     ksStream.close()
 
     logger.info("SSL keystore contains: {}", ks.aliases().asScala.mkString(", "))
@@ -112,7 +109,7 @@ class TlsProvider(config: Config) extends StrictLogging {
   }
 
   def sslEngine: Option[SSLEngine] = {
-    if (keyStoreFile == ""){
+    if (keyStoreFile == "") {
       logger.warn("SSL keyStore NOT defined")
       return None
     }
@@ -123,7 +120,7 @@ class TlsProvider(config: Config) extends StrictLogging {
 
       if (tms.nonEmpty && tms.head.isInstanceOf[X509TrustManager]) {
         val x509tm = tms.head.asInstanceOf[X509TrustManager]
-        val x509wrapped = new X509TrustManagerWrapper(x509tm, clientCredentialsService )
+        val x509wrapped = new X509TrustManagerWrapper(x509tm, clientCredentialsService)
 
         val tmsWrapped: Array[TrustManager] = Array(x509wrapped)
         val sslContext = SSLContext.getInstance(TLS)
@@ -145,12 +142,10 @@ class TlsProvider(config: Config) extends StrictLogging {
         //logger.trace("SSL supporting cipher suites: {}", sslEngine.getSupportedCipherSuites.mkString(", "))
 
         Some(sslEngine)
-      }
-      else {
+      } else {
         None
       }
-    }
-    catch {
+    } catch {
       case e: Throwable =>
         logger.error("Unable to set up SSL context. Reason: " + e.getMessage, e)
         scala.sys.exit(3)
@@ -158,9 +153,7 @@ class TlsProvider(config: Config) extends StrictLogging {
     }
   }
 
-  private class X509TrustManagerWrapper(val trustManager: X509TrustManager, val clientCredentialsService: Any)
-    extends X509TrustManager
-      with StrictLogging {
+  private class X509TrustManagerWrapper(val trustManager: X509TrustManager, val clientCredentialsService: Any) extends X509TrustManager with StrictLogging {
 
     override def getAcceptedIssuers: Array[X509Certificate] = {
       trustManager.getAcceptedIssuers
@@ -174,19 +167,18 @@ class TlsProvider(config: Config) extends StrictLogging {
     @throws[CertificateException]
     override def checkClientTrusted(chain: Array[X509Certificate], authType: String): Unit = {
       logger.trace("SSL certificate ... chain")
-      if (chain.isEmpty){
+      if (chain.isEmpty) {
         new CertificateException("Empty Client Certificate")
-      }
-      else {
+      } else {
         try {
-          chain.find {  cert =>
+          chain.find { cert =>
             val strCert = SslUtil.getX509CertificateString(cert)
             val hashCert = SslUtil.getSha1Hash(strCert)
             verifyX509HashCert(hashCert, authType)
           } match {
             case Some(x509) =>
               logger.trace("SSL certificate ... ok")
-              // cert check ok
+            // cert check ok
             case _ =>
               logger.trace("SSL certificate ... no cert -1")
               new CertificateException("Invalid Client Certificate")

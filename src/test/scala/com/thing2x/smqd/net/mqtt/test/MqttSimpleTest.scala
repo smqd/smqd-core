@@ -25,7 +25,9 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttConnectOptions, MqttMessage}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.matchers.must.Matchers
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Promise}
@@ -33,16 +35,11 @@ import scala.concurrent.{Await, Promise}
 // 2018. 8. 17. - Created by Kwon, Yeong Eon
 
 /**
-  *
   */
-class MqttSimpleTest extends WordSpec
-  with BeforeAndAfterAll
-  with Matchers
-  with ScalatestRouteTest
-  with StrictLogging {
+class MqttSimpleTest extends AnyWordSpecLike with BeforeAndAfterAll with Matchers with ScalatestRouteTest with StrictLogging {
 
-  val config: Config = ConfigFactory.parseString(
-    """
+  val config: Config = ConfigFactory
+    .parseString("""
       |smqd {
       |  services=["core-mqtt", "core-protocol"]
       |
@@ -83,12 +80,13 @@ class MqttSimpleTest extends WordSpec
       |    }
       |  }
       |}
-    """.stripMargin).withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
+    """.stripMargin)
+    .withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
 
   override def createActorSystem(): ActorSystem = ActorSystem(actorSystemNameFrom(getClass), config)
 
   private var smqdInstance: Smqd = _
-  private val shutdownPromise = Promise[Boolean]
+  private val shutdownPromise = Promise[Boolean]()
 
   override def beforeAll(): Unit = {
     smqdInstance = new SmqdBuilder(config).setActorSystem(system).build()
@@ -106,7 +104,7 @@ class MqttSimpleTest extends WordSpec
 
   "mqtt v3 protocol handler" must {
     "connect" in {
-      val promise = Promise[Boolean]
+      val promise = Promise[Boolean]()
 
       val connOpt = new MqttConnectOptions()
       connOpt.setCleanSession(true)
@@ -120,24 +118,28 @@ class MqttSimpleTest extends WordSpec
 
       val subscriber = new MqttClient(broker, "test-sub", new MemoryPersistence())
       subscriber.connect(connOpt)
-      subscriber.subscribe("sensor/+/temp", 0, new IMqttMessageListener {
-        override def messageArrived(topic: String, message: MqttMessage): Unit = {
-          val text = new String(message.getPayload, StandardCharsets.UTF_8)
-          //logger.debug(s"Received: $topic, $text")
-          assert(text.startsWith("hello world - "))
+      subscriber.subscribe(
+        "sensor/+/temp",
+        0,
+        new IMqttMessageListener {
+          override def messageArrived(topic: String, message: MqttMessage): Unit = {
+            val text = new String(message.getPayload, StandardCharsets.UTF_8)
+            //logger.debug(s"Received: $topic, $text")
+            assert(text.startsWith("hello world - "))
 
-          received.incrementAndGet()
+            received.incrementAndGet()
 
-          if (text == eol)
-            promise.success(text == eol)
+            if (text == eol)
+              promise.success(text == eol)
+          }
         }
-      })
+      )
 
       val publisher = new MqttClient(broker, "test-pub", new MemoryPersistence())
       publisher.connect(connOpt)
 
       val t1 = System.currentTimeMillis()
-      for( n <- 0 until count) {
+      for (n <- 0 until count) {
         publisher.publish(s"sensor/$n/temp", s"hello world - $n".getBytes(StandardCharsets.UTF_8), 0, false)
       }
       val t2 = System.currentTimeMillis()
@@ -145,7 +147,7 @@ class MqttSimpleTest extends WordSpec
       Await.result(promise.future, 60.second)
 
       val t = (t2 - t1).toDouble
-      logger.debug(f"Time ${t/1000}%.3f sec. ${count.toDouble/t}%.4f message/ms  ${received.intValue} received.")
+      logger.debug(f"Time ${t / 1000}%.3f sec. ${count.toDouble / t}%.4f message/ms  ${received.intValue} received.")
 
       publisher.disconnect()
       subscriber.disconnect()

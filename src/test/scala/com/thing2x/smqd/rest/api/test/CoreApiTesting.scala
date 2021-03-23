@@ -23,7 +23,10 @@ import com.thing2x.smqd.{EndpointInfo, NodeInfo, Smqd, SmqdBuilder}
 import com.thing2x.smqd.net.http.HttpService
 import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.StrictLogging
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
@@ -35,14 +38,9 @@ import scala.concurrent.Promise
 // 2018. 7. 15. - Created by Kwon, Yeong Eon
 
 /**
-  *
   */
 
-abstract class CoreApiTesting extends WordSpec
-  with BeforeAndAfterAll
-  with Matchers
-  with ScalatestRouteTest
-  with StrictLogging {
+abstract class CoreApiTesting extends AnyWordSpec with BeforeAndAfterAll with Matchers with ScalatestRouteTest with StrictLogging {
 
   case class CoreApiResponseWithMap(code: Int, result: Map[String, Json])
 
@@ -55,7 +53,7 @@ abstract class CoreApiTesting extends WordSpec
     val json = parse(jsonString).getOrElse(Json.Null)
     json.as[CoreApiResponseWithMap] match {
       case Right(r) => r
-      case _ => fail()
+      case _        => fail()
     }
   }
 
@@ -65,8 +63,8 @@ abstract class CoreApiTesting extends WordSpec
     json.as[CoreApiResponseWithType[T]].getOrElse(null)
   }
 
-  val config: Config = ConfigFactory.parseString(
-    """
+  val config: Config = ConfigFactory
+    .parseString("""
       |akka.actor.provider=local
       |smqd {
       |  node_name = "smqd-test-node"
@@ -89,13 +87,14 @@ abstract class CoreApiTesting extends WordSpec
       |    }
       |  }
       |}
-    """.stripMargin).withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
+    """.stripMargin)
+    .withFallback(ConfigFactory.parseResources("smqd-ref.conf"))
 
   override def createActorSystem(): ActorSystem = ActorSystem(actorSystemNameFrom(getClass), config)
 
   var smqdInstance: Smqd = _
   var routes: Route = _
-  val shutdownPromise: Promise[Boolean] = Promise[Boolean]
+  val shutdownPromise: Promise[Boolean] = Promise[Boolean]()
 
   implicit def default(implicit system: ActorSystem): RouteTestTimeout = RouteTestTimeout(5.seconds)
 
@@ -110,7 +109,7 @@ abstract class CoreApiTesting extends WordSpec
   }
 
   override def afterAll(): Unit = {
-   shutdownPromise.future.onComplete { _ =>
+    shutdownPromise.future.onComplete { _ =>
       smqdInstance.stop()
       TestKit.shutdownActorSystem(system)
     }

@@ -21,12 +21,11 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import mousio.etcd4j.EtcdClient
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
-/**
-  * 2018. 6. 28. - Created by Kwon, Yeong Eon
+/** 2018. 6. 28. - Created by Kwon, Yeong Eon
   */
 class EtcdClusterDiscovery(config: Config, nodeName: String, selfAddress: Address)(implicit system: ActorSystem, ec: ExecutionContext) extends ClusterDiscovery with StrictLogging {
 
@@ -40,26 +39,25 @@ class EtcdClusterDiscovery(config: Config, nodeName: String, selfAddress: Addres
       logger.info("etcd connecting to {}...", server)
       val etcd = new EtcdClient(URI.create(server))
 
-      val dir = if (prefix.endsWith("/")) prefix else prefix +"/"
+      val dir = if (prefix.endsWith("/")) prefix else prefix + "/"
       val key = dir + nodeName
       val value = selfAddress.toString
 
       // register my address as seed
-      val resp = etcd.put(key, value).ttl((ttl.toMillis/1000).toInt).send()
+      val resp = etcd.put(key, value).ttl((ttl.toMillis / 1000).toInt).send()
       logger.info("etcd write: {} = {}", key, resp.get.node.value)
 
       // retrieve all seed nodes addresses
       val lst = etcd.getDir(dir).sorted().recursive().send().get()
       val m = lst.node.nodes.asScala.map(n => n.key.substring(dir.length) -> n.value)
-      logger.info("etcd  read: {}", m.map(n => s"${n._1} = ${n._2}" ).mkString(", "))
+      logger.info("etcd  read: {}", m.map(n => s"${n._1} = ${n._2}").mkString(", "))
 
-      val result = m.map{
-        case (node, addr) =>
-          logger.info(s"etcd  seed: $node = ${addr.toString}")
-          AddressFromURIString.parse(addr)
+      val result = m.map { case (node, addr) =>
+        logger.info(s"etcd  seed: $node = ${addr.toString}")
+        AddressFromURIString.parse(addr)
       }
 
-      rt.success(result)
+      rt.success(result.toSeq)
 
       // only after we returns seed nodes successfully, the actor system can be initialized.
       // then RefreshActor can be instantiated. so only at this point we can create an actor
@@ -71,7 +69,7 @@ class EtcdClusterDiscovery(config: Config, nodeName: String, selfAddress: Addres
           system.actorOf(Props(classOf[RefreshActor], etcd, key, ttl, refreshRate), "EtcdClsuterDiscovery")
         }
       }
-      val timerStartAfterMillis = (ttl.toMillis*0.3 * (1 - refreshRate)).toLong
+      val timerStartAfterMillis = (ttl.toMillis * 0.3 * (1 - refreshRate)).toLong
       timer.schedule(task, timerStartAfterMillis)
     }
 
@@ -90,7 +88,7 @@ class RefreshActor(etcd: EtcdClient, key: String, ttl: FiniteDuration, refreshRa
   override def preStart(): Unit = {
     val period = (ttl.toMillis * 0.75).toInt.millis
     implicit val ec: ExecutionContext = context.system.dispatchers.defaultGlobalDispatcher
-    cancel = context.system.scheduler.schedule(period, period, self, RefreshActor.Tick)
+    cancel = context.system.scheduler.scheduleAtFixedRate(period, period, self, RefreshActor.Tick)
     logger.trace("etcd refresh timer scheduled: {} seconds", period.toSeconds)
   }
 
@@ -101,9 +99,8 @@ class RefreshActor(etcd: EtcdClient, key: String, ttl: FiniteDuration, refreshRa
     logger.trace("etcd deleted: {}", key)
   }
 
-  override def receive: Receive = {
-    case RefreshActor.Tick =>
-      etcd.refresh(key, (ttl.toMillis/1000).toInt).send()
-      logger.trace("etcd refreshed: {}", key)
+  override def receive: Receive = { case RefreshActor.Tick =>
+    etcd.refresh(key, (ttl.toMillis / 1000).toInt).send()
+    logger.trace("etcd refreshed: {}", key)
   }
 }

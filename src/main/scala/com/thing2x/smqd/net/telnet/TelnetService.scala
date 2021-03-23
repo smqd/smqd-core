@@ -23,14 +23,13 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
 import net.wimpi.telnetd.TelnetD
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
 // 10/13/18 - Created by Kwon, Yeong Eon
 
-/**
-  * TelnetD-x is implemented in a singletone pattern.
+/** TelnetD-x is implemented in a singletone pattern.
   * So, TelnetService can not be mutiple instantiated.
   */
 object TelnetService {
@@ -50,23 +49,23 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
   override def start(): Unit = {
     val properties: Properties = defaultProperties
 
-    config.getConfig("telnet").entrySet.asScala.foreach{ entry =>
+    config.getConfig("telnet").entrySet.asScala.foreach { entry =>
       val k = entry.getKey
       val v = entry.getValue.render
       properties.setProperty(k, v)
     }
 
-    properties.asScala.foreach( s => logger.trace(s"telnetd property: ${s._1} = ${s._2}") )
+    properties.asScala.foreach(s => logger.trace(s"telnetd property: ${s._1} = ${s._2}"))
 
     telnetD = TelnetD.createTelnetD(properties)
 
     TelnetService.smqdInstance = smqd
-    TelnetService.paths = config.getStringList("script.path").asScala
+    TelnetService.paths = config.getStringList("script.path").asScala.toSeq
 
-    ScShell.setDelegate(new ScShellDelegate(){
+    ScShell.setDelegate(new ScShellDelegate() {
       // set smqd instance into shell env
-      def beforeShellStart(shell: ScShell): Unit = Unit
-      def afterShellStop(shell: ScShell): Unit = Unit
+      def beforeShellStart(shell: ScShell): Unit = ()
+      def afterShellStop(shell: ScShell): Unit = ()
     })
 
     // delegate login authentication to UserDelegate of Smqd
@@ -74,7 +73,7 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
       override def login(shell: LoginShell, user: String, password: String): Boolean = {
         Await.result(smqd.userLogin(user, password), 3.seconds) match {
           case SmqSuccess(_) => true
-          case _ => false
+          case _             => false
         }
       }
 
@@ -128,7 +127,7 @@ class TelnetService(name: String, smqd: Smqd, config: Config) extends Service(na
 
     // shell implementations
     p.setProperty("shell.login.class", "com.thing2x.smqd.net.telnet.LoginShell")
-    p.setProperty("shell.sc.class",   "com.thing2x.smqd.net.telnet.ScShell")
+    p.setProperty("shell.sc.class", "com.thing2x.smqd.net.telnet.ScShell")
     p.setProperty("shell.dummy.class", "com.thing2x.smqd.net.telnet.DummyShell")
 
     //////////////////////////////////////////////////

@@ -14,21 +14,18 @@
 
 package com.thing2x.smqd
 
-import java.io.{ByteArrayInputStream, ObjectInputStream, ObjectOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
 import java.nio.charset.Charset
-
 import akka.serialization.Serializer
-import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream
 import com.typesafe.scalalogging.StrictLogging
 import io.netty.buffer.ByteBuf
 
 // 2018. 6. 15. - Created by Kwon, Yeong Eon
 
 /**
-  *
   */
 class SmqSerializer extends Serializer with StrictLogging {
-  override val identifier: Int = 0xDEAD + 1
+  override val identifier: Int = 0xdead + 1
 
   override val includeManifest: Boolean = false
 
@@ -65,11 +62,11 @@ class SmqSerializer extends Serializer with StrictLogging {
           buf.writeBytes(data)
 
         case obj: AnyRef =>
-          val bos = new ByteOutputStream()
-          val out = new ObjectOutputStream(bos)
+          val baos = new ByteArrayOutputStream()
+          val out = new ObjectOutputStream(baos)
           out.writeObject(obj)
-          val arr = bos.getBytes
-          bos.close()
+          val arr = baos.toByteArray
+          baos.close()
 
           buf.writeByte('j')
           buf.writeInt(arr.length)
@@ -104,10 +101,8 @@ class SmqSerializer extends Serializer with StrictLogging {
       buf.release()
       arr
 
-    case other => throw new IllegalArgumentException(
-      s"${getClass.getName} only serializes RoutedMessage, not [${other.getClass.getName}]")
+    case other => throw new IllegalArgumentException(s"${getClass.getName} only serializes RoutedMessage, not [${other.getClass.getName}]")
   }
-
 
   override def fromBinary(bytes: Array[Byte], manifest: Option[Class[_]]): AnyRef = {
 

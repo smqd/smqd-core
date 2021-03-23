@@ -35,10 +35,9 @@ class RegistryCallbackManagerActor(smqd: Smqd, registry: Registry) extends Actor
 
   override def preStart(): Unit = registry.callbackManager = self
 
-  override def receive: Receive = {
-    case Ready =>
-      context.become(receive0)
-      sender ! ReadyAck
+  override def receive: Receive = { case Ready =>
+    context.become(receive0)
+    sender() ! ReadyAck
   }
 
   def receive0: Receive = {
@@ -53,8 +52,7 @@ class RegistryCallbackManagerActor(smqd: Smqd, registry: Registry) extends Actor
   }
 }
 
-/**
-  * Actor works for callback function that subscribes a topic
+/** Actor works for callback function that subscribes a topic
   * @param callback callback function
   */
 class RegistryCallbackActor(smqd: Smqd, callback: (TopicPath, Any) => Unit) extends Actor with StrictLogging {
@@ -63,26 +61,23 @@ class RegistryCallbackActor(smqd: Smqd, callback: (TopicPath, Any) => Unit) exte
     smqd.unsubscribe(self)
   }
 
-  override def receive: Receive = {
-    case (topicPath: TopicPath, msg) =>
-      try {
-        callback(topicPath, msg)
-      }
-      catch{
-        case e: Throwable =>
-          msg match {
-            // in case of request-response model, reply the exception to the requestor
-            // so that request manager can make the promise to complete with the failure
-            case ResponsibleMessage(replyTo, _) => smqd.publish(replyTo, e)
-            case _ =>
-          }
-          throw e
-      }
+  override def receive: Receive = { case (topicPath: TopicPath, msg) =>
+    try {
+      callback(topicPath, msg)
+    } catch {
+      case e: Throwable =>
+        msg match {
+          // in case of request-response model, reply the exception to the requestor
+          // so that request manager can make the promise to complete with the failure
+          case ResponsibleMessage(replyTo, _) => smqd.publish(replyTo, e)
+          case _                              =>
+        }
+        throw e
+    }
   }
 }
 
-/**
-  * Actor works for partial function callback that subscribes a topic
+/** Actor works for partial function callback that subscribes a topic
   * @param callback callback partial function
   */
 class RegistryCallbackPFActor(smqd: Smqd, callback: Actor.Receive) extends Actor with StrictLogging {
@@ -91,19 +86,17 @@ class RegistryCallbackPFActor(smqd: Smqd, callback: Actor.Receive) extends Actor
     smqd.unsubscribe(self)
   }
 
-  override def receive: Receive =
-  {
+  override def receive: Receive = {
     case m @ (topicPath: TopicPath, msg) if callback.isDefinedAt(m) =>
       try {
         callback((topicPath, msg))
-      }
-      catch{
+      } catch {
         case e: Throwable =>
           msg match {
             // in case of request-response model, reply the exception to the requestor
             // so that request manager can make the promise to complete with the failure
             case ResponsibleMessage(replyTo, _) => smqd.publish(replyTo, e)
-            case _ =>
+            case _                              =>
           }
           throw e
       }

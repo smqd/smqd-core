@@ -29,7 +29,7 @@ import io.netty.handler.codec.mqtt.MqttQoS.{AT_LEAST_ONCE, AT_MOST_ONCE}
 import io.netty.handler.codec.mqtt._
 import io.netty.handler.timeout.{IdleState, IdleStateEvent, IdleStateHandler}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.Promise
 import scala.concurrent.duration._
 import scala.util.matching.Regex
@@ -37,8 +37,7 @@ import scala.util.{Failure, Success}
 
 // 2018. 8. 21. - Created by Kwon, Yeong Eon
 
-/**
-  * QoS 1)
+/** QoS 1)
   *
   * Client              Server            Client              Server
   * |--> Publish     -->|                |<-- Publish     <--|
@@ -51,7 +50,6 @@ import scala.util.{Failure, Success}
   * |<-- PublishRec  <--|                |--> PublishRec  -->|
   * |--> PublishRel  -->|                |<-- PublishRel  <--|
   * |<-- PublishComp <--|                |--> PublishComp -->|
-  *
   */
 
 class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: String) extends Actor with StrictLogging {
@@ -64,13 +62,13 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
   override def preStart(): Unit = {
     channel.attr(ATTR_SESSION_CTX).set(sessionCtx)
 
-    channel.closeFuture().addListener((_: ChannelFuture) =>
-      self ! PoisonPill
-    )
+    channel.closeFuture().addListener((_: ChannelFuture) => self ! PoisonPill)
   }
 
   override def postStop(): Unit = {
-    logger.debug(s"[${sessionCtx.clientId}] channel closed (authorized = ${sessionCtx.authorized}, isCleanSession = ${sessionCtx.cleanSession}, hasWill = ${sessionCtx.will.isDefined})")
+    logger.debug(
+      s"[${sessionCtx.clientId}] channel closed (authorized = ${sessionCtx.authorized}, isCleanSession = ${sessionCtx.cleanSession}, hasWill = ${sessionCtx.will.isDefined})"
+    )
 
     if (channel.isOpen && !channel.eventLoop().isShutdown) {
       channel.close()
@@ -158,7 +156,7 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
       replyTo ! NewSessionChallengeDenied(sessionCtx.clientId)
     }
   }
-  */
+   */
 
   private def processConnect(m: MqttConnectMessage): Unit = {
     sessionCtx.state = SessionState.ConnectReceived
@@ -173,8 +171,12 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
       // [MQTT-3.1.2-2] The Server MUST respond to the CONNECT Packet with CONNACK return code 0x01
       // (unacceptable_protocol_level) and then disconnect the Client if the Protocol Level is not supported by the Server
       smqdInstance.notifyFault(UnacceptableProtocolVersion(protocolName, protocolLevel))
-      channel.writeAndFlush(MqttMessageBuilders.connAck
-        .returnCode(CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION).sessionPresent(false).build)
+      channel.writeAndFlush(
+        MqttMessageBuilders.connAck
+          .returnCode(CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION)
+          .sessionPresent(false)
+          .build
+      )
       channel.close()
       return
     }
@@ -199,8 +201,7 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
           smqdInstance.notifyFault(InvalidWillTopic(sessionCtx.clientId.toString, pl.willTopic))
           None
       }
-    }
-    else {
+    } else {
       None
     }
 
@@ -209,8 +210,12 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
       // [MQTT-3.1.3-9] If the Server rejects the ClientId it MUST respond to CONNECT Packet with a CONNACK
       // return code 0x02 (Identifier rejected) and then close the Network Connection
       smqdInstance.notifyFault(IdentifierRejected(sessionCtx.clientId.toString, "clientid is not a valid format"))
-      channel.writeAndFlush(MqttMessageBuilders.connAck
-        .returnCode(CONNECTION_REFUSED_IDENTIFIER_REJECTED).sessionPresent(false).build)
+      channel.writeAndFlush(
+        MqttMessageBuilders.connAck
+          .returnCode(CONNECTION_REFUSED_IDENTIFIER_REJECTED)
+          .sessionPresent(false)
+          .build
+      )
       channel.close()
       return
     }
@@ -264,34 +269,50 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
           case r: CreatedSessionSuccess => // success to create a session
             logger.debug(s"[${r.clientId}] Session created, clean session: ${sessionCtx.cleanSession}, session present: ${r.hadPreviousSession}")
             sessionActor = Some(r.sessionActor)
-            channel.writeAndFlush(MqttMessageBuilders.connAck
-              .returnCode(CONNECTION_ACCEPTED).sessionPresent(r.hadPreviousSession).build)
+            channel.writeAndFlush(
+              MqttMessageBuilders.connAck
+                .returnCode(CONNECTION_ACCEPTED)
+                .sessionPresent(r.hadPreviousSession)
+                .build
+            )
             r.sessionActor ! SessionActor.ChannelOpened(self)
 
           case r: CreateSessionFailure => // fail to create a clean session
             logger.debug(s"[${r.clientId}] Session creation failed: ${r.reason}")
             smqdInstance.notifyFault(MutipleConnectRejected)
-            channel.writeAndFlush(MqttMessageBuilders.connAck
-              .returnCode(CONNECTION_REFUSED_IDENTIFIER_REJECTED).sessionPresent(true).build)
+            channel.writeAndFlush(
+              MqttMessageBuilders.connAck
+                .returnCode(CONNECTION_REFUSED_IDENTIFIER_REJECTED)
+                .sessionPresent(true)
+                .build
+            )
             channel.close()
         }
 
       case Success(result) => // if result != SmqSuccess
         smqdInstance.notifyFault(result)
         val code = result match {
-          case _: IdentifierRejected => CONNECTION_REFUSED_IDENTIFIER_REJECTED // 0x02
-          case ServerUnavailable => CONNECTION_REFUSED_SERVER_UNAVAILABLE // 0x03
+          case _: IdentifierRejected    => CONNECTION_REFUSED_IDENTIFIER_REJECTED // 0x02
+          case ServerUnavailable        => CONNECTION_REFUSED_SERVER_UNAVAILABLE // 0x03
           case _: BadUsernameOrPassword => CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD // 0x04
-          case _: NotAuthorized => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
-          case _ => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
+          case _: NotAuthorized         => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
+          case _                        => CONNECTION_REFUSED_NOT_AUTHORIZED // 0x05
         }
-        channel.writeAndFlush(MqttMessageBuilders.connAck
-          .returnCode(code).sessionPresent(false).build)
+        channel.writeAndFlush(
+          MqttMessageBuilders.connAck
+            .returnCode(code)
+            .sessionPresent(false)
+            .build
+        )
         channel.close()
 
       case Failure(_) =>
-        channel.writeAndFlush(MqttMessageBuilders.connAck
-          .returnCode(CONNECTION_REFUSED_SERVER_UNAVAILABLE).sessionPresent(false).build)
+        channel.writeAndFlush(
+          MqttMessageBuilders.connAck
+            .returnCode(CONNECTION_REFUSED_SERVER_UNAVAILABLE)
+            .sessionPresent(false)
+            .build
+        )
         channel.close()
     }
 
@@ -319,25 +340,27 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
 
     val subscriptions = subs.map { s =>
       Subscription(s.topicName(), s.qualityOfService())
-    }
+    }.toSeq
 
     import smqdInstance.Implicit._
 
-    val result = Promise[Seq[QoS]]
+    val result = Promise[Seq[QoS]]()
 
     sessionActor match {
       case Some(actor) => actor ! Subscribe(subscriptions, result)
-      case _ => logger.error("no session actor exists")
+      case _           => logger.error("no session actor exists")
     }
 
     result.future.onComplete {
       case Success(qosList) =>
-        val acks = qosList.map( _.value )
+        val acks = qosList.map(_.value())
         channel.writeAndFlush(
           new MqttSubAckMessage(
             new MqttFixedHeader(MqttMessageType.SUBACK, false, AT_MOST_ONCE, false, 0),
             MqttMessageIdVariableHeader.from(msgId),
-            new MqttSubAckPayload(acks: _*)))
+            new MqttSubAckPayload(acks: _*)
+          )
+        )
 
       case Failure(ex) =>
         logger.warn(s"Subscription failed: ${subscriptions.toString}", ex)
@@ -353,19 +376,16 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
 
     import smqdInstance.Implicit._
 
-    val result = Promise[Seq[Boolean]]
+    val result = Promise[Seq[Boolean]]()
 
     sessionActor match {
-      case Some(actor) => actor ! Unsubscribe(unsubs, result)
-      case _ => logger.error("no session actor exists")
+      case Some(actor) => actor ! Unsubscribe(unsubs.toSeq, result)
+      case _           => logger.error("no session actor exists")
     }
 
     result.future.onComplete {
       case Success(_) =>
-        channel.writeAndFlush(
-          new MqttUnsubAckMessage(
-            new MqttFixedHeader(MqttMessageType.UNSUBACK,false, AT_MOST_ONCE, false, 0),
-            MqttMessageIdVariableHeader.from(msgId)))
+        channel.writeAndFlush(new MqttUnsubAckMessage(new MqttFixedHeader(MqttMessageType.UNSUBACK, false, AT_MOST_ONCE, false, 0), MqttMessageIdVariableHeader.from(msgId)))
 
       case Failure(ex) =>
         logger.warn(s"Unsubscription failed: ${unsubs.toString}", ex)
@@ -423,9 +443,7 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
     m.variableHeader match {
       case id: MqttMessageIdVariableHeader =>
         val msgId = id.messageId
-        channel.writeAndFlush(new MqttMessage(
-          new MqttFixedHeader(MqttMessageType.PUBCOMP, false, AT_LEAST_ONCE, false, 0),
-          MqttMessageIdVariableHeader.from(msgId)))
+        channel.writeAndFlush(new MqttMessage(new MqttFixedHeader(MqttMessageType.PUBCOMP, false, AT_LEAST_ONCE, false, 0), MqttMessageIdVariableHeader.from(msgId)))
       case _ => // malformed PUBREL message, no message id
         smqdInstance.notifyFault(MalformedMessage("no message id in PUBREL"))
         channel.close()
@@ -513,17 +531,15 @@ class Mqtt4ChannelActor(smqdInstance: Smqd, channel: Channel, listenerName: Stri
         if (sessionCtx.clientId.id.length == 0) {
           if (sessionCtx.cleanSession) {
             false
-          }
-          else {
+          } else {
             // [MQTT-3.1.3-6] A Server MAY allow a Client to supply zero-length ClientId, however if it does
             // so the Server MUST treat this as a special case and assign a unique ClientId to that Client.
             // It MUST then process the CONNECT packet as if the Client had provided that unique ClientId
-            val newClientId = sessionCtx.channelId.stringId+"."+channel.localAddress.toString
+            val newClientId = sessionCtx.channelId.stringId + "." + channel.localAddress.toString
             sessionCtx.clientId = newClientId
             true
           }
-        }
-        else {
+        } else {
           true
         }
       case _ =>

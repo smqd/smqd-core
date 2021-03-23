@@ -1,4 +1,3 @@
-
 /*
 	@Begin
 		Display System properties
@@ -12,7 +11,7 @@ import java.util.Properties
 
 import com.thing2x.smqd.net.telnet.ScShell
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 val args: Array[String] = $args
 
@@ -25,8 +24,7 @@ def printkv(k: String, v: String) = {
 
 if (args.length != 2) {
   println("Usage: getp <property_name> | all")
-}
-else {
+} else {
   val param = args(1)
 
   if ("all".equalsIgnoreCase(param)) {
@@ -37,9 +35,7 @@ else {
     arr.foreach { k =>
       printkv(k, System.getProperty(k, "<null>"))
     }
-  }
-  else {
+  } else {
     printkv(param, System.getProperty(param, "<null>"))
   }
 }
-

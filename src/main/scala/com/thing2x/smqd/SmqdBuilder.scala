@@ -21,15 +21,14 @@ import com.thing2x.smqd.registry.RegistryDelegate
 import com.thing2x.smqd.util.ClassLoading
 import com.typesafe.config.Config
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Success
 
 // 2018. 6. 12. - Created by Kwon, Yeong Eon
 
-/**
-  * smqd instance builder
+/** smqd instance builder
   */
 object SmqdBuilder {
   def apply(config: Config): SmqdBuilder = new SmqdBuilder(config)
@@ -84,7 +83,7 @@ class SmqdBuilder(config: Config) extends ClassLoading {
       system = ActorSystem.create(config.getString("smqd.actor_system_name"), config)
       isClusterMode = system.settings.ProviderClass match {
         case "akka.cluster.ClusterActorRefProvider" => true
-        case _ => false
+        case _                                      => false
       }
 
       // joining cluster
@@ -96,18 +95,16 @@ class SmqdBuilder(config: Config) extends ClassLoading {
           throw new IllegalStateException("Clsuter seeds not found")
         cluster.joinSeedNodes(seeds.toList)
       }
-    }
-    else {
+    } else {
       isClusterMode = system.settings.ProviderClass match {
         case "akka.cluster.ClusterActorRefProvider" => true
-        case _ => false
+        case _                                      => false
       }
     }
 
     if (isClusterMode) {
       logger.info("Clustering is enabled")
-    }
-    else {
+    } else {
       logger.info("Clustering is disabled")
     }
 
@@ -124,24 +121,18 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     serviceDefs = if (this.serviceDefs == null || serviceDefs.isEmpty) {
       val serviceNames = if (this.serviceDefs == null) config.getStringList("smqd.services").asScala else Nil
       logger.debug("Services try loading service config: {}", serviceNames.mkString("[", ", ", "]"))
-      Map( serviceNames.map { sname =>
-        val sconf = config.getConfig("smqd."+sname)
+
+      Map(serviceNames.map { sname =>
+        val sconf = config.getConfig("smqd." + sname)
         sname -> sconf
-      }: _*)
-    }
-    else {
+      }.toSeq: _*)
+    } else {
       serviceDefs
     }
-    logger.info("Services to load: {}", serviceDefs.map{ case (name, _) => name}.mkString(", "))
+    logger.info("Services to load: {}", serviceDefs.map { case (name, _) => name }.mkString(", "))
 
     //// create an instance
-    new Smqd(config,
-      system,
-      serviceDefs,
-      Option(userDelegate),
-      Option(clientDelegate),
-      Option(registryDelegate),
-      Option(sessionStoreDelegate))
+    new Smqd(config, system, serviceDefs, Option(userDelegate), Option(clientDelegate), Option(registryDelegate), Option(sessionStoreDelegate))
   }
 
   // cluster discovery is blocking operation as intended
@@ -154,7 +145,7 @@ class SmqdBuilder(config: Config) extends ClassLoading {
     val discoveryTimeout = config.getDuration("smqd.cluster.discovery_timeout").toMillis.millis
     val nodeName = config.getString("smqd.node_name")
     val selfAddress = {
-      val sys  = config.getString("smqd.actor_system_name")
+      val sys = config.getString("smqd.actor_system_name")
       val host = config.getString("akka.remote.netty.tcp.hostname")
       val port = config.getInt("akka.remote.netty.tcp.port")
       AddressFromURIString.parse(s"akka.tcp://$sys@$host:$port")
@@ -177,7 +168,7 @@ class SmqdBuilder(config: Config) extends ClassLoading {
 
     Await.ready(seeds, discoveryTimeout).value.get match {
       case Success(ss) => ss
-      case _ => Nil
+      case _           => Nil
     }
   }
 }
