@@ -20,7 +20,7 @@ val `smqd-core` = project.in(file(".")).settings(
   name := "smqd-core",
   version := versionString,
   scalaVersion := Dependencies.Versions.scala,
-  scalacOptions in ThisBuild ++= Seq("-feature", "-deprecation")
+  ThisBuild / scalacOptions ++= Seq("-feature", "-deprecation")
 ).settings(
   // Dependencies
   libraryDependencies ++=
@@ -56,13 +56,13 @@ val `smqd-core` = project.in(file(".")).settings(
   developers := List(
     Developer("OutOfBedlam", "Kwon, Yeong Eon", sys.env.getOrElse("SONATYPE_DEVELOPER_0", ""), url("http://www.uangel.com"))
   ),
-  publishArtifact in Test := false, // Not publishing the test artifacts (default)
+  Test / publishArtifact := false, // Not publishing the test artifacts (default)
   publishMavenStyle := true
 ).settings(
   // sbt fork sqmd process to allow javaOptions parameters from command line
-  fork in run := true,
-  fork in Test := true,
-  javaOptions in Test ++= Seq(
+  run / fork := true,
+  Test / fork := true,
+  Test / javaOptions ++= Seq(
     "-Xmx2G"
   )
 ).settings(
@@ -70,7 +70,6 @@ val `smqd-core` = project.in(file(".")).settings(
   pgpPublicRing := file("./travis/local.pubring.asc"),
   pgpSecretRing := file("./travis/local.secring.asc"),
   pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray),
-  useGpg := false
 ).settings(
   // License
   organizationName := "UANGEL",

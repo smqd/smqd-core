@@ -6,10 +6,10 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val scala = "2.12.8"
-    val akka = "2.5.23"
+    val scala = "2.12.16"
+    val akka = "2.5.32"
     val akkaHttp = "10.1.8"
-    val netty = "4.1.30.Final"
+    val netty = "4.1.78.Final"
     val alpakka = "1.0.2"
   }
 
@@ -74,10 +74,10 @@ object Dependencies {
   )
 
   val telnetd: Seq[ModuleID] = Seq(
-    "net.wimpi" % "telnetd-x" % "2.1.1",
+    "net.wimpi" % "telnetd-x" % "2.1.1" excludeAll ExclusionRule(organization = "log4j") force(),
     "commons-net" % "commons-net" % "3.6",
-    "org.slf4j" % "log4j-over-slf4j" % "1.7.7",
-    "com.github.scopt" %% "scopt" % "3.7.0"
+    "org.slf4j" % "log4j-over-slf4j" % "1.7.36",
+    "com.github.scopt" %% "scopt" % "3.7.0",
   )
 
   val crypto: Seq[ModuleID] = Seq(

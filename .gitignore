@@ -1,6 +1,7 @@
 target/
 project/project/
 .idea/
+.bsp/
 local.*
 .history
 .metadata
