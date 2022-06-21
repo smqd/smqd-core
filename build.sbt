@@ -35,7 +35,7 @@ val `smqd-core` = project.in(file(".")).settings(
       Dependencies.telnetd
 ).settings(
   // ScalaDoc
-  scalacOptions in (Compile, doc) ++= Seq(
+  Compile / doc / scalacOptions ++= Seq(
     "-doc-title", "SMQD",
     "-doc-version", versionString,
     "-skip-packages", "akka.pattern:org.apache"
