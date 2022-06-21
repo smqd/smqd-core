@@ -20,7 +20,8 @@ val `smqd-core` = project.in(file(".")).settings(
   name := "smqd-core",
   version := versionString,
   scalaVersion := Dependencies.Versions.scala,
-  ThisBuild / scalacOptions ++= Seq("-feature", "-deprecation")
+  ThisBuild / scalacOptions ++= Seq("-feature", "-deprecation"),
+  ThisBuild / versionScheme := Some("early-semver"),
 ).settings(
   // Dependencies
   libraryDependencies ++=
