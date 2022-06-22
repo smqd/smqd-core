@@ -20,5 +20,5 @@ jobs:
       env:
         SONATYPE_USER: '${{ secrets.SONATYPE_USER }}'
         SONATYPE_PASS: '${{ secrets.SONATYPE_PASS }}'
-      run: sbt compile publish
+      run: sbt compile test publish
       
