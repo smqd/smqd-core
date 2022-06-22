@@ -51,7 +51,7 @@ val `smqd-core` = project.in(file(".")).settings(
   },
   //credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials"),
   credentials += Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org",
-    sys.env.getOrElse("SONATYPE_USER", ""), sys.env.getOrElse("SONATYPE_PASS", "")),
+    sys.env.getOrElse("SONATYPE_USERNAME", ""), sys.env.getOrElse("SONATYPE_PASSWORD", "")),
   homepage := Some(url("https://github.com/smqd/")),
   scmInfo := Some(ScmInfo(url("https://github.com/smqd/smqd-core"), "scm:git@github.com:smqd/smqd-core.git")),
   developers := List(

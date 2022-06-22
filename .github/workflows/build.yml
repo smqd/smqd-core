@@ -18,7 +18,9 @@ jobs:
         lfs: false
     - name: Build and Publish
       env:
-        SONATYPE_USER: '${{ secrets.SONATYPE_USER }}'
-        SONATYPE_PASS: '${{ secrets.SONATYPE_PASS }}'
-      run: sbt compile test publish
+        SONATYPE_USERNAME: '${{ secrets.SONATYPE_USER }}'
+        SONATYPE_PASSWORD: '${{ secrets.SONATYPE_PASS }}'
+        PGP_PASSPHRASE: '${{ secrets.PGP_PASSPHRASE }}'
+        PGP_SECRET: '${{ secrets.PGP_SECRET }}'
+      run: sbt compile test ci-release
       
