@@ -18,7 +18,7 @@ val commitVersion_    = s"echo commit-version = $gitCommitFull" #>> versionFile 
 val `smqd-core` = project.in(file(".")).settings(
   organization := "com.thing2x",
   name := "smqd-core",
-  version := versionString,
+  //  version := versionString, // handedl by https://github.com/sbt/sbt-dynver
   scalaVersion := Dependencies.Versions.scala,
   ThisBuild / scalacOptions ++= Seq("-feature", "-deprecation"),
   ThisBuild / versionScheme := Some("early-semver"),
@@ -42,23 +42,24 @@ val `smqd-core` = project.in(file(".")).settings(
   )
 ).settings(
   // Publishing
-  publishTo := {
-    val nexus = "https://oss.sonatype.org/"
-    if (isSnapshot.value)
-      Some("snapshots" at nexus + "content/repositories/snapshots")
-    else
-      Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  },
+  // handled by https://github.com/sbt/sbt-ci-release
+//  publishTo := {
+//    val nexus = "https://oss.sonatype.org/"
+//    if (isSnapshot.value)
+//      Some("snapshots" at nexus + "content/repositories/snapshots")
+//    else
+//      Some("releases" at nexus + "service/local/staging/deploy/maven2")
+//  },
   //credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials"),
-  credentials += Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org",
-    sys.env.getOrElse("SONATYPE_USERNAME", ""), sys.env.getOrElse("SONATYPE_PASSWORD", "")),
+//  credentials += Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org",
+//    sys.env.getOrElse("SONATYPE_USERNAME", ""), sys.env.getOrElse("SONATYPE_PASSWORD", "")),
   homepage := Some(url("https://github.com/smqd/")),
   scmInfo := Some(ScmInfo(url("https://github.com/smqd/smqd-core"), "scm:git@github.com:smqd/smqd-core.git")),
   developers := List(
     Developer("OutOfBedlam", "Kwon, Yeong Eon", sys.env.getOrElse("SONATYPE_DEVELOPER_0", ""), url("http://www.uangel.com"))
   ),
   Test / publishArtifact := false, // Not publishing the test artifacts (default)
-  publishMavenStyle := true
+//  publishMavenStyle := true
 ).settings(
   // sbt fork sqmd process to allow javaOptions parameters from command line
   run / fork := true,
