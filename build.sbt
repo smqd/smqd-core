@@ -4,7 +4,7 @@ import sbt.Keys._
 import scala.sys.process._
 import scala.language.postfixOps
 
-val versionString = "0.5.0"
+val versionString = "0.5.1-SNAPSHOT"
 
 lazy val gitBranch = "git rev-parse --abbrev-ref HEAD".!!.trim
 lazy val gitCommitShort = "git rev-parse HEAD | cut -c 1-7".!!.trim
@@ -18,7 +18,7 @@ val commitVersion_    = s"echo commit-version = $gitCommitFull" #>> versionFile 
 val `smqd-core` = project.in(file(".")).settings(
   organization := "com.thing2x",
   name := "smqd-core",
-  //  version := versionString, // handedl by https://github.com/sbt/sbt-dynver
+  project / version := versionString,
   scalaVersion := Dependencies.Versions.scala,
   ThisBuild / scalacOptions ++= Seq("-feature", "-deprecation"),
   ThisBuild / versionScheme := Some("early-semver"),
@@ -41,25 +41,12 @@ val `smqd-core` = project.in(file(".")).settings(
     "-skip-packages", "akka.pattern:org.apache"
   )
 ).settings(
-  // Publishing
-  // handled by https://github.com/sbt/sbt-ci-release
-//  publishTo := {
-//    val nexus = "https://oss.sonatype.org/"
-//    if (isSnapshot.value)
-//      Some("snapshots" at nexus + "content/repositories/snapshots")
-//    else
-//      Some("releases" at nexus + "service/local/staging/deploy/maven2")
-//  },
-  //credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials"),
-//  credentials += Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org",
-//    sys.env.getOrElse("SONATYPE_USERNAME", ""), sys.env.getOrElse("SONATYPE_PASSWORD", "")),
   homepage := Some(url("https://github.com/smqd/")),
-  scmInfo := Some(ScmInfo(url("https://github.com/smqd/smqd-core"), "scm:git@github.com:smqd/smqd-core.git")),
   developers := List(
     Developer("OutOfBedlam", "Kwon, Yeong Eon", sys.env.getOrElse("SONATYPE_DEVELOPER_0", ""), url("http://www.uangel.com"))
   ),
+  ThisBuild / dynverSonatypeSnapshots := true,
   Test / publishArtifact := false, // Not publishing the test artifacts (default)
-//  publishMavenStyle := true
 ).settings(
   // sbt fork sqmd process to allow javaOptions parameters from command line
   run / fork := true,

@@ -41,8 +41,8 @@ object Dependencies {
     //////////////////////////////////
     // Logging
     "com.typesafe.akka" %% "akka-slf4j" % Versions.akka force(),
-    "ch.qos.logback" % "logback-classic" % "1.2.3", // 01-Apr-2017 updated
-    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
+    "ch.qos.logback" % "logback-classic" % "1.2.11",
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
     //////////////////////////////////
     // Test
     "com.typesafe.akka" %% "akka-testkit" % Versions.akka % Test,
