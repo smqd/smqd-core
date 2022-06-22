@@ -14,7 +14,7 @@ object Dependencies {
   }
 
   val smqdLibs: Seq[ModuleID] = Seq(
-    "com.thing2x" %% "smqd-lib-logging" % "0.1.0"
+    "com.thing2x" %% "smqd-lib-logging" % "0.1.1"
   )
   
   val akka: Seq[ModuleID] = Seq(
