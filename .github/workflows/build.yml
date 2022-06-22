@@ -16,11 +16,13 @@ jobs:
       uses: actions/checkout@v2
       with:
         lfs: false
-    - name: Build and Publish
+    - name: Build
+      run: sbt compile test
+    - name: Publish
       env:
         SONATYPE_USERNAME: '${{ secrets.SONATYPE_USER }}'
         SONATYPE_PASSWORD: '${{ secrets.SONATYPE_PASS }}'
         PGP_PASSPHRASE: '${{ secrets.PGP_PASSPHRASE }}'
         PGP_SECRET: '${{ secrets.PGP_SECRET }}'
-      run: sbt compile test ci-release
+      run: sbt ci-release
       
